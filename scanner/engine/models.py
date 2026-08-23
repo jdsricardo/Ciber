@@ -1,0 +1,123 @@
+from __future__ import annotations
+from dataclasses import asdict, dataclass, field
+from enum import Enum
+from hashlib import sha256
+from typing import Any
+
+class ScanMode(str, Enum):
+    PASSIVE = "passive"
+    SAFE_ACTIVE = "safe_active"
+    AUTHENTICATED = "authenticated"
+
+class FindingStatus(str, Enum):
+    CONFIRMED = "confirmed"
+    HIGH_CONFIDENCE = "high_confidence"
+    PROBABLE = "probable"
+    POSSIBLE = "possible"
+    INFORMATIONAL = "informational"
+    MANUAL_REVIEW = "manual_review_required"
+
+@dataclass(frozen=True)
+class InputPoint:
+    location: str
+    name: str
+    value: str
+    data_type: str = "string"
+    @property
+    def identifier(self) -> str:
+        return sha256(f"{self.location}:{self.name}".encode()).hexdigest()[:16]
+
+@dataclass
+class HttpRequest:
+    method: str
+    url: str
+    headers: dict[str, str] = field(default_factory=dict)
+    body: bytes = b""
+    inputs: list[InputPoint] = field(default_factory=list)
+
+@dataclass
+class HttpResponse:
+    status: int
+    url: str
+    headers: dict[str, str]
+    header_pairs: list[tuple[str, str]]
+    body: bytes
+    elapsed_ms: int
+    redirect_url: str | None = None
+    tls_protocol: str | None = None
+    certificate: dict[str, Any] = field(default_factory=dict)
+
+@dataclass
+class ResponseSummary:
+    status: int
+    length: int
+    normalized_hash: str
+    normalized_text: str
+    structure: list[str]
+    elapsed_ms: int
+
+@dataclass
+class ResponseDiff:
+    similarity: float
+    status_changed: bool
+    length_delta: int
+    added_headers: list[str]
+    removed_headers: list[str]
+    structure_changed: bool
+    timing_delta_ms: int
+
+@dataclass
+class Evidence:
+    reason: str
+    baseline: dict[str, Any]
+    probe_request: dict[str, Any]
+    probe_response: dict[str, Any]
+    differences: dict[str, Any]
+    verification_count: int = 1
+
+@dataclass
+class Finding:
+    fingerprint: str
+    title: str
+    category: str
+    cwe: str
+    owasp: str
+    wstg: str
+    endpoint: str
+    method: str
+    parameter: str | None
+    parameter_location: str | None
+    severity: str
+    confidence: int
+    status: str
+    description: str
+    evidence: Evidence
+    developer_impact: str
+    remediation: str
+    manual_review_required: bool = False
+    def to_dict(self) -> dict[str, Any]:
+        data=asdict(self)
+        data["affected_url"]=self.endpoint
+        data["evidence_summary"]=self.evidence.reason
+        return data
+
+@dataclass
+class ScanLimits:
+    max_requests: int = 40
+    max_requests_per_endpoint: int = 12
+    max_response_bytes: int = 262_144
+    request_timeout_seconds: float = 10.0
+    global_timeout_seconds: float = 60.0
+    min_request_interval_seconds: float = 0.15
+    max_redirects: int = 3
+    max_depth: int = 2
+    max_attempts_per_parameter: int = 4
+
+@dataclass
+class ScanContext:
+    target_url: str
+    mode: ScanMode
+    limits: ScanLimits
+    allow_private: bool = False
+    cancel_file: str | None = None
+    log_file: str | None = None

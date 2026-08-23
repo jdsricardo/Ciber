@@ -1,0 +1,74 @@
+Termo de Referência — Atividade 1
+Projeto de TCC — Segurança da Informação
+1. Identificação
+Campo	Conteúdo
+Nome do projeto	Plataforma Web de Apoio à Análise de Segurança de Aplicações
+Solicitante	Ricardo José da Silva
+Equipe executora e papéis	Ricardo José da Silva — responsável pelo levantamento, desenvolvimento, testes e documentação
+Data de emissão	19/08/2026
+Versão	1.0
+Vínculo acadêmico	Engenharia de Software — Turma EGS0011 — Experiência Profissional (TCC 1) — UNIASSELVI
+
+2. Contexto e justificativa
+No contexto observado, uma equipe de desenvolvimento mantém mais de cinco aplicações web internas sem contar com um profissional dedicado exclusivamente à segurança da informação. As verificações de segurança ocorrem de forma pontual e não necessariamente a cada nova versão ou manutenção, o que pode permitir que falhas permaneçam desconhecidas até etapas posteriores. Essa situação aumenta o risco de retrabalho, exposição indevida de informações e correções emergenciais após a disponibilização de uma aplicação. Os desenvolvedores dispõem de computadores de trabalho, acesso aos ambientes de homologação e produção e ferramentas de desenvolvimento, porém não possuem uma solução centralizada que apresente os problemas de segurança de maneira padronizada e orientada à correção. O projeto é justificado pela necessidade de tornar a avaliação inicial de segurança mais acessível e incorporável à rotina de desenvolvimento.
+3. Objeto e escopo
+3.1 Objetivo
+Identificar possíveis vulnerabilidades em aplicações web e apresentar cada achado com severidade, evidências e orientação de correção de forma verificável ao desenvolvedor.
+3.2 Escopo incluído
+Nº	Funcionalidade prevista
+1	Cadastrar uma aplicação por nome e endereço para submissão à análise.
+2	Executar, sob solicitação do usuário, um conjunto mínimo de 10 verificações de segurança previamente definidas.
+3	Registrar cada achado com aplicação, endereço afetado, categoria, evidência e data e hora da análise.
+4	Classificar os achados por severidade e calcular um Security Score de 0 a 100 para cada análise concluída.
+5	Exibir, para cada achado, uma explicação do risco e uma recomendação prática de mitigação ou correção.
+6	Consultar o histórico de análises de uma aplicação por período e visualizar os resultados anteriores.
+7	Comparar duas análises da mesma aplicação e indicar achados novos, persistentes e corrigidos.
+8	Gerar relatório da análise contendo o resumo, o Security Score e a relação dos achados identificados.
+
+3.3 Escopo excluído
+Item excluído	Razão da exclusão
+Exploração automática ou destrutiva das vulnerabilidades	A proposta é apoiar a identificação e a correção, evitando ações que possam comprometer disponibilidade, integridade ou dados do sistema analisado.
+Análise de código-fonte e integração com repositórios privados	Esta versão considera apenas informações acessíveis durante a análise da aplicação e não pressupõe acesso ao repositório.
+Monitoramento contínuo em tempo real	Exigiria infraestrutura permanente de execução e acompanhamento, incompatível com o prazo e o escopo desta versão acadêmica.
+Substituição de auditoria especializada ou pentest profissional	A ferramenta terá caráter de apoio ao desenvolvedor e não pretende garantir ausência de vulnerabilidades nem substituir avaliação especializada.
+
+4. Produtos entregáveis
+Produto	Formato	Prazo
+Aplicação web funcional	Versão executável demonstrável em ambiente de teste	Aula 14
+
+Código-fonte	Repositório com controle de versão e histórico preservado	Aula 14
+Especificação de requisitos	Documento com requisitos funcionais, não funcionais e rastreabilidade	Aula 4
+Documento de arquitetura	Descrição da arquitetura, componentes, dados e principais fluxos	Aula 9
+Plano e resultados de testes	Casos de teste, execuções e registro dos resultados	Aula 14
+Manual de instalação e uso	Documento com requisitos de ambiente e instruções de operação	Aula 14
+
+5. Critérios de aceitação
+Os produtos serão considerados aceitos quando atenderem às condições abaixo, verificáveis por demonstração ou inspeção documental.
+Nº	Critério de aceitação	Forma de verificação
+CA-01	Ao iniciar uma análise de uma aplicação de teste, o sistema executa pelo menos 10 verificações previamente definidas e registra a conclusão da execução.	Demonstração com aplicação de laboratório e conferência do registro da análise.
+CA-02	Cada achado apresentado contém, no mínimo, severidade, categoria, evidência e recomendação de correção.	Inspeção dos resultados de uma análise que contenha achados conhecidos.
+CA-03	Toda análise concluída apresenta um Security Score numérico entre 0 e 100 calculado a partir dos achados registrados.	Demonstração de análises com diferentes quantidades e severidades de achados.
+CA-04	A comparação entre duas análises da mesma aplicação identifica achados novos, persistentes e corrigidos quando essas situações existirem.	Execução de duas análises controladas antes e depois da alteração de uma vulnerabilidade de laboratório.
+CA-05	A consulta a um histórico contendo 1.000 achados é apresentada em até 3 segundos no ambiente de teste definido para o projeto.	Medição com base previamente carregada com 1.000 registros.
+CA-06	O relatório gerado contém identificação da aplicação, data da análise, Security Score e todos os achados exibidos na interface.	Geração do relatório e comparação com os resultados apresentados em tela.
+CA-07	Uma pessoa que não participou do desenvolvimento consegue instalar e executar a aplicação seguindo apenas o manual entregue.	Instalação assistida em ambiente sem configuração prévia do projeto.
+
+6. Restrições e premissas
+6.1 Restrições
+• O prazo de desenvolvimento está limitado ao calendário da disciplina e ao encerramento do semestre letivo.
+• O projeto será desenvolvido com os equipamentos computacionais já disponíveis ao acadêmico, sem aquisição obrigatória de infraestrutura dedicada.
+• Os testes deverão ocorrer somente em aplicações próprias, ambientes de laboratório ou sistemas para os quais exista autorização explícita de análise.
+• A solução não pressupõe acesso ao código-fonte, ao banco de dados ou à infraestrutura interna das aplicações analisadas.
+• A primeira versão ficará limitada ao conjunto de verificações definido para o projeto e não terá como objetivo detectar todas as classes de vulnerabilidade existentes.
+6.2 Premissas
+• Haverá disponibilidade de ao menos uma aplicação de laboratório com vulnerabilidades conhecidas para validação das verificações implementadas.
+• Os ambientes utilizados nos testes permanecerão acessíveis durante as etapas de desenvolvimento e validação.
+• As categorias e níveis de severidade adotados no projeto permanecerão estáveis durante a primeira versão ou terão eventuais alterações registradas no controle de versão.
+• O usuário da ferramenta terá autorização para submeter a aplicação informada às verificações de segurança.
+7. Controle de alterações
+Toda alteração posterior ao aceite desta versão deverá ser registrada com identificação do item alterado, razão e impacto estimado em prazo ou esforço.
+Versão	Data	Item alterado	Razão e impacto
+1.0	19/08/2026	Emissão inicial	—
+			
+			
+
