@@ -5,10 +5,30 @@ wrong and *how confident* they are, never how an Evidence/Finding object is shap
 """
 from __future__ import annotations
 from typing import Any
+from urllib.parse import parse_qsl, quote, urlencode, urlparse, urlunparse
 from engine.confidence import ConfidenceInputs, score, status_for
 from engine.models import Evidence, Finding, HttpRequest, HttpResponse
 from engine.safety import redact_headers
 from .catalog import CATALOG
+
+def mutate_query_param(url: str, name: str, value: str, already_encoded: bool = False) -> str:
+    """Returns `url` with query parameter `name` replaced by `value` (added if absent).
+
+    `already_encoded=True` sends `value` verbatim after the `=` instead of running it
+    through `urlencode`, which otherwise double-encodes a literal `%0d%0a`-style payload
+    into `%250d%250a` — wrong for detectors (CRLF, command injection) that need the exact
+    percent-escapes a real attacker would send on the wire.
+    """
+    parsed = urlparse(url)
+    params = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    if already_encoded:
+        params.pop(name, None)
+        other = urlencode(params)
+        pair = f"{quote(name, safe='')}={value}"
+        query = f"{other}&{pair}" if other else pair
+        return urlunparse(parsed._replace(query=query))
+    params[name] = value
+    return urlunparse(parsed._replace(query=urlencode(params)))
 
 def sanitize_request(request: HttpRequest) -> dict[str, Any]:
     return {"method": request.method, "url": request.url, "headers": redact_headers(request.headers)}
@@ -67,8 +87,9 @@ def build_finding(
     differences: dict[str, Any] | None = None,
     evidence_snippet: str = "",
     baseline: dict[str, Any] | None = None,
+    catalog: dict[str, dict[str, str]] | None = None,
 ) -> Finding:
-    entry = CATALOG[check_id]
+    entry = (catalog or CATALOG)[check_id]
     confidence = score(confidence_inputs)
     status = status_for(confidence, manual_review_required, informational)
     evidence = Evidence(

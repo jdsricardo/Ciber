@@ -24,7 +24,7 @@ class CookieSecurityPlugin(ScannerPlugin):
         ),
     )
 
-    def analyze(self, request: HttpRequest, responses: list[HttpResponse], context: ScanContext) -> list[Finding]:
+    def analyze(self, request: HttpRequest, responses: list[HttpResponse], context: ScanContext, transport=None) -> list[Finding]:
         findings: list[Finding] = []
         primary = responses[0]
         cookies = _cookies(primary)

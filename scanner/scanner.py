@@ -7,18 +7,28 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from engine.runner import run_passive_scan
+from engine.runner import run_scan
+
+# Finding text is authored in Portuguese. PHP reads this process's stdout as UTF-8 (via
+# json_decode), but on Windows, stdout defaults to the console's ANSI code page once it is
+# redirected to a pipe, silently mangling accented characters into invalid UTF-8. Force UTF-8
+# regardless of platform or how the process is invoked.
+for stream in (sys.stdout, sys.stderr):
+    if hasattr(stream, "reconfigure"):
+        stream.reconfigure(encoding="utf-8")
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("url")
+    parser.add_argument("--mode", default="passive", choices=["passive", "safe_active"], help="passive: header/config observation only. safe_active: also probes discovered parameters (SQLi, XSS, etc.)")
     parser.add_argument("--allow-private", action="store_true", help="Lab use only")
     parser.add_argument("--log-file", default=None, help="JSONL request log path")
     parser.add_argument("--cancel-file", default=None, help="Presence of this file aborts the scan")
     args = parser.parse_args()
     try:
-        result = run_passive_scan(
+        result = run_scan(
             args.url,
+            mode=args.mode,
             allow_private=args.allow_private,
             cancel_file=args.cancel_file,
             log_file=args.log_file,

@@ -33,7 +33,7 @@ class InformationDisclosurePlugin(ScannerPlugin):
         ),
     )
 
-    def analyze(self, request: HttpRequest, responses: list[HttpResponse], context: ScanContext) -> list[Finding]:
+    def analyze(self, request: HttpRequest, responses: list[HttpResponse], context: ScanContext, transport=None) -> list[Finding]:
         findings: list[Finding] = []
         primary = responses[0]
         body = primary.body.decode("utf-8", errors="replace")
@@ -63,7 +63,7 @@ class InformationDisclosurePlugin(ScannerPlugin):
             findings.append(build_finding(
                 check_id="disclosure.stack_trace", request=request, response=primary,
                 severity="high" if reproduced else "medium",
-                reason=f"Matched pattern near: ...{body[max(0, match.start() - 30):match.end() + 30]}...",
+                reason=f"Padrão encontrado próximo de: ...{body[max(0, match.start() - 30):match.end() + 30]}...",
                 confidence_inputs=deterministic_confidence(reproducibility, evidence_strength=70, ambiguity=15),
                 manual_review_required=not reproduced,
                 evidence_snippet=match.group(0),

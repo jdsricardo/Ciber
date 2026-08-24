@@ -21,7 +21,7 @@ class TransportSecurityPlugin(ScannerPlugin):
         checks=("transport.https", "tls.legacy_protocol", "tls.certificate_expiry", "headers.hsts_missing", "headers.hsts_weak"),
     )
 
-    def analyze(self, request: HttpRequest, responses: list[HttpResponse], context: ScanContext) -> list[Finding]:
+    def analyze(self, request: HttpRequest, responses: list[HttpResponse], context: ScanContext, transport=None) -> list[Finding]:
         findings: list[Finding] = []
         primary = responses[0]
         is_https = request.url.startswith("https://")
@@ -32,7 +32,7 @@ class TransportSecurityPlugin(ScannerPlugin):
             findings.append(build_finding(
                 check_id="transport.https", request=request, response=primary,
                 severity="critical" if sensitive else "high",
-                reason="The submitted URL uses the http:// scheme.",
+                reason="A URL informada usa o esquema http://.",
                 confidence_inputs=deterministic_confidence(reproducibility),
                 evidence_snippet=request.url,
             ))
@@ -44,7 +44,7 @@ class TransportSecurityPlugin(ScannerPlugin):
                 findings.append(build_finding(
                     check_id="tls.legacy_protocol", request=request, response=primary,
                     severity="high",
-                    reason=f"Negotiated protocol was {primary.tls_protocol}.",
+                    reason=f"O protocolo negociado foi {primary.tls_protocol}.",
                     confidence_inputs=deterministic_confidence(reproducibility),
                     evidence_snippet=str(primary.tls_protocol),
                 ))
@@ -58,7 +58,7 @@ class TransportSecurityPlugin(ScannerPlugin):
                     findings.append(build_finding(
                         check_id="tls.certificate_expiry", request=request, response=primary,
                         severity="critical" if remaining_days < 0 else "medium",
-                        reason=f"Certificate lifetime remaining: {remaining_days} days.",
+                        reason=f"Validade restante do certificado: {remaining_days} dias.",
                         confidence_inputs=deterministic_confidence(100),
                         evidence_snippet=f"notAfter={not_after}",
                     ))
@@ -68,7 +68,7 @@ class TransportSecurityPlugin(ScannerPlugin):
             findings.append(build_finding(
                 check_id="headers.hsts_missing", request=request, response=primary,
                 severity="high" if sensitive else "medium",
-                reason="Strict-Transport-Security is absent from the HTTPS response.",
+                reason="Strict-Transport-Security está ausente da resposta HTTPS.",
                 confidence_inputs=deterministic_confidence(reproducibility),
             ))
         else:
@@ -79,7 +79,7 @@ class TransportSecurityPlugin(ScannerPlugin):
                 findings.append(build_finding(
                     check_id="headers.hsts_weak", request=request, response=primary,
                     severity="low",
-                    reason=f"HSTS value: {hsts_value}",
+                    reason=f"Valor do HSTS: {hsts_value}",
                     confidence_inputs=deterministic_confidence(reproducibility),
                     evidence_snippet=hsts_value,
                 ))

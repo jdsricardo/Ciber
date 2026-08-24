@@ -17,7 +17,7 @@ class CacheSecurityPlugin(ScannerPlugin):
         checks=("cache.sensitive_no_store_missing",),
     )
 
-    def analyze(self, request: HttpRequest, responses: list[HttpResponse], context: ScanContext) -> list[Finding]:
+    def analyze(self, request: HttpRequest, responses: list[HttpResponse], context: ScanContext, transport=None) -> list[Finding]:
         primary = responses[0]
         session_aware = bool(context.page and context.page.sets_cookies) or "authorization" in primary.headers.get("vary", "").lower()
         if not session_aware:

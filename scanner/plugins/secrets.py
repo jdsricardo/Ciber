@@ -45,7 +45,7 @@ class SecretsExposurePlugin(ScannerPlugin):
         checks=("secrets.high_confidence_pattern", "secrets.heuristic_pattern"),
     )
 
-    def analyze(self, request: HttpRequest, responses: list[HttpResponse], context: ScanContext) -> list[Finding]:
+    def analyze(self, request: HttpRequest, responses: list[HttpResponse], context: ScanContext, transport=None) -> list[Finding]:
         findings: list[Finding] = []
         primary = responses[0]
         body = primary.body.decode("utf-8", errors="replace")
@@ -60,7 +60,7 @@ class SecretsExposurePlugin(ScannerPlugin):
             findings.append(build_finding(
                 check_id="secrets.high_confidence_pattern", request=request, response=primary,
                 severity="critical",
-                reason=f"Matched the {name} format.",
+                reason=f"Correspondeu ao formato de {name}.",
                 confidence_inputs=deterministic_confidence(reproducibility, evidence_strength=95),
                 manual_review_required=True,
                 evidence_snippet=f"{name}: {mask(match.group(0))}",
@@ -81,7 +81,7 @@ class SecretsExposurePlugin(ScannerPlugin):
             findings.append(build_finding(
                 check_id="secrets.heuristic_pattern", request=request, response=primary,
                 severity="high",
-                reason=f"Field name '{match.group(1)}' is followed by a {len(value)}-character, high-entropy value (entropy={entropy:.2f}) that is stable across repeated requests.",
+                reason=f"O campo '{match.group(1)}' é seguido por um valor de {len(value)} caracteres e alta entropia (entropia={entropy:.2f}), estável entre requisições repetidas.",
                 confidence_inputs=deterministic_confidence(100, evidence_strength=55, ambiguity=25),
                 manual_review_required=True,
                 evidence_snippet=f"{match.group(1)}: {mask(value)}",

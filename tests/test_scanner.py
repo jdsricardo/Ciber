@@ -21,9 +21,9 @@ class CatalogTests(unittest.TestCase):
     def test_catalog_has_broad_passive_coverage(self):
         self.assertGreaterEqual(len(CATALOG), 30)
         categories = {entry["category"] for entry in CATALOG.values()}
-        self.assertTrue({"Transport Security", "Security Headers", "Session Management",
-                          "CORS Misconfiguration", "Cache Security", "Information Disclosure",
-                          "Secrets Exposure"} <= categories)
+        self.assertTrue({"Segurança de Transporte", "Cabeçalhos de Segurança", "Gerenciamento de Sessão",
+                          "Configuração Incorreta de CORS", "Segurança de Cache", "Exposição de Informações",
+                          "Exposição de Segredos"} <= categories)
 
     def test_every_entry_declares_taxonomy_fields(self):
         for check_id, entry in CATALOG.items():

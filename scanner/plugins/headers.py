@@ -25,7 +25,7 @@ class SecurityHeadersPlugin(ScannerPlugin):
         ),
     )
 
-    def analyze(self, request: HttpRequest, responses: list[HttpResponse], context: ScanContext) -> list[Finding]:
+    def analyze(self, request: HttpRequest, responses: list[HttpResponse], context: ScanContext, transport=None) -> list[Finding]:
         findings: list[Finding] = []
         primary = responses[0]
         is_html = bool(context.page and context.page.is_html)

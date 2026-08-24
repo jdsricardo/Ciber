@@ -54,3 +54,8 @@ ALTER TABLE findings
   ADD COLUMN IF NOT EXISTS description TEXT NULL AFTER status,
   ADD COLUMN IF NOT EXISTS evidence_summary VARCHAR(500) NULL AFTER description,
   ADD COLUMN IF NOT EXISTS manual_review_required TINYINT(1) NOT NULL DEFAULT 0 AFTER remediation;
+
+-- Phase 2 active-detection increment: records whether an analysis was passive-only or
+-- also ran safe-active probes (SQL injection, XSS, etc.) against discovered parameters.
+ALTER TABLE analyses
+  ADD COLUMN IF NOT EXISTS mode VARCHAR(20) NOT NULL DEFAULT 'passive' AFTER application_id;

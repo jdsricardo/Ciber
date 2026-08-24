@@ -23,7 +23,7 @@ class CorsPassivePlugin(ScannerPlugin):
         checks=("cors.wildcard_origin", "cors.credentials_with_wildcard"),
     )
 
-    def analyze(self, request: HttpRequest, responses: list[HttpResponse], context: ScanContext) -> list[Finding]:
+    def analyze(self, request: HttpRequest, responses: list[HttpResponse], context: ScanContext, transport=None) -> list[Finding]:
         findings: list[Finding] = []
         primary = responses[0]
         origin = primary.headers.get("access-control-allow-origin", "").strip()
@@ -36,7 +36,7 @@ class CorsPassivePlugin(ScannerPlugin):
         findings.append(build_finding(
             check_id="cors.wildcard_origin", request=request, response=primary,
             severity="high" if sensitive else "medium",
-            reason="Access-Control-Allow-Origin: * was returned without an Origin request header.",
+            reason="Access-Control-Allow-Origin: * foi retornado sem um cabeçalho Origin na requisição.",
             confidence_inputs=deterministic_confidence(reproducibility, evidence_strength=90),
             evidence_snippet=f"Access-Control-Allow-Origin: {origin}",
         ))
@@ -44,7 +44,7 @@ class CorsPassivePlugin(ScannerPlugin):
             findings.append(build_finding(
                 check_id="cors.credentials_with_wildcard", request=request, response=primary,
                 severity="critical",
-                reason="The response combines a wildcard origin with Access-Control-Allow-Credentials: true.",
+                reason="A resposta combina uma origem coringa com Access-Control-Allow-Credentials: true.",
                 confidence_inputs=deterministic_confidence(reproducibility, evidence_strength=95),
                 evidence_snippet="Access-Control-Allow-Credentials: true",
             ))
