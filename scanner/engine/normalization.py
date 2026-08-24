@@ -3,7 +3,7 @@ import re
 from difflib import SequenceMatcher
 from hashlib import sha256
 from html.parser import HTMLParser
-from .models import HttpResponse, ResponseDiff, ResponseSummary
+from .models import HttpResponse, PageContext, ResponseDiff, ResponseSummary
 
 VOLATILE = [
     (re.compile(r"\b\d{4}-\d{2}-\d{2}[T ][0-9:.+Z-]+\b"), "<TIMESTAMP>"),
@@ -34,6 +34,22 @@ def summarize(response: HttpResponse) -> ResponseSummary:
 def compare(left: ResponseSummary,right: ResponseSummary,left_headers=None,right_headers=None) -> ResponseDiff:
     lh=set((left_headers or {}).keys());rh=set((right_headers or {}).keys())
     return ResponseDiff(round(SequenceMatcher(None,left.normalized_text,right.normalized_text).ratio(),4),left.status!=right.status,right.length-left.length,sorted(rh-lh),sorted(lh-rh),left.structure!=right.structure,right.elapsed_ms-left.elapsed_ms)
+
+def build_page_context(response: HttpResponse) -> PageContext:
+    content_type = response.headers.get("content-type", "")
+    body_lower = response.body.decode("utf-8", errors="replace").lower()
+    has_session_cookie = any(
+        key.lower() == "set-cookie" and re.search(r"(?i)(sess|auth|token|logged)", value)
+        for key, value in response.header_pairs
+    )
+    return PageContext(
+        has_forms="<form" in body_lower,
+        has_password_field=bool(re.search(r'type=["\']?password', body_lower)),
+        sets_cookies=any(k.lower() == "set-cookie" for k, _ in response.header_pairs),
+        is_html="html" in content_type,
+        is_json="json" in content_type,
+        looks_authenticated=has_session_cookie or "authorization" in response.headers,
+    )
 
 def baseline_stability(summaries: list[ResponseSummary]) -> float:
     if len(summaries)<2:return 1.0

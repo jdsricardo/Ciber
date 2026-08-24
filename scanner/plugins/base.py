@@ -5,6 +5,7 @@ from engine.models import Finding,HttpRequest,HttpResponse,ScanContext
 @dataclass(frozen=True)
 class PluginMetadata:
     name:str;category:str;cwe:str;owasp:str;wstg:str;kind:str;risk:str
+    checks:tuple[str,...]=()
 
 class ScannerPlugin(ABC):
     metadata:PluginMetadata

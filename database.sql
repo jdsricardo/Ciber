@@ -38,3 +38,19 @@ CREATE TABLE IF NOT EXISTS findings (
   INDEX idx_finding_analysis (analysis_id),
   INDEX idx_finding_fingerprint (analysis_id, fingerprint)
 ) ENGINE=InnoDB;
+
+-- Phase 1 scanner-engine enrichment: category/taxonomy, confidence separate from severity,
+-- and finding status. Additive only, so re-running this file against an existing database is safe.
+ALTER TABLE findings
+  ADD COLUMN IF NOT EXISTS category VARCHAR(80) NULL AFTER title,
+  ADD COLUMN IF NOT EXISTS cwe VARCHAR(120) NULL AFTER category,
+  ADD COLUMN IF NOT EXISTS owasp VARCHAR(120) NULL AFTER cwe,
+  ADD COLUMN IF NOT EXISTS wstg VARCHAR(120) NULL AFTER owasp,
+  ADD COLUMN IF NOT EXISTS method VARCHAR(10) NULL AFTER affected_url,
+  ADD COLUMN IF NOT EXISTS parameter VARCHAR(180) NULL AFTER method,
+  ADD COLUMN IF NOT EXISTS parameter_location VARCHAR(40) NULL AFTER parameter,
+  ADD COLUMN IF NOT EXISTS confidence TINYINT UNSIGNED NULL AFTER severity,
+  ADD COLUMN IF NOT EXISTS status VARCHAR(30) NULL AFTER confidence,
+  ADD COLUMN IF NOT EXISTS description TEXT NULL AFTER status,
+  ADD COLUMN IF NOT EXISTS evidence_summary VARCHAR(500) NULL AFTER description,
+  ADD COLUMN IF NOT EXISTS manual_review_required TINYINT(1) NOT NULL DEFAULT 0 AFTER remediation;

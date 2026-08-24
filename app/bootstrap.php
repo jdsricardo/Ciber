@@ -41,6 +41,20 @@ function all(string $sql, array $params=[]): array { $s=db()->prepare($sql);$s->
 function analysis(int $id): array|false { return one('SELECT n.*,a.name application_name,a.base_url FROM analyses n JOIN applications a ON a.id=n.application_id WHERE n.id=?',[$id]); }
 function findings(int $id): array { return all("SELECT * FROM findings WHERE analysis_id=? ORDER BY FIELD(severity,'critical','high','medium','low'),title",[$id]); }
 function calculateScore(array $rows): int { $weights=['critical'=>30,'high'=>15,'medium'=>7,'low'=>2];$penalty=0;foreach($rows as $row)$penalty+=$weights[$row['severity']]??0;return max(0,100-$penalty); }
+function renderFinding(array $f): string {
+    $confidence=$f['confidence']!==null?(int)$f['confidence'].'% confidence':'';
+    $status=$f['status']?ucwords(str_replace('_',' ',$f['status'])):'';
+    $statusBadge=$status?'<span class="status-badge">'.e($status).($confidence?' &middot; '.e($confidence):'').'</span>':'';
+    $manualBadge=!empty($f['manual_review_required'])?'<span class="badge manual">Manual review required</span>':'';
+    $observed=$f['evidence_summary']?:($f['description']?:'');
+    $evidenceJson=$f['evidence']?json_encode(json_decode($f['evidence'],true),JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES):'';
+    $taxonomy='Category: '.e($f['category']?:'—').'<br>CWE: '.e($f['cwe']?:'—').'<br>OWASP: '.e($f['owasp']?:'—').'<br>WSTG: '.e($f['wstg']?:'—');
+    if($f['parameter'])$taxonomy.='<br>Parameter: '.e($f['parameter']).' ('.e($f['parameter_location']?:'unknown location').')';
+    return '<article class="finding"><div class="finding-title"><span class="severity '.e($f['severity']).'">'.e(strtoupper($f['severity'])).'</span>'.$statusBadge.$manualBadge.'<h3>'.e($f['title']).'</h3></div>'
+        .'<div class="explain"><p><b>What the scanner observed</b><br>'.e($observed).'</p><p><b>Why this matters to your application</b><br>'.e($f['developer_impact']).'</p><p><b>How to fix it</b><br>'.e($f['remediation']).'</p></div>'
+        .'<details><summary>Technical context</summary><p>Check ID: <code>'.e($f['fingerprint']).'</code><br>'.$taxonomy.'<br>Affected URL: <code>'.e($f['affected_url']).'</code></p>'
+        .($evidenceJson?'<pre class="evidence-json">'.e($evidenceJson).'</pre>':'').'</details></article>';
+}
 function scanner(string $url): array {
     $cmd=escapeshellarg(config('python_binary')).' '.escapeshellarg(ROOT.'/scanner/scanner.py').' '.escapeshellarg($url);
     if(config('allow_private_targets'))$cmd.=' --allow-private';

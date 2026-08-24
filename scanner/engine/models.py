@@ -114,6 +114,16 @@ class ScanLimits:
     max_attempts_per_parameter: int = 4
 
 @dataclass
+class PageContext:
+    """Contextual signals used to keep severity/confidence proportionate instead of flat rules."""
+    has_forms: bool = False
+    has_password_field: bool = False
+    sets_cookies: bool = False
+    is_html: bool = False
+    is_json: bool = False
+    looks_authenticated: bool = False
+
+@dataclass
 class ScanContext:
     target_url: str
     mode: ScanMode
@@ -121,3 +131,4 @@ class ScanContext:
     allow_private: bool = False
     cancel_file: str | None = None
     log_file: str | None = None
+    page: PageContext | None = None
