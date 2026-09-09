@@ -27,6 +27,10 @@ def main() -> int:
     parser.add_argument("--header", action="append", default=[], metavar="NAME: VALUE",
                         help="Header sent on every request (repeatable); e.g. authenticated scanning")
     parser.add_argument("--cookie", default=None, help="Shortcut for --header 'Cookie: ...' (authenticated scanning)")
+    parser.add_argument("--max-pages", type=int, default=None,
+                        help="Override how many distinct same-origin pages the crawl visits")
+    parser.add_argument("--max-depth", type=int, default=None,
+                        help="Override how far (links followed) the crawl travels from the seed URL")
     args = parser.parse_args()
 
     # Build the auth-header map from --cookie and any --header NAME: VALUE pairs. Only ever sent
@@ -48,6 +52,8 @@ def main() -> int:
             cancel_file=args.cancel_file,
             log_file=args.log_file,
             auth_headers=auth_headers,
+            max_pages=args.max_pages,
+            max_depth=args.max_depth,
         )
         print(json.dumps(result, ensure_ascii=False))
         return 0 if result.get("ok") else 1

@@ -1,0 +1,24 @@
+{
+  "authorized": true,
+  "environment": "Altoro Mutual (demo.testfire.net) — aplicação bancária deliberadamente vulnerável mantida pela IBM para teste público de ferramentas de segurança. Superfície NÃO autenticada, alcançada por rastreamento a partir da raiz. Ground-truth estabelecido por verificação manual (reprodução de cada requisição) em 2026-09-09.",
+  "scope_families": [
+    "sqli",
+    "xss",
+    "path_traversal",
+    "nosql_injection"
+  ],
+  "targets": [
+    {
+      "name": "Altoro Mutual — superfície não autenticada (rastreada)",
+      "url": "http://demo.testfire.net/",
+      "mode": "safe_active",
+      "expected_families": [
+        "sqli",
+        "xss",
+        "path_traversal"
+      ],
+      "max_pages": 15,
+      "max_depth": 2
+    }
+  ]
+}

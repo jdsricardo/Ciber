@@ -114,6 +114,11 @@ class ScanLimits:
     global_timeout_seconds: float = 60.0
     min_request_interval_seconds: float = 0.15
     max_redirects: int = 3
+    # Crawl bounds: max_pages caps how many distinct pages a single scan visits; max_depth caps
+    # how far (in links followed) the crawler travels from the seed URL. Both are enforced in the
+    # runner's breadth-first walk. A default of 1 means "scan only the URL given" — the passive
+    # and active profiles raise it so a scan explores the whole reachable, same-origin surface.
+    max_pages: int = 1
     max_depth: int = 2
     max_attempts_per_parameter: int = 4
 

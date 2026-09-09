@@ -9,6 +9,10 @@ from .models import HttpRequest, HttpResponse, ScanContext
 SENSITIVE_HEADERS={"authorization","cookie","proxy-authorization","x-api-key"}
 class Cancelled(RuntimeError): pass
 class BudgetExceeded(RuntimeError): pass
+# A per-endpoint cap is a local limit: it means "stop probing THIS endpoint", not "abort the
+# whole scan". It subclasses BudgetExceeded so existing broad handlers still catch it, while the
+# crawl loop can tell it apart from a global request/time budget and simply move to the next page.
+class EndpointBudgetExceeded(BudgetExceeded): pass
 class ScopeViolation(ValueError): pass
 
 def mask(value:str)->str:
@@ -40,7 +44,7 @@ class SafetyController:
             if time.monotonic()-self.started>self.context.limits.global_timeout_seconds:raise BudgetExceeded("Global scan timeout reached")
             endpoint=f"{request.method}:{urlparse(request.url).path}"
             if self.total>=self.context.limits.max_requests:raise BudgetExceeded("Global request budget reached")
-            if self.per_endpoint[endpoint]>=self.context.limits.max_requests_per_endpoint:raise BudgetExceeded("Endpoint request budget reached")
+            if self.per_endpoint[endpoint]>=self.context.limits.max_requests_per_endpoint:raise EndpointBudgetExceeded("Endpoint request budget reached")
             wait=self.context.limits.min_request_interval_seconds-(time.monotonic()-self.last_request)
             if wait>0:time.sleep(wait)
             self.total+=1;self.per_endpoint[endpoint]+=1;self.last_request=time.monotonic()

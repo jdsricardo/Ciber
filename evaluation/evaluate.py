@@ -77,7 +77,10 @@ def evaluate(data: dict, allow_private: bool) -> dict:
         url = target["url"]
         mode = target.get("mode", "safe_active")
         expected = set(target.get("expected_families", []))
-        result = run_scan(url, mode=mode, allow_private=allow_private)
+        # Optional per-target crawl bounds, so a run can be tuned to a flaky/slow target. Only
+        # forwarded when present, so callers (and tests) that don't use them see the plain signature.
+        crawl_bounds = {k: target[k] for k in ("max_pages", "max_depth") if k in target}
+        result = run_scan(url, mode=mode, allow_private=allow_private, **crawl_bounds)
 
         if not result.get("ok"):
             per_target.append({"name": target.get("name", url), "url": url,
