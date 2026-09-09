@@ -59,3 +59,11 @@ ALTER TABLE findings
 -- also ran safe-active probes (SQL injection, XSS, etc.) against discovered parameters.
 ALTER TABLE analyses
   ADD COLUMN IF NOT EXISTS mode VARCHAR(20) NOT NULL DEFAULT 'passive' AFTER application_id;
+
+-- Developer-oriented explainability increment: a concrete "vulnerable vs. fixed" code
+-- example per finding, so remediation is shown, not just described. Additive only.
+ALTER TABLE findings
+  ADD COLUMN IF NOT EXISTS remediation_example_vulnerable TEXT NULL AFTER remediation,
+  ADD COLUMN IF NOT EXISTS remediation_example_fixed TEXT NULL AFTER remediation_example_vulnerable,
+  ADD COLUMN IF NOT EXISTS remediation_example_language VARCHAR(60) NULL AFTER remediation_example_fixed,
+  ADD COLUMN IF NOT EXISTS remediation_example_note VARCHAR(500) NULL AFTER remediation_example_language;

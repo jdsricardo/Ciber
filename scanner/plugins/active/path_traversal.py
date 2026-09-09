@@ -26,7 +26,7 @@ import re
 from engine.models import Finding, HttpRequest, HttpResponse, ScanContext
 from engine.transport import HttpTransport
 from ..base import PluginMetadata, ScannerPlugin
-from ..support import build_finding, consistent, mutate_query_param
+from ..support import build_finding, build_probe, consistent, testable_inputs
 from engine.confidence import ConfidenceInputs
 
 CATALOG: dict[str, dict[str, str]] = {
@@ -109,9 +109,7 @@ class PathTraversalPlugin(ScannerPlugin):
         if transport is None:
             return []
         findings: list[Finding] = []
-        for point in request.inputs:
-            if point.location != "query":
-                continue
+        for point in testable_inputs(request):
             if not (CANDIDATE_NAME_PATTERN.search(point.name) or _looks_like_file_path(point.value)):
                 continue
             finding = self._test_parameter(request, point, responses, transport)
@@ -119,8 +117,8 @@ class PathTraversalPlugin(ScannerPlugin):
                 findings.append(finding)
         return findings
 
-    def _send(self, template: HttpRequest, transport: HttpTransport, url: str) -> tuple[HttpRequest, HttpResponse]:
-        probe_request = HttpRequest(method=template.method, url=url, headers=dict(template.headers))
+    def _send(self, request: HttpRequest, transport: HttpTransport, point, value: str) -> tuple[HttpRequest, HttpResponse]:
+        probe_request = build_probe(request, point, value)
         return probe_request, transport.send(probe_request)
 
     def _test_parameter(self, request: HttpRequest, point, responses: list[HttpResponse], transport: HttpTransport) -> Finding | None:
@@ -133,8 +131,7 @@ class PathTraversalPlugin(ScannerPlugin):
 
         for os_name in order:
             payload = PROBES[os_name]["probe"]
-            url = mutate_query_param(request.url, point.name, payload)
-            probe_request, probe_response = self._send(request, transport, url)
+            probe_request, probe_response = self._send(request, transport, point, payload)
             last_request, last_response, last_payload = probe_request, probe_response, payload
             match = PROBES[os_name]["signature"].search(_decode(probe_response))
             if match:
@@ -153,16 +150,14 @@ class PathTraversalPlugin(ScannerPlugin):
             # cannot be used as distinguishing evidence of traversal for this endpoint.
             return None
 
-        control_url = mutate_query_param(request.url, point.name, CONTROL_VALUE)
-        _, control_response = self._send(request, transport, control_url)
+        _, control_response = self._send(request, transport, point, CONTROL_VALUE)
         if signature.search(_decode(control_response)):
             # A similarly-shaped, nonexistent value produces the same signature: the
             # app returns this content regardless of input, not a real traversal.
             return None
 
         confirm_payload = PROBES[matched_os]["confirm"]
-        confirm_url = mutate_query_param(request.url, point.name, confirm_payload)
-        confirm_request, confirm_response = self._send(request, transport, confirm_url)
+        confirm_request, confirm_response = self._send(request, transport, point, confirm_payload)
         confirmed = bool(signature.search(_decode(confirm_response)))
 
         body = _decode(matched_response)
@@ -206,8 +201,7 @@ class PathTraversalPlugin(ScannerPlugin):
     def _suspicious_behavior_finding(self, request, point, responses, transport, last_request, last_response, last_payload) -> Finding | None:
         if last_response is None:
             return None
-        control_url = mutate_query_param(request.url, point.name, CONTROL_VALUE)
-        control_request, control_response = self._send(request, transport, control_url)
+        control_request, control_response = self._send(request, transport, point, CONTROL_VALUE)
         baseline = responses[0]
 
         status_diff = last_response.status != control_response.status

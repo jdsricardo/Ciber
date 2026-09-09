@@ -23,4 +23,15 @@ The web-server account must be allowed to execute the configured Python binary. 
 
 Run `python -m unittest discover -s tests -v` and `php tests/php_test.php` from the project directory.
 
+## Empirical evaluation
+
+`evaluation/` contains a reproducible harness that measures detection precision/recall/F1
+against deliberately vulnerable targets (DVWA, OWASP Juice Shop, WebGoat) in an authorized
+laboratory. See [evaluation/README.md](evaluation/README.md).
+
+## Capstone article
+
+`docs/TCC_ARTIGO_ABNT.md` (and its generated `docs/TCC_ARTIGO_ABNT.docx`) hold the ABNT
+scientific article describing and evaluating the platform.
+
 See [the installation and user manual](docs/INSTALLATION_AND_USER_MANUAL.md) for complete instructions.

@@ -332,6 +332,79 @@ th {
     margin-top: 10px
 }
 
+.example-wrap {
+    margin-top: 14px;
+    grid-column: 1 / -1
+}
+
+.example-heading {
+    font-weight: 600;
+    color: var(--cyan);
+    margin: 0 0 8px;
+    font-size: 13px;
+    letter-spacing: .02em;
+    text-transform: uppercase
+}
+
+.code-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px
+}
+
+@media (max-width: 720px) {
+    .code-columns {
+        grid-template-columns: 1fr
+    }
+}
+
+.code-example {
+    margin: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+    background: #071421
+}
+
+.code-example figcaption {
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--line)
+}
+
+.code-example.bad figcaption {
+    color: var(--red);
+    background: rgba(255, 102, 120, .08)
+}
+
+.code-example.good figcaption {
+    color: var(--green);
+    background: rgba(69, 212, 131, .08)
+}
+
+.code-example pre {
+    margin: 0;
+    padding: 12px;
+    font: 12px/1.5 "JetBrains Mono", Consolas, "Courier New", monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #d6e6f5;
+    overflow-x: auto
+}
+
+.example-lang {
+    font-weight: 400;
+    color: var(--muted);
+    font-size: 11px
+}
+
+.example-note {
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: var(--muted)
+}
+
 .explain {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -466,6 +539,20 @@ footer {
         color: #222
     }
 
+    .code-example {
+        background: #f6f8fa;
+        border-color: #bbb;
+        break-inside: avoid
+    }
+
+    .code-example pre {
+        color: #111
+    }
+
+    .example-heading {
+        color: #0a6b62
+    }
+
     .score {
         border-color: #111
     }
@@ -473,4 +560,90 @@ footer {
     .score span {
         color: #333
     }
+}
+.auth-details {
+    margin: 6px 0 4px;
+    font-size: 13px
+}
+
+.auth-details summary {
+    cursor: pointer;
+    color: var(--muted)
+}
+
+.auth-details label {
+    display: block;
+    margin-top: 8px
+}
+
+.auth-details input {
+    width: 100%;
+    margin-top: 4px;
+    padding: 8px;
+    background: #071421;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--text);
+    font: 12px/1.4 Consolas, monospace
+}
+
+.sev-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 4px 0 18px
+}
+
+.sev-chip {
+    background: #0e1c2b;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 12px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    cursor: pointer
+}
+
+.sev-chip b {
+    color: var(--text)
+}
+
+.sev-chip.active {
+    border-color: var(--cyan);
+    color: var(--text)
+}
+
+.sev-chip.critical.active,
+.sev-chip.high.active {
+    border-color: var(--red)
+}
+
+.sev-chip.medium.active {
+    border-color: var(--amber)
+}
+
+.sev-chip.low.active {
+    border-color: var(--blue)
+}
+
+.copy-fix {
+    float: right;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 5px;
+    cursor: pointer
+}
+
+.copy-fix.is-copied {
+    color: var(--green);
+    border-color: var(--green)
+}
+
+[hidden] {
+    display: none !important
 }

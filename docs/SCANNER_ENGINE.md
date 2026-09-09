@@ -25,3 +25,8 @@ Every finding carries both independently. Severity is the potential impact if th
 ## Reference baseline
 
 Mappings use OWASP Top 10:2025. WSTG identifiers should use the stable, versioned v4.2 form in persisted evidence, while development work may consult the latest WSTG 5.0 content. CWE identifiers remain weakness-specific and must not be inferred from a generic anomaly.
+
+## Coverage increments: form/POST testing and authenticated scanning
+
+- Parameter tests are parameter-source-agnostic: `plugins/support.build_probe`/`send_probe` route a probe to the right channel — a query parameter is tested on the URL (GET), a form field is submitted in an `application/x-www-form-urlencoded` body (POST) with sibling fields preserved. Active plugins iterate `testable_inputs` (query + form). Form/POST testing is enabled for every value-injection detector (SQL injection, reflected XSS, path traversal, open redirect, command injection, SSTI, SSRF); CRLF and NoSQL stay query-only because their probe construction is channel-specific. Form probes POST to the scanned page URL; forms whose `action` targets a different path are a known limitation.
+- Authenticated scanning: `ScanContext.auth_headers` is merged into every outgoing request by the transport, covering passive and active checks at once without touching any plugin. Auth headers reach only the pinned host/port (scope enforcement), are redacted in logs (`SENSITIVE_HEADERS`), and are supplied via the CLI (`--cookie`, repeatable `--header`) or transiently by the web app (never persisted).

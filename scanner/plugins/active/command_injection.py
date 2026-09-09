@@ -41,7 +41,7 @@ from engine.confidence import ConfidenceInputs
 from engine.models import Finding, HttpRequest, HttpResponse, ScanContext
 from engine.transport import HttpTransport
 from ..base import PluginMetadata, ScannerPlugin
-from ..support import build_finding, mutate_query_param
+from ..support import build_finding, build_probe, testable_inputs
 
 CATALOG: dict[str, dict[str, str]] = {
     "command_injection.marker_confirmed": {
@@ -198,7 +198,7 @@ class CommandInjectionPlugin(ScannerPlugin):
         if transport is None:
             return []
 
-        query_points = [p for p in request.inputs if p.location == "query"]
+        query_points = testable_inputs(request)
         if not query_points:
             return []
         if len(query_points) <= 3:
@@ -217,8 +217,8 @@ class CommandInjectionPlugin(ScannerPlugin):
                 findings.append(finding)
         return findings
 
-    def _send(self, template: HttpRequest, transport: HttpTransport, url: str) -> tuple[HttpRequest, HttpResponse]:
-        probe_request = HttpRequest(method=template.method, url=url, headers=dict(template.headers))
+    def _send(self, request: HttpRequest, transport: HttpTransport, point, value: str) -> tuple[HttpRequest, HttpResponse]:
+        probe_request = build_probe(request, point, value)
         return probe_request, transport.send(probe_request)
 
     def _test_parameter(self, request, point, transport, baseline_texts, baseline_avg_ms) -> Finding | None:
@@ -268,8 +268,7 @@ class CommandInjectionPlugin(ScannerPlugin):
         hits = []
         for shape_name, shape_fn in SHAPES:
             probe_value = shape_fn(point.value, command)
-            probe_url = mutate_query_param(request.url, point.name, probe_value)
-            probe_request, probe_response = self._send(request, transport, probe_url)
+            probe_request, probe_response = self._send(request, transport, point, probe_value)
             body_text = _decode(probe_response)
             if evidence_fn(body_text) and command not in body_text:
                 hits.append((shape_name, shape_fn, probe_request, probe_response, body_text))
@@ -283,8 +282,7 @@ class CommandInjectionPlugin(ScannerPlugin):
         when the evaluated result is absent, ruling out an application that echoes any
         input containing these characters verbatim rather than executing it."""
         control_value = shape_fn(point.value, inert_payload)
-        control_url = mutate_query_param(request.url, point.name, control_value)
-        _, control_response = self._send(request, transport, control_url)
+        _, control_response = self._send(request, transport, point, control_value)
         return not evidence_fn(_decode(control_response))
 
     def _snippet(self, body_text: str, needle: str) -> str:
@@ -354,14 +352,13 @@ class CommandInjectionPlugin(ScannerPlugin):
         )
         for label, command, shape_fn in attempts:
             probe_value = shape_fn(point.value, command)
-            probe_url = mutate_query_param(request.url, point.name, probe_value)
-            probe_request, first_response = self._send(request, transport, probe_url)
+            probe_request, first_response = self._send(request, transport, point, probe_value)
             delta_first = first_response.elapsed_ms - baseline_avg_ms
             if delta_first < TIMING_THRESHOLD_MS:
                 continue
             # One repeat before trusting a timing signal: network jitter alone can
             # produce a single slow response.
-            _, second_response = self._send(request, transport, probe_url)
+            _, second_response = self._send(request, transport, point, probe_value)
             delta_second = second_response.elapsed_ms - baseline_avg_ms
             if delta_second < TIMING_THRESHOLD_MS:
                 continue

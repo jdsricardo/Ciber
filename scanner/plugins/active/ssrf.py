@@ -20,7 +20,7 @@ from engine.confidence import ConfidenceInputs
 from engine.models import Finding, HttpRequest, HttpResponse, ScanContext
 from engine.transport import HttpTransport
 from ..base import PluginMetadata, ScannerPlugin
-from ..support import build_finding, mutate_query_param
+from ..support import build_finding, send_probe, testable_inputs
 
 CATALOG = {
     "ssrf.error_signature_suspected": {
@@ -80,17 +80,14 @@ class SsrfPlugin(ScannerPlugin):
         findings: list[Finding] = []
         baseline = responses[0]
         candidates = [
-            p for p in request.inputs
-            if p.location == "query" and (URL_LIKE_NAME.search(p.name) or URL_LIKE_VALUE.match(p.value))
+            p for p in testable_inputs(request)
+            if URL_LIKE_NAME.search(p.name) or URL_LIKE_VALUE.match(p.value)
         ]
         for param in candidates:
             finding = self._test_parameter(request, baseline, param, transport)
             if finding:
                 findings.append(finding)
         return findings
-
-    def _get(self, transport: HttpTransport, url: str) -> HttpResponse:
-        return transport.send(HttpRequest(method="GET", url=url, headers={"Accept": "text/html,*/*;q=0.5"}))
 
     def _test_parameter(self, request, baseline, param, transport):
         finding = self._error_signature(request, baseline, param, transport)
@@ -100,7 +97,7 @@ class SsrfPlugin(ScannerPlugin):
 
     def _error_signature(self, request, baseline, param, transport):
         probe_value = f"http://{CANARY_HOST}/sentinelscope-probe"
-        probe = self._get(transport, mutate_query_param(request.url, param.name, probe_value))
+        probe = send_probe(transport, request, param, probe_value)
         probe_text = probe.body.decode("utf-8", errors="replace")
         baseline_text = baseline.body.decode("utf-8", errors="replace")
 
@@ -111,7 +108,7 @@ class SsrfPlugin(ScannerPlugin):
         # produce the same network-specific error if the app is genuinely attempting a
         # fetch of URL-shaped input specifically (rules out a generic "invalid input"
         # error page that happens to mention network-sounding words).
-        control = self._get(transport, mutate_query_param(request.url, param.name, "zzqxNotAUrlAtAll"))
+        control = send_probe(transport, request, param, "zzqxNotAUrlAtAll")
         control_text = control.body.decode("utf-8", errors="replace")
         if NETWORK_ERROR_PATTERNS.search(control_text):
             return None
@@ -135,12 +132,12 @@ class SsrfPlugin(ScannerPlugin):
         threshold_ms = baseline_typical_ms + TIME_DELAY_THRESHOLD_MS
 
         probe_value = f"http://{UNROUTABLE_HOST}/sentinelscope-probe"
-        probe = self._get(transport, mutate_query_param(request.url, param.name, probe_value))
+        probe = send_probe(transport, request, param, probe_value)
         if probe.elapsed_ms < threshold_ms:
             return None
 
-        confirm = self._get(transport, mutate_query_param(request.url, param.name, probe_value))
-        control = self._get(transport, mutate_query_param(request.url, param.name, "zzqxNotAUrlAtAll"))
+        confirm = send_probe(transport, request, param, probe_value)
+        control = send_probe(transport, request, param, "zzqxNotAUrlAtAll")
         confirmed = confirm.elapsed_ms >= threshold_ms
         control_clean = control.elapsed_ms < threshold_ms
         if not control_clean:

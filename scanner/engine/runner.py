@@ -45,10 +45,12 @@ class ScanRunner:
         allow_private: bool = False,
         cancel_file: str | None = None,
         log_file: str | None = None,
+        auth_headers: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         context = ScanContext(
             target_url=target_url, mode=mode, limits=self.limits,
             allow_private=allow_private, cancel_file=cancel_file, log_file=log_file,
+            auth_headers=auth_headers or {},
         )
         safety = SafetyController(context)
         transport = HttpTransport(safety)
@@ -166,15 +168,21 @@ def run_scan(
     cancel_file: str | None = None,
     log_file: str | None = None,
     limits: ScanLimits | None = None,
+    auth_headers: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     scan_mode = ScanMode.SAFE_ACTIVE if mode == ScanMode.SAFE_ACTIVE.value else ScanMode.PASSIVE
     resolved_limits = limits or (ACTIVE_LIMITS if scan_mode is ScanMode.SAFE_ACTIVE else PASSIVE_LIMITS)
     plugins, warnings = plugins_for_mode(mode)
     runner = ScanRunner(plugins, resolved_limits, plugin_warnings=warnings)
     try:
-        return runner.run(target_url, scan_mode, allow_private, cancel_file, log_file)
+        return runner.run(target_url, scan_mode, allow_private, cancel_file, log_file, auth_headers)
     except (ScopeViolation, BudgetExceeded, Cancelled) as error:
         return {"ok": False, "error": str(error)}
+    except OSError as error:
+        # Network-level failure reaching the target (connection refused, DNS failure,
+        # timeout): an expected operational condition, not a bug — report it as a failed
+        # scan instead of letting it crash a library caller (e.g. the evaluation harness).
+        return {"ok": False, "error": f"Falha de rede ao acessar o alvo: {error}"}
 
 def run_passive_scan(
     target_url: str,
@@ -182,6 +190,7 @@ def run_passive_scan(
     cancel_file: str | None = None,
     log_file: str | None = None,
     limits: ScanLimits | None = None,
+    auth_headers: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Kept for direct passive-only callers; run_scan(mode=...) is the general entry point."""
-    return run_scan(target_url, ScanMode.PASSIVE.value, allow_private, cancel_file, log_file, limits)
+    return run_scan(target_url, ScanMode.PASSIVE.value, allow_private, cancel_file, log_file, limits, auth_headers)

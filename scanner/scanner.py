@@ -24,7 +24,22 @@ def main() -> int:
     parser.add_argument("--allow-private", action="store_true", help="Lab use only")
     parser.add_argument("--log-file", default=None, help="JSONL request log path")
     parser.add_argument("--cancel-file", default=None, help="Presence of this file aborts the scan")
+    parser.add_argument("--header", action="append", default=[], metavar="NAME: VALUE",
+                        help="Header sent on every request (repeatable); e.g. authenticated scanning")
+    parser.add_argument("--cookie", default=None, help="Shortcut for --header 'Cookie: ...' (authenticated scanning)")
     args = parser.parse_args()
+
+    # Build the auth-header map from --cookie and any --header NAME: VALUE pairs. Only ever sent
+    # to the pinned, authorized host and redacted in logs.
+    auth_headers: dict[str, str] = {}
+    if args.cookie:
+        auth_headers["Cookie"] = args.cookie
+    for raw in args.header:
+        if ":" in raw:
+            name, value = raw.split(":", 1)
+            if name.strip():
+                auth_headers[name.strip()] = value.strip()
+
     try:
         result = run_scan(
             args.url,
@@ -32,6 +47,7 @@ def main() -> int:
             allow_private=args.allow_private,
             cancel_file=args.cancel_file,
             log_file=args.log_file,
+            auth_headers=auth_headers,
         )
         print(json.dumps(result, ensure_ascii=False))
         return 0 if result.get("ok") else 1

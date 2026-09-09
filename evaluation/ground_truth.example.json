@@ -1,0 +1,51 @@
+{
+  "authorized": false,
+  "environment": "EXEMPLO — DVWA 1.10 em laboratório isolado (localhost). Ajuste as URLs, os cookies de sessão (quando o suporte a autenticação existir) e marque authorized=true apenas em ambiente próprio/autorizado.",
+  "scope_families": [
+    "sqli",
+    "xss",
+    "path_traversal",
+    "open_redirect",
+    "command_injection",
+    "ssti",
+    "xxe",
+    "crlf",
+    "host_header",
+    "http_verb_tampering",
+    "nosql_injection",
+    "cors",
+    "ssrf"
+  ],
+  "targets": [
+    {
+      "name": "DVWA — SQL Injection (nível baixo)",
+      "url": "http://127.0.0.1:8080/vulnerabilities/sqli/?id=1&Submit=Submit",
+      "mode": "safe_active",
+      "expected_families": ["sqli"]
+    },
+    {
+      "name": "DVWA — XSS refletido (nível baixo)",
+      "url": "http://127.0.0.1:8080/vulnerabilities/xss_r/?name=teste",
+      "mode": "safe_active",
+      "expected_families": ["xss"]
+    },
+    {
+      "name": "DVWA — Path Traversal / File Inclusion",
+      "url": "http://127.0.0.1:8080/vulnerabilities/fi/?page=include.php",
+      "mode": "safe_active",
+      "expected_families": ["path_traversal"]
+    },
+    {
+      "name": "DVWA — Command Injection",
+      "url": "http://127.0.0.1:8080/vulnerabilities/exec/?ip=127.0.0.1",
+      "mode": "safe_active",
+      "expected_families": ["command_injection"]
+    },
+    {
+      "name": "Alvo endurecido (controle negativo — não deve acusar nada no escopo)",
+      "url": "http://127.0.0.1:8080/seguro/?id=1",
+      "mode": "safe_active",
+      "expected_families": []
+    }
+  ]
+}

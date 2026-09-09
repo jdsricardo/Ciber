@@ -10,6 +10,7 @@ from engine.confidence import ConfidenceInputs, score, status_for
 from engine.models import Evidence, Finding, HttpRequest, HttpResponse
 from engine.safety import redact_headers
 from .catalog import CATALOG
+from .remediation_examples import get as remediation_example
 
 def mutate_query_param(url: str, name: str, value: str, already_encoded: bool = False) -> str:
     """Returns `url` with query parameter `name` replaced by `value` (added if absent).
@@ -29,6 +30,43 @@ def mutate_query_param(url: str, name: str, value: str, already_encoded: bool = 
         return urlunparse(parsed._replace(query=query))
     params[name] = value
     return urlunparse(parsed._replace(query=urlencode(params)))
+
+PROBE_ACCEPT = "text/html,application/json,*/*;q=0.5"
+
+def form_fields(request: HttpRequest) -> dict[str, str]:
+    """Default name->value map of every discovered form field on the page."""
+    return {point.name: point.value for point in request.inputs if point.location == "form"}
+
+def build_probe(request: HttpRequest, param, value: str, *, already_encoded: bool = False) -> HttpRequest:
+    """Build a probe request that sets input point `param` to `value`, choosing the channel by
+    the point's location: a query parameter rides on the URL (GET); a form field is submitted in
+    an application/x-www-form-urlencoded body (POST), preserving the other discovered fields at
+    their default values. This lets a plugin test a parameter without knowing where it lives.
+
+    Note: form probes are POSTed to the scanned page URL. Forms whose `action` targets a
+    different path are a known limitation of this version.
+    """
+    if getattr(param, "location", "query") == "form":
+        fields = form_fields(request)
+        fields[param.name] = value
+        return HttpRequest(
+            method="POST", url=request.url,
+            headers={"Content-Type": "application/x-www-form-urlencoded", "Accept": PROBE_ACCEPT},
+            body=urlencode(fields).encode("utf-8"),
+        )
+    return HttpRequest(
+        method="GET",
+        url=mutate_query_param(request.url, param.name, value, already_encoded),
+        headers={"Accept": PROBE_ACCEPT},
+    )
+
+def send_probe(transport, request: HttpRequest, param, value: str, *, already_encoded: bool = False) -> HttpResponse:
+    """Send a probe built by build_probe and return the response."""
+    return transport.send(build_probe(request, param, value, already_encoded=already_encoded))
+
+def testable_inputs(request: HttpRequest) -> list:
+    """Input points an active parameter test should exercise: query-string and form fields."""
+    return [point for point in request.inputs if point.location in ("query", "form")]
 
 def sanitize_request(request: HttpRequest) -> dict[str, Any]:
     return {"method": request.method, "url": request.url, "headers": redact_headers(request.headers)}
@@ -90,6 +128,7 @@ def build_finding(
     catalog: dict[str, dict[str, str]] | None = None,
 ) -> Finding:
     entry = (catalog or CATALOG)[check_id]
+    example = remediation_example(check_id)
     confidence = score(confidence_inputs)
     status = status_for(confidence, manual_review_required, informational)
     evidence = Evidence(
@@ -108,7 +147,9 @@ def build_finding(
         owasp=entry["owasp"],
         wstg=entry["wstg"],
         endpoint=response.url,
-        method=request.method,
+        # A form parameter is submitted via POST (see build_probe); a query parameter rides on
+        # the URL with the base method. Reflect the channel actually used to reach the finding.
+        method="POST" if parameter_location == "form" else request.method,
         parameter=parameter,
         parameter_location=parameter_location,
         severity=severity,
@@ -119,4 +160,8 @@ def build_finding(
         developer_impact=entry["developer_impact"],
         remediation=entry["remediation"],
         manual_review_required=manual_review_required,
+        remediation_example_vulnerable=example.get("vulnerable", ""),
+        remediation_example_fixed=example.get("fixed", ""),
+        remediation_example_language=example.get("language", ""),
+        remediation_example_note=example.get("note", ""),
     )

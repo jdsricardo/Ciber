@@ -95,6 +95,10 @@ class Finding:
     developer_impact: str
     remediation: str
     manual_review_required: bool = False
+    remediation_example_vulnerable: str = ""
+    remediation_example_fixed: str = ""
+    remediation_example_language: str = ""
+    remediation_example_note: str = ""
     def to_dict(self) -> dict[str, Any]:
         data=asdict(self)
         data["affected_url"]=self.endpoint
@@ -132,3 +136,7 @@ class ScanContext:
     cancel_file: str | None = None
     log_file: str | None = None
     page: PageContext | None = None
+    # Headers attached to every request (e.g. an authenticated session Cookie or a
+    # Bearer token), enabling scans of authenticated areas. Only ever sent to the pinned,
+    # authorized host/port (scope enforcement guarantees this) and redacted in logs.
+    auth_headers: dict[str, str] = field(default_factory=dict)

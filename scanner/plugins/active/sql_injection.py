@@ -15,7 +15,7 @@ from engine.models import Finding, HttpRequest, HttpResponse, ScanContext
 from engine.normalization import compare, summarize
 from engine.transport import HttpTransport
 from ..base import PluginMetadata, ScannerPlugin
-from ..support import build_finding, mutate_query_param
+from ..support import build_finding, send_probe, testable_inputs
 
 CATALOG = {
     "sqli.error_based": {
@@ -94,15 +94,11 @@ class SqlInjectionPlugin(ScannerPlugin):
         findings: list[Finding] = []
         baseline = responses[0]
         baseline_summary = summarize(baseline)
-        query_params = [p for p in request.inputs if p.location == "query"]
-        for param in query_params:
+        for param in testable_inputs(request):
             finding = self._test_parameter(request, baseline, baseline_summary, param, transport)
             if finding:
                 findings.append(finding)
         return findings
-
-    def _get(self, transport: HttpTransport, url: str) -> HttpResponse:
-        return transport.send(HttpRequest(method="GET", url=url, headers={"Accept": "text/html,application/json,*/*;q=0.5"}))
 
     def _test_parameter(self, request, baseline, baseline_summary, param, transport):
         finding = self._error_based(request, baseline, param, transport)
@@ -116,16 +112,14 @@ class SqlInjectionPlugin(ScannerPlugin):
     # --- Error-based -----------------------------------------------------
 
     def _error_based(self, request, baseline, param, transport):
-        probe_url = mutate_query_param(request.url, param.name, param.value + ERROR_PAYLOAD)
-        probe = self._get(transport, probe_url)
+        probe = send_probe(transport, request, param, param.value + ERROR_PAYLOAD)
         probe_text = probe.body.decode("utf-8", errors="replace")
         baseline_text = baseline.body.decode("utf-8", errors="replace")
         for engine_name, pattern in DB_ERROR_PATTERNS:
             match = pattern.search(probe_text)
             if not match or pattern.search(baseline_text):
                 continue
-            confirm_url = mutate_query_param(request.url, param.name, param.value + ERROR_CONFIRM_PAYLOAD)
-            confirm = self._get(transport, confirm_url)
+            confirm = send_probe(transport, request, param, param.value + ERROR_CONFIRM_PAYLOAD)
             confirm_text = confirm.body.decode("utf-8", errors="replace")
             reproduced = bool(pattern.search(confirm_text))
             return build_finding(
@@ -148,9 +142,9 @@ class SqlInjectionPlugin(ScannerPlugin):
     # --- Boolean differential ---------------------------------------------
 
     def _boolean_differential(self, request, baseline, baseline_summary, param, transport):
-        true_resp = self._get(transport, mutate_query_param(request.url, param.name, param.value + BOOLEAN_TRUE_SUFFIX))
-        false_resp = self._get(transport, mutate_query_param(request.url, param.name, param.value + BOOLEAN_FALSE_SUFFIX))
-        control_resp = self._get(transport, mutate_query_param(request.url, param.name, param.value + CONTROL_SUFFIX))
+        true_resp = send_probe(transport, request, param, param.value + BOOLEAN_TRUE_SUFFIX)
+        false_resp = send_probe(transport, request, param, param.value + BOOLEAN_FALSE_SUFFIX)
+        control_resp = send_probe(transport, request, param, param.value + CONTROL_SUFFIX)
 
         true_summary = summarize(true_resp)
         false_summary = summarize(false_resp)
@@ -171,8 +165,8 @@ class SqlInjectionPlugin(ScannerPlugin):
         if true_matches_baseline and false_diverges and control_matches_baseline:
             # Independent confirmation: repeat the true/false pair once more to rule out
             # a one-off fluke (pagination, rotating content, transient error).
-            true_repeat = summarize(self._get(transport, mutate_query_param(request.url, param.name, param.value + BOOLEAN_TRUE_SUFFIX)))
-            false_repeat = summarize(self._get(transport, mutate_query_param(request.url, param.name, param.value + BOOLEAN_FALSE_SUFFIX)))
+            true_repeat = summarize(send_probe(transport, request, param, param.value + BOOLEAN_TRUE_SUFFIX))
+            false_repeat = summarize(send_probe(transport, request, param, param.value + BOOLEAN_FALSE_SUFFIX))
             reproduced = (
                 compare(baseline_summary, true_repeat).similarity > 0.9
                 and compare(baseline_summary, false_repeat).similarity < 0.85
@@ -210,11 +204,11 @@ class SqlInjectionPlugin(ScannerPlugin):
         threshold_ms = baseline_typical_ms + TIME_DELAY_SECONDS * 1000 * 0.7
 
         for variant in TIME_VARIANTS:
-            probe = self._get(transport, mutate_query_param(request.url, param.name, param.value + variant))
+            probe = send_probe(transport, request, param, param.value + variant)
             if probe.elapsed_ms < threshold_ms:
                 continue
-            confirm = self._get(transport, mutate_query_param(request.url, param.name, param.value + variant))
-            control = self._get(transport, mutate_query_param(request.url, param.name, param.value + TIME_CONTROL_SUFFIX))
+            confirm = send_probe(transport, request, param, param.value + variant)
+            control = send_probe(transport, request, param, param.value + TIME_CONTROL_SUFFIX)
             confirmed = confirm.elapsed_ms >= threshold_ms
             control_clean = control.elapsed_ms < threshold_ms
             if not control_clean:

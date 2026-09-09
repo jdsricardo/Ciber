@@ -23,8 +23,10 @@ final class FindingRepository
             'INSERT INTO findings(
                 analysis_id,fingerprint,title,category,cwe,owasp,wstg,severity,confidence,status,
                 description,evidence_summary,affected_url,method,parameter,parameter_location,
-                evidence,developer_impact,remediation,manual_review_required
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+                evidence,developer_impact,remediation,manual_review_required,
+                remediation_example_vulnerable,remediation_example_fixed,
+                remediation_example_language,remediation_example_note
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
         );
         foreach ($findings as $f) {
             $insert->execute([
@@ -48,6 +50,10 @@ final class FindingRepository
                 $f['developer_impact'],
                 $f['remediation'],
                 !empty($f['manual_review_required']) ? 1 : 0,
+                $f['remediation_example_vulnerable'] ?? null,
+                $f['remediation_example_fixed'] ?? null,
+                $f['remediation_example_language'] ?? null,
+                $f['remediation_example_note'] ?? null,
             ]);
         }
     }

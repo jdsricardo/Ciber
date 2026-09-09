@@ -26,7 +26,7 @@ from engine.confidence import ConfidenceInputs
 from engine.models import Finding, HttpRequest, HttpResponse, InputPoint, ScanContext
 
 from ..base import PluginMetadata, ScannerPlugin
-from ..support import baseline_summary, build_finding, mutate_query_param
+from ..support import baseline_summary, build_finding, build_probe, testable_inputs
 
 CANARY_URL = "https://sentinelscope-redirect-canary.invalid/"
 CANARY_HOST = "sentinelscope-redirect-canary.invalid"
@@ -134,7 +134,7 @@ class OpenRedirectPlugin(ScannerPlugin):
         if transport is None:
             return findings
         primary = responses[0]
-        candidates = [point for point in request.inputs if point.location == "query" and _is_candidate(point)]
+        candidates = [point for point in testable_inputs(request) if _is_candidate(point)]
         for point in candidates:
             finding = self._probe_parameter(request, primary, point, context, transport)
             if finding is not None:
@@ -142,11 +142,7 @@ class OpenRedirectPlugin(ScannerPlugin):
         return findings
 
     def _send(self, request: HttpRequest, point: InputPoint, value: str, transport) -> tuple[HttpRequest, HttpResponse]:
-        probe_request = HttpRequest(
-            method=request.method,
-            url=mutate_query_param(request.url, point.name, value),
-            headers=dict(request.headers),
-        )
+        probe_request = build_probe(request, point, value)
         return probe_request, transport.send(probe_request)
 
     def _probe_parameter(self, request: HttpRequest, primary: HttpResponse, point: InputPoint,

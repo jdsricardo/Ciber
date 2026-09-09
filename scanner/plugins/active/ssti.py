@@ -34,7 +34,7 @@ from engine.confidence import ConfidenceInputs
 from engine.models import Finding, HttpRequest, HttpResponse, InputPoint, ScanContext
 from engine.transport import HttpTransport
 from ..base import PluginMetadata, ScannerPlugin
-from ..support import build_finding, mutate_query_param
+from ..support import build_finding, build_probe, testable_inputs
 
 # Own local catalog: this plugin is responsible for its own reference text,
 # not the shared scanner/plugins/catalog.py table used by passive checks.
@@ -151,8 +151,8 @@ class TemplateInjectionPlugin(ScannerPlugin):
         findings: list[Finding] = []
         seen_names: set[str] = set()
 
-        for point in request.inputs:
-            if point.location != "query" or point.name in seen_names:
+        for point in testable_inputs(request):
+            if point.name in seen_names:
                 continue
             seen_names.add(point.name)
             if _looks_like_numeric_id(point):
@@ -172,8 +172,7 @@ class TemplateInjectionPlugin(ScannerPlugin):
     ) -> Finding | None:
         for family in _FAMILIES:
             payload, expected = family["primary"]
-            probe_url = mutate_query_param(request.url, point.name, payload)
-            probe_request = HttpRequest(method="GET", url=probe_url, headers=dict(request.headers))
+            probe_request = build_probe(request, point, payload)
             probe_response = transport.send(probe_request)
             body = _decode(probe_response)
 
@@ -181,8 +180,7 @@ class TemplateInjectionPlugin(ScannerPlugin):
                 continue  # this syntax was not evaluated; try the next engine family
 
             confirm_payload, confirm_expected = family["confirm"]
-            confirm_url = mutate_query_param(request.url, point.name, confirm_payload)
-            confirm_request = HttpRequest(method="GET", url=confirm_url, headers=dict(request.headers))
+            confirm_request = build_probe(request, point, confirm_payload)
             confirm_response = transport.send(confirm_request)
             confirm_body = _decode(confirm_response)
             confirmed = _evaluated(confirm_body, confirm_payload, confirm_expected, baseline_bodies)

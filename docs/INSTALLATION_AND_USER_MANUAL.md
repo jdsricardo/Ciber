@@ -16,7 +16,9 @@ For production-like use, point the web server document root directly to `public`
 
 ## Use
 
-Select **Add application**, enter a test or staging URL, confirm authorization, and register it. Select **Run analysis** and wait up to the network timeout. Read findings in this order: what was observed, why it matters, and how to fix it. After deploying fixes, run another analysis and compare the two. Open **Printable report** and use the browser's **Save as PDF** option.
+Select **Add application**, enter a test or staging URL, confirm authorization, and register it. Select **Run analysis** and wait up to the network timeout. Read findings in this order: what was observed, why it matters, and how to fix it — each finding also shows a concrete "vulnerable vs. fixed" code example. After deploying fixes, run another analysis and compare the two. Open **Printable report** and use the browser's **Save as PDF** option. On the results page you can also filter findings by severity, copy a fix example to the clipboard, and use **Exportar JSON** to download the analysis as machine-readable JSON for CI or ticketing.
+
+To scan an authenticated area, expand **Área autenticada (opcional)** on the run form and paste a valid session cookie (e.g. `PHPSESSID=...`). It is sent only to the authorized target for that single analysis and is never stored. From the command line the same is available with `python scanner/scanner.py <url> --mode safe_active --cookie "PHPSESSID=..."` (or the repeatable `--header "Name: value"`).
 
 ## Troubleshooting
 

@@ -9,7 +9,7 @@ from engine.confidence import ConfidenceInputs
 from engine.models import Finding, HttpRequest, HttpResponse, ScanContext
 from engine.transport import HttpTransport
 from ..base import PluginMetadata, ScannerPlugin
-from ..support import build_finding, mutate_query_param
+from ..support import build_finding, send_probe, testable_inputs
 
 CATALOG = {
     "xss.reflected_html_text": {
@@ -88,20 +88,16 @@ class ReflectedXssPlugin(ScannerPlugin):
         if transport is None:
             return []
         findings: list[Finding] = []
-        query_params = [p for p in request.inputs if p.location == "query"]
-        for param in query_params:
+        for param in testable_inputs(request):
             finding = self._test_parameter(request, param, transport)
             if finding:
                 findings.append(finding)
         return findings
 
-    def _get(self, transport: HttpTransport, url: str) -> HttpResponse:
-        return transport.send(HttpRequest(method="GET", url=url, headers={"Accept": "text/html,*/*;q=0.5"}))
-
     def _test_parameter(self, request, param, transport):
         marker = _marker()
         discovery_value = f"{marker}<{marker}>\"'"
-        probe = self._get(transport, mutate_query_param(request.url, param.name, param.value + discovery_value))
+        probe = send_probe(transport, request, param, param.value + discovery_value)
         body = probe.body.decode("utf-8", errors="replace")
 
         if marker not in body:
@@ -128,12 +124,12 @@ class ReflectedXssPlugin(ScannerPlugin):
 
     def _confirm_html_text(self, request, param, marker, transport):
         payload = f"<{marker} data-x=1>"
-        probe = self._get(transport, mutate_query_param(request.url, param.name, param.value + payload))
+        probe = send_probe(transport, request, param, param.value + payload)
         body = probe.body.decode("utf-8", errors="replace")
         if payload not in body:
             return None
         confirm_payload = f"<{marker}b data-y=2>"
-        confirm = self._get(transport, mutate_query_param(request.url, param.name, param.value + confirm_payload))
+        confirm = send_probe(transport, request, param, param.value + confirm_payload)
         reproduced = confirm_payload in confirm.body.decode("utf-8", errors="replace")
         return build_finding(
             check_id="xss.reflected_html_text", request=request, response=probe,
@@ -151,12 +147,12 @@ class ReflectedXssPlugin(ScannerPlugin):
 
     def _confirm_attribute(self, request, param, marker, transport):
         payload = f'" data-{marker}="1'
-        probe = self._get(transport, mutate_query_param(request.url, param.name, param.value + payload))
+        probe = send_probe(transport, request, param, param.value + payload)
         body = probe.body.decode("utf-8", errors="replace")
         if f"data-{marker}=" not in body:
             return None
         confirm_payload = f"' data-{marker}b='2"
-        confirm = self._get(transport, mutate_query_param(request.url, param.name, param.value + confirm_payload))
+        confirm = send_probe(transport, request, param, param.value + confirm_payload)
         reproduced = f"data-{marker}b=" in confirm.body.decode("utf-8", errors="replace")
         return build_finding(
             check_id="xss.reflected_html_attribute", request=request, response=probe,
@@ -174,12 +170,12 @@ class ReflectedXssPlugin(ScannerPlugin):
 
     def _confirm_script(self, request, param, marker, transport):
         payload = f";window.{marker}=1;"
-        probe = self._get(transport, mutate_query_param(request.url, param.name, param.value + payload))
+        probe = send_probe(transport, request, param, param.value + payload)
         body = probe.body.decode("utf-8", errors="replace")
         if payload not in body:
             return None
         confirm_payload = f";window.{marker}b=2;"
-        confirm = self._get(transport, mutate_query_param(request.url, param.name, param.value + confirm_payload))
+        confirm = send_probe(transport, request, param, param.value + confirm_payload)
         reproduced = confirm_payload in confirm.body.decode("utf-8", errors="replace")
         return build_finding(
             check_id="xss.reflected_script_context", request=request, response=probe,
