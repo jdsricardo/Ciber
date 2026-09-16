@@ -1,6 +1,50 @@
 # Architecture
 
-SentinelScope uses a layered, local deployment. The browser sends requests to a pure PHP application. PHP validates input, orchestrates analyses, renders results, and persists data through PDO prepared statements. A separately invoked Python process performs the bounded HTTP request and returns JSON. MariaDB stores applications, analyses, and findings.
+SentinelScope uses a layered, local deployment. The browser sends requests to a pure PHP application. PHP validates input, orchestrates analyses, renders results, and persists data through PDO prepared statements. A separately invoked Python process performs the bounded HTTP requests and returns JSON. MariaDB stores applications, analyses, and findings.
+
+## Layers and dependency direction
+
+```
+                        public/index.php
+                               |
+       Presentation ---+--- UseCase ---> Domain <--- Infrastructure
+       (Views,             (RegisterApplication,  (Model,        (PDO repositories,
+        Layout,             RunAnalysis,           Contract,      PythonScannerGateway,
+        FindingPresenter,   CompareAnalyses,       Service,       Config, Database, Csrf)
+        Html)               ExportAnalysis)        Exception)
+```
+
+Every arrow points at `app/src/Domain/`, which depends on nothing outside itself — a rule
+enforced by a test in `tests/php_test.php` that fails if a domain file references
+`App\Infrastructure`, `App\Presentation`, `App\UseCase` or `PDO` in code.
+
+| Layer | Directory | Responsibility | May depend on |
+|---|---|---|---|
+| Domain | `app/src/Domain/` | Entities (`Application`, `Analysis`, `Finding`), value objects (`TargetUrl`, `SecurityScore`, `Severity`, `ScanMode`, `AnalysisStatus`, `RemediationExample`, `ScanResult`), the comparison service, the contracts and the error convention. Validates in the constructor, so an invalid object cannot exist. | nothing |
+| UseCase | `app/src/UseCase/` | One class per application operation: `RegisterApplication`, `RunAnalysis`, `CompareAnalyses`, `ExportAnalysis`. Orchestrates the domain through the contracts and owns the transaction boundary. | Domain |
+| Infrastructure | `app/src/Infrastructure/` | Implements the domain contracts: `PdoApplicationRepository`, `PdoAnalysisRepository`, `PdoFindingRepository`, `PdoTransactionManager`, `PythonScannerGateway`, plus `Config`, `Database` and `Csrf`. The only place SQL and the Python invocation exist. | Domain |
+| Presentation | `app/src/Presentation/` | `Views` (one method per screen), `Layout`, `FindingPresenter`, `Html`. Reads entities, produces markup, decides nothing. | Domain, UseCase |
+
+`public/index.php` is the front controller: it constructs the adapters, wires them into the use
+cases, dispatches one request, and maps a `DomainError` to its HTTP status. It holds no rules.
+
+### Contracts declared by the domain
+
+| Interface | Implemented by (production) | Implemented by (tests) |
+|---|---|---|
+| `Domain\Contract\ApplicationRepository` | `PdoApplicationRepository` | `Tests\Php\InMemoryApplicationRepository` |
+| `Domain\Contract\AnalysisRepository` | `PdoAnalysisRepository` | `Tests\Php\InMemoryAnalysisRepository` |
+| `Domain\Contract\FindingRepository` | `PdoFindingRepository` | `Tests\Php\InMemoryFindingRepository` |
+| `Domain\Contract\ScannerGateway` | `PythonScannerGateway` | `Tests\Php\FakeScannerGateway` |
+| `Domain\Contract\TransactionManager` | `PdoTransactionManager` | `Tests\Php\ImmediateTransactionManager` |
+
+### Error convention
+
+The domain throws only `DomainError` subclasses — `InvalidInput` (400), `NotFound` (404),
+`ScannerUnavailable` (502) — carrying a message already written for the developer using the
+application. Infrastructure failures are wrapped by the adapter that produced them. Anything
+reaching the front controller as a plain `Throwable` is a defect: it is logged in full and the
+user sees a generic message. See [CODING_STANDARD.md](CODING_STANDARD.md) §6.
 
 ## Main flow
 
@@ -35,4 +79,13 @@ This structure is what later phases (active SQL injection, XSS, IDOR, etc.) will
 
 ## Data model
 
-`applications 1—N analyses 1—N findings`. Indexed application/date and analysis/fingerprint paths support history and comparison. Foreign keys preserve consistency.
+`applications 1—N analyses 1—N findings`. Indexed application/date and analysis/fingerprint paths support history and comparison. Foreign keys preserve consistency, and `findings` cascades on delete so an analysis never leaves orphaned rows.
+
+| Table | Predominant operation | Index that serves it |
+|---|---|---|
+| `applications` | list, and look up by primary key | primary key |
+| `analyses` | insert, then read the history of one application by date | `idx_analysis_application_date (application_id, started_at)` |
+| `findings` | bulk insert per analysis, then read every finding of one analysis | `idx_finding_analysis (analysis_id)`, `idx_finding_fingerprint (analysis_id, fingerprint)` |
+
+The structure chosen for each collection, and the measurements behind each choice, are recorded
+in [ALGORITHM_MEASUREMENTS.md](ALGORITHM_MEASUREMENTS.md).

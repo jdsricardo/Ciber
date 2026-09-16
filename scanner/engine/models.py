@@ -100,9 +100,11 @@ class Finding:
     remediation_example_language: str = ""
     remediation_example_note: str = ""
     def to_dict(self) -> dict[str, Any]:
-        data=asdict(self)
-        data["affected_url"]=self.endpoint
-        data["evidence_summary"]=self.evidence.reason
+        """The JSON shape PHP stores. The two aliases exist because the database and the UI
+        name these fields after what they mean to a developer, not after the engine internals."""
+        data = asdict(self)
+        data["affected_url"] = self.endpoint
+        data["evidence_summary"] = self.evidence.reason
         return data
 
 @dataclass

@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace App\Presentation;
 
-use App\Support\Html;
+use App\Domain\Model\Finding;
+use App\Domain\Model\RemediationExample;
+use App\Domain\Model\Severity;
 
+/**
+ * Renders one Finding as HTML. It reads the entity and produces markup — it decides nothing
+ * about security, so a change in how a finding is judged never has to be made here as well.
+ */
 final class FindingPresenter
 {
-    private const SEVERITY_LABELS = ['critical' => 'CRÍTICO', 'high' => 'ALTO', 'medium' => 'MÉDIO', 'low' => 'BAIXO'];
     private const STATUS_LABELS = [
         'confirmed' => 'Confirmado',
         'high_confidence' => 'Alta Confiança',
@@ -18,9 +23,9 @@ final class FindingPresenter
         'manual_review_required' => 'Revisão Manual Necessária',
     ];
 
-    public static function severityLabel(string $severity): string
+    public static function severityLabel(Severity $severity): string
     {
-        return self::SEVERITY_LABELS[$severity] ?? strtoupper($severity);
+        return $severity->label();
     }
 
     public static function statusLabel(string $status): string
@@ -28,77 +33,101 @@ final class FindingPresenter
         return self::STATUS_LABELS[$status] ?? ucwords(str_replace('_', ' ', $status));
     }
 
-    public static function render(array $finding): string
+    public static function render(Finding $finding): string
     {
-        $confidence = $finding['confidence'] !== null ? (int) $finding['confidence'] . '% de confiança' : '';
-        $status = $finding['status'] ? self::statusLabel($finding['status']) : '';
-        $statusBadge = $status
-            ? '<span class="status-badge">' . Html::escape($status) . ($confidence ? ' &middot; ' . Html::escape($confidence) : '') . '</span>'
+        return '<article class="finding" data-severity="' . Html::escape($finding->severity->value) . '">'
+            . '<div class="finding-title">'
+            . '<span class="severity ' . Html::escape($finding->severity->value) . '">'
+            . Html::escape($finding->severity->label()) . '</span>'
+            . self::statusBadge($finding)
+            . self::manualBadge($finding)
+            . '<h3>' . Html::escape($finding->title) . '</h3></div>'
+            . '<p class="location-line">' . self::location($finding) . '</p>'
+            . '<div class="explain">'
+            . '<p><b>O que o scanner observou</b><br>' . Html::escape($finding->observed()) . '</p>'
+            . '<p><b>Por que isso importa para sua aplicação</b><br>'
+            . Html::escape($finding->developerImpact) . '</p>'
+            . '<p><b>Como corrigir</b><br>' . Html::escape($finding->remediation) . '</p>'
+            . self::renderExample($finding->example)
+            . '</div>'
+            . self::technicalPanel($finding)
+            . '</article>';
+    }
+
+    private static function statusBadge(Finding $finding): string
+    {
+        if ($finding->status === null) {
+            return '';
+        }
+        $confidence = $finding->confidence !== null
+            ? ' &middot; ' . Html::escape($finding->confidence . '% de confiança')
             : '';
-        $manualBadge = !empty($finding['manual_review_required'])
+        return '<span class="status-badge">' . Html::escape(self::statusLabel($finding->status))
+            . $confidence . '</span>';
+    }
+
+    private static function manualBadge(Finding $finding): string
+    {
+        return $finding->manualReviewRequired
             ? '<span class="badge manual">Revisão manual necessária</span>'
             : '';
-        $observed = $finding['evidence_summary'] ?: ($finding['description'] ?: '');
-        $evidenceJson = $finding['evidence']
-            ? json_encode(json_decode($finding['evidence'], true), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+    }
+
+    private static function location(Finding $finding): string
+    {
+        $method = $finding->method !== null ? strtoupper($finding->method) . ' ' : '';
+        $location = '📍 ' . Html::escape($method . ($finding->affectedUrl ?: '—'));
+        if ($finding->parameter !== null) {
+            $location .= ' &middot; parâmetro <code>' . Html::escape($finding->parameter) . '</code>'
+                . ' (' . Html::escape($finding->parameterLocation ?? 'local desconhecido') . ')';
+        }
+        return $location;
+    }
+
+    private static function technicalPanel(Finding $finding): string
+    {
+        $taxonomy = 'Categoria: ' . Html::escape($finding->category ?? '—')
+            . '<br>CWE: ' . Html::escape($finding->cwe ?? '—')
+            . '<br>OWASP: ' . Html::escape($finding->owasp ?? '—')
+            . '<br>WSTG: ' . Html::escape($finding->wstg ?? '—');
+        if ($finding->parameter !== null) {
+            $taxonomy .= '<br>Parâmetro: ' . Html::escape($finding->parameter)
+                . ' (' . Html::escape($finding->parameterLocation ?? 'local desconhecido') . ')';
+        }
+        $evidenceJson = $finding->evidence !== []
+            ? json_encode($finding->evidence, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
             : '';
 
-        $method = $finding['method'] ? strtoupper($finding['method']) . ' ' : '';
-        $location = '📍 ' . Html::escape($method . ($finding['affected_url'] ?: '—'));
-        if ($finding['parameter']) {
-            $location .= ' &middot; parâmetro <code>' . Html::escape($finding['parameter']) . '</code>'
-                . ' (' . Html::escape($finding['parameter_location'] ?: 'local desconhecido') . ')';
-        }
-
-        $taxonomy = 'Categoria: ' . Html::escape($finding['category'] ?: '—')
-            . '<br>CWE: ' . Html::escape($finding['cwe'] ?: '—')
-            . '<br>OWASP: ' . Html::escape($finding['owasp'] ?: '—')
-            . '<br>WSTG: ' . Html::escape($finding['wstg'] ?: '—');
-        if ($finding['parameter']) {
-            $taxonomy .= '<br>Parâmetro: ' . Html::escape($finding['parameter'])
-                . ' (' . Html::escape($finding['parameter_location'] ?: 'local desconhecido') . ')';
-        }
-
-        return '<article class="finding" data-severity="' . Html::escape($finding['severity']) . '"><div class="finding-title">'
-            . '<span class="severity ' . Html::escape($finding['severity']) . '">' . Html::escape(self::severityLabel($finding['severity'])) . '</span>'
-            . $statusBadge . $manualBadge . '<h3>' . Html::escape($finding['title']) . '</h3></div>'
-            . '<p class="location-line">' . $location . '</p>'
-            . '<div class="explain">'
-            . '<p><b>O que o scanner observou</b><br>' . Html::escape($observed) . '</p>'
-            . '<p><b>Por que isso importa para sua aplicação</b><br>' . Html::escape($finding['developer_impact']) . '</p>'
-            . '<p><b>Como corrigir</b><br>' . Html::escape($finding['remediation']) . '</p>'
-            . self::renderExample($finding)
-            . '</div>'
-            . '<details><summary>Contexto técnico</summary><p>ID da verificação: <code>' . Html::escape($finding['fingerprint']) . '</code><br>'
-            . $taxonomy . '<br>URL afetada: <code>' . Html::escape($finding['affected_url']) . '</code></p>'
-            . ($evidenceJson ? '<pre class="evidence-json">' . Html::escape($evidenceJson) . '</pre>' : '')
-            . '</details></article>';
+        return '<details><summary>Contexto técnico</summary>'
+            . '<p>ID da verificação: <code>' . Html::escape($finding->fingerprint) . '</code><br>'
+            . $taxonomy . '<br>URL afetada: <code>' . Html::escape($finding->affectedUrl) . '</code></p>'
+            . ($evidenceJson !== '' ? '<pre class="evidence-json">' . Html::escape($evidenceJson) . '</pre>' : '')
+            . '</details>';
     }
 
     /**
      * Concrete "vulnerable vs. fixed" code example for the finding, when one exists.
      * This is the developer-facing differentiator: remediation is shown, not only described.
      */
-    private static function renderExample(array $finding): string
+    private static function renderExample(?RemediationExample $example): string
     {
-        $vulnerable = $finding['remediation_example_vulnerable'] ?? '';
-        $fixed = $finding['remediation_example_fixed'] ?? '';
-        if ($vulnerable === '' && $fixed === '') {
+        if ($example === null || $example->isEmpty()) {
             return '';
         }
-        $language = ($finding['remediation_example_language'] ?? '') !== ''
-            ? '<span class="example-lang">' . Html::escape($finding['remediation_example_language']) . '</span>'
+        $language = $example->language !== ''
+            ? '<span class="example-lang">' . Html::escape($example->language) . '</span>'
             : '';
-        $note = ($finding['remediation_example_note'] ?? '') !== ''
-            ? '<p class="example-note">💡 ' . Html::escape($finding['remediation_example_note']) . '</p>'
+        $note = $example->note !== ''
+            ? '<p class="example-note">💡 ' . Html::escape($example->note) . '</p>'
             : '';
-        $vulnerableBlock = $vulnerable !== ''
-            ? '<figure class="code-example bad"><figcaption>❌ Padrão vulnerável</figcaption><pre>' . Html::escape($vulnerable) . '</pre></figure>'
+        $vulnerableBlock = $example->vulnerable !== ''
+            ? '<figure class="code-example bad"><figcaption>❌ Padrão vulnerável</figcaption><pre>'
+                . Html::escape($example->vulnerable) . '</pre></figure>'
             : '';
-        $fixedBlock = $fixed !== ''
+        $fixedBlock = $example->fixed !== ''
             ? '<figure class="code-example good"><figcaption>✅ Como corrigir ' . $language
-                . '<button type="button" class="copy-fix no-print" data-copied="Copiado!">Copiar</button></figcaption>'
-                . '<pre>' . Html::escape($fixed) . '</pre></figure>'
+                . '<button type="button" class="copy-fix no-print" data-copied="Copiado!">Copiar</button>'
+                . '</figcaption><pre>' . Html::escape($example->fixed) . '</pre></figure>'
             : '';
 
         return '<div class="example-wrap"><p class="example-heading">Exemplo prático</p>'

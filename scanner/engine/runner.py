@@ -2,6 +2,7 @@
 runs baseline requests, page context, plugin execution, and JSON serialization."""
 from __future__ import annotations
 import importlib
+from collections import deque
 from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
@@ -82,7 +83,9 @@ class ScanRunner:
         # scanned (baseline requests + every plugin) as it is dequeued; its links are then
         # enqueued for later visits. A shared SafetyController budget covers crawling and probing
         # alike, so the scan can never exceed its request/time envelope regardless of site size.
-        queue: list[tuple[str, int]] = [(target_url, 0)]
+        # A deque, not a list: the frontier is consumed from the front, and list.pop(0) shifts
+        # every remaining element on each visit. Measured in evaluation/benchmark_structures.py.
+        queue: deque[tuple[str, int]] = deque([(target_url, 0)])
         enqueued: set[str] = {page_signature(target_url)}
         crawled_urls: list[str] = []
         findings: list = []
@@ -91,7 +94,7 @@ class ScanRunner:
         seed_summaries = None
 
         while queue and len(crawled_urls) < self.limits.max_pages:
-            url, depth = queue.pop(0)
+            url, depth = queue.popleft()
             request = HttpRequest(method="GET", url=url,
                                   headers={"Accept": "text/html,application/json,*/*;q=0.5"})
             try:

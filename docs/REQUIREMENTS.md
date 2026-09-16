@@ -16,6 +16,7 @@
 | FR-10 | Test discovered form fields via POST (not only query-string parameters) in the value-injection active detectors (SQLi, XSS, path traversal, open redirect, command injection, SSTI, SSRF). | CA-01 |
 | FR-11 | Optionally attach a session credential (cookie/bearer header) to every request to assess authenticated areas, sent only to the authorized target and never persisted. | CA-01 |
 | FR-12 | Export a completed analysis as machine-readable JSON, and let the developer filter findings by severity on the results page. | CA-06 |
+| FR-13 | Expand the submitted URL into the reachable same-origin surface and scan each discovered page, following read-only navigation only: logout and state-changing links are never followed. | CA-01 |
 
 ## Non-functional requirements
 
@@ -25,6 +26,13 @@
 - NFR-04: Private and reserved network targets are denied by default to reduce SSRF risk.
 - NFR-05: Installation must be reproducible using the supplied manual.
 - NFR-06: User-facing content (finding titles, descriptions, developer impact, remediation, and code examples) is authored in Brazilian Portuguese, since the target audience is a Brazilian development team; CWE/OWASP/WSTG identifiers remain in their standard English form. Source code, code comments, and engineering documentation are in English.
+- NFR-07: Sensitive request headers (Cookie, Authorization, API keys) are masked in the execution log and are never persisted after the analysis.
+
+## Architecture traceability
+
+Each high-priority requirement is mapped to the component that realises it in
+[ARCHITECTURE.md](ARCHITECTURE.md); the measured basis for the data-structure decisions behind
+NFR-01 is in [ALGORITHM_MEASUREMENTS.md](ALGORITHM_MEASUREMENTS.md).
 
 ## Score rule
 

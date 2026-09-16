@@ -2,13 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Support;
+namespace App\Domain\Service;
 
 /**
- * Compares the findings of two analyses of the same application and classifies each
- * finding as new, persistent, or fixed, using the stable per-finding fingerprint as
- * identity. Extracted from the request handler so the classification is unit-testable
- * in isolation (it owns no I/O and no rendering).
+ * Compares the findings of two analyses of the same application and classifies each finding as
+ * new, persistent, or fixed, using the stable per-finding fingerprint as identity.
+ *
+ * Both sides are first turned into maps keyed by fingerprint, so each classification is a hash
+ * lookup instead of a scan of the other list. The measurement behind that choice is in
+ * `evaluation/benchmark_comparison.php` and `docs/ALGORITHM_MEASUREMENTS.md`.
+ *
+ * It owns no I/O and no rendering, so it is unit-testable in isolation.
  */
 final class AnalysisComparison
 {
@@ -23,13 +27,16 @@ final class AnalysisComparison
         $new = self::keyByFingerprint($newFindings);
 
         return [
-            'new' => array_diff_key($new, $old),          // present now, absent before
+            'new' => array_diff_key($new, $old),             // present now, absent before
             'persistent' => array_intersect_key($new, $old), // present in both
-            'fixed' => array_diff_key($old, $new),         // present before, absent now
+            'fixed' => array_diff_key($old, $new),           // present before, absent now
         ];
     }
 
-    /** @param array<int,array<string,mixed>> $findings @return array<string,array<string,mixed>> */
+    /**
+     * @param array<int,array<string,mixed>> $findings
+     * @return array<string,array<string,mixed>>
+     */
     private static function keyByFingerprint(array $findings): array
     {
         $keyed = [];

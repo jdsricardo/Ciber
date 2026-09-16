@@ -21,7 +21,19 @@ The web-server account must be allowed to execute the configured Python binary. 
 
 ## Tests
 
-Run `python -m unittest discover -s tests -v` and `php tests/php_test.php` from the project directory.
+Run `python -m unittest discover -s tests -v` and `php tests/php_test.php` from the project
+directory. Neither suite needs a database or a `.env`: the PHP tests load `app/autoload.php`
+and drive the use cases through the in-memory repositories in `tests/php/`.
+
+## Engineering documents
+
+- [Coding standard](docs/CODING_STANDARD.md) — the rules this codebase follows.
+- [Architecture](docs/ARCHITECTURE.md) — layers, contracts, the scanner engine and the data model.
+- [Algorithm measurements](docs/ALGORITHM_MEASUREMENTS.md) — the measured basis for each
+  data-structure decision, reproducible with `evaluation/benchmark_structures.py` and
+  `evaluation/benchmark_comparison.php`.
+- [Requirements](docs/REQUIREMENTS.md), [test plan](docs/TEST_PLAN.md),
+  [scanner engine](docs/SCANNER_ENGINE.md).
 
 ## Empirical evaluation
 

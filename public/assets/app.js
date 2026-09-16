@@ -36,6 +36,21 @@
         }
     });
 
+    // The extra authorization required by an active scan is only shown once the active mode is
+    // requested. It is rendered visible, and hidden here on load, so that without JS the form
+    // still works; the run use case rejects an active scan that arrives without it either way.
+    Array.prototype.forEach.call(document.querySelectorAll('[data-toggles]'), function (toggle) {
+        var dependent = document.querySelector('[data-requires="' + toggle.dataset.toggles + '"]');
+        if (!dependent) {
+            return;
+        }
+        var sync = function () {
+            dependent.hidden = !toggle.checked;
+        };
+        toggle.addEventListener('change', sync);
+        sync();
+    });
+
     // Severity filter chips on the results page.
     var filter = document.querySelector('[data-severity-filter]');
     if (filter) {
