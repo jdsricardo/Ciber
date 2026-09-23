@@ -62,6 +62,13 @@ The engine is deliberately layered so that adding a new check never touches the 
 - `engine/safety.py` + `engine/transport.py` — scope enforcement (host/port pinning, DNS re-resolution check, private-network denial), rate limiting, budgets, and the only code path allowed to make an HTTP request. The transport retries once on a transient TCP reset (charging the request budget a single time); a persistent network failure surfaces as a failed scan (`ok:false`) rather than a crash.
 - `engine/normalization.py` — strips volatile content (timestamps, UUIDs, CSRF/nonce tokens) before any comparison, and derives page context (has forms, has a password field, looks authenticated) used to keep severity proportionate.
 - `engine/confidence.py` — the single place that turns evidence strength, reproducibility, and ambiguity into a 0–100 confidence score and a finding status, kept independent from severity.
+- `engine/discovery.py` — turns a URL and an HTML document into the `InputPoint` list the
+  active detectors probe: query-string parameters plus the fields of every form, collapsed by
+  a location-aware identifier so the same name in two places is not tested twice.
+- `engine/matchers.py` — a small composable predicate vocabulary over a response (status,
+  header, text, length, similarity, timing, redirect) with `&`, `|` and `~`. It is available
+  to detectors that prefer declarative conditions; the current plugins express their
+  conditions directly, so it is exercised by the engine tests rather than by a plugin.
 - `engine/crawler.py` — same-origin link/redirect discovery: parses `<a>` targets and GET form actions, keeps only in-scope HTTP(S) URLs on the pinned host/port, and enforces the read-only navigation rules (skip logout/sign-out, skip state-changing `?action=delete`-style links, skip static assets). Pages are collapsed by *signature* (path + set of query-parameter names, ignoring values) so `/product?id=1` and `/product?id=2` count as one page.
 - `engine/runner.py` — orchestrates the breadth-first crawl and, per discovered page, baseline collection and plugin execution; owns no vulnerability-specific logic. It de-duplicates findings across pages (server-wide header/transport/cookie/CORS conditions once per fingerprint; injection/disclosure findings per fingerprint+endpoint+parameter) and shares one SafetyController budget across crawling and probing, so a scan can never exceed its request/time envelope regardless of site size. The crawl is bounded by `max_pages` and `max_depth` (overridable per run via `--max-pages`/`--max-depth`); setting `max_pages=1` reproduces the original single-page behavior.
 - `plugins/*.py` — one class per vulnerability family (`ScannerPlugin` subclasses), each declaring its own CWE/OWASP/WSTG metadata and the check ids it owns; `plugins/catalog.py` centralizes the static reference text so it is authored once.
@@ -87,5 +94,31 @@ This structure is what later phases (active SQL injection, XSS, IDOR, etc.) will
 | `analyses` | insert, then read the history of one application by date | `idx_analysis_application_date (application_id, started_at)` |
 | `findings` | bulk insert per analysis, then read every finding of one analysis | `idx_finding_analysis (analysis_id)`, `idx_finding_fingerprint (analysis_id, fingerprint)` |
 
-The structure chosen for each collection, and the measurements behind each choice, are recorded
-in [ALGORITHM_MEASUREMENTS.md](ALGORITHM_MEASUREMENTS.md).
+## Measured decisions
+
+Four structural choices in this architecture were made because they were measured, not because
+they were expected to be faster. Each was compared against the alternative the problem
+statement naturally suggests, at the input sizes the system really reaches and two orders of
+magnitude beyond.
+
+| Decision | Alternative rejected | Structure adopted | Where |
+|---|---|---|---|
+| Crawl frontier | list + `pop(0)` (O(n) shift per visit) | `collections.deque` | `scanner/engine/runner.py` |
+| Pages already enqueued | list membership (O(n)) | `set` (O(1) average) | `scanner/engine/runner.py` |
+| Finding de-duplication | pairwise scan (O(n²)) | `set` of keys + ordered list | `ScanRunner._deduplicate()` |
+| Comparison between analyses | pairwise scan (O(n²)) | map keyed by fingerprint | `app/src/Domain/Service/AnalysisComparison.php` |
+
+The comparison decision is the one that matters for NFR-01: at 1,000 findings the pairwise
+version costs 94.8 ms against 0.2 ms for the keyed map, and it degrades to roughly 10 s at
+10,000 findings while the keyed map stays under 3 ms. The crawl-frontier decision is recorded
+as what it is — no measurable gain at the size a scan actually reaches (`max_pages` of 30),
+adopted because it removes the only quadratic term from the crawl loop.
+
+Full results, method and environment are in
+[ALGORITHM_MEASUREMENTS.md](ALGORITHM_MEASUREMENTS.md); they are reproduced with
+`python evaluation/benchmark_structures.py` and `php evaluation/benchmark_comparison.php`.
+
+---
+
+**Repository.** The source, the tests and the engineering documentation described in the six
+sections above are versioned at https://github.com/jdsricardo/Ciber.git

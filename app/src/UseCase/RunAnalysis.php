@@ -9,10 +9,12 @@ use App\Domain\Contract\ApplicationRepository;
 use App\Domain\Contract\FindingRepository;
 use App\Domain\Contract\ScannerGateway;
 use App\Domain\Contract\TransactionManager;
+use App\Domain\Exception\DomainError;
 use App\Domain\Exception\InvalidInput;
 use App\Domain\Exception\NotFound;
 use App\Domain\Model\Analysis;
 use App\Domain\Model\ScanMode;
+use Throwable;
 
 /**
  * Runs the check catalogue against a registered application and stores the result.
@@ -55,7 +57,21 @@ final class RunAnalysis
         $analysis = $this->analyses->start(Analysis::start($application->requireId(), $mode));
         $analysisId = $analysis->requireId();
 
-        $result = $this->scanner->scan($application->baseUrl, $mode, $sessionCookie);
+        try {
+            $result = $this->scanner->scan($application->baseUrl, $mode, $sessionCookie);
+        } catch (DomainError $error) {
+            // The gateway could not deliver a result at all (the engine is unreachable, or
+            // answered something unreadable). The analysis row already exists, so it is closed
+            // with the reason rather than left running forever.
+            $this->analyses->markFailed($analysisId, $error->getMessage());
+            return $analysisId;
+        } catch (Throwable $error) {
+            // An unexpected failure is a defect, not an operational condition: the record is
+            // still closed so the history stays consistent, and the error keeps propagating.
+            $this->analyses->markFailed($analysisId, 'Falha inesperada ao executar a análise.');
+            throw $error;
+        }
+
         if (!$result->ok) {
             $this->analyses->markFailed($analysisId, (string) $result->error);
             return $analysisId;

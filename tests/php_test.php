@@ -16,6 +16,7 @@ require __DIR__ . '/../app/autoload.php';
 use App\Domain\Exception\DomainError;
 use App\Domain\Exception\InvalidInput;
 use App\Domain\Exception\NotFound;
+use App\Domain\Exception\ScannerUnavailable;
 use App\Domain\Model\Analysis;
 use App\Domain\Model\AnalysisStatus;
 use App\Domain\Model\Application;
@@ -36,6 +37,7 @@ use Tests\Php\ImmediateTransactionManager;
 use Tests\Php\InMemoryAnalysisRepository;
 use Tests\Php\InMemoryApplicationRepository;
 use Tests\Php\InMemoryFindingRepository;
+use Tests\Php\ThrowingScannerGateway;
 
 spl_autoload_register(static function (string $class): void {
     if (!str_starts_with($class, 'Tests\\Php\\')) {
@@ -128,6 +130,88 @@ foreach ($domainFiles as $file) {
     }
 }
 check('domain depends on no outer layer (' . implode(', ', $leaks) . ')', $leaks === []);
+
+// --- Coding standard: the rules docs/CODING_STANDARD.md marks as verified ------
+$sourceFiles = [];
+$iterator = new RecursiveIteratorIterator(
+    new RecursiveDirectoryIterator(__DIR__ . '/../app/src', FilesystemIterator::SKIP_DOTS)
+);
+foreach ($iterator as $file) {
+    if ($file->getExtension() === 'php') {
+        $sourceFiles[$file->getPathname()] = (string) file_get_contents($file->getPathname());
+    }
+}
+
+$missingStrictTypes = [];
+$multipleTypes = [];
+$nonFinal = [];
+$untypedReturns = [];
+$sqlOutsidePersistence = [];
+foreach ($sourceFiles as $path => $source) {
+    $name = basename($path);
+    if (!str_contains($source, 'declare(strict_types=1);')) {
+        $missingStrictTypes[] = $name;
+    }
+    if (preg_match_all('/^(?:final |abstract )?(?:class|interface|enum) /m', $source) > 1) {
+        $multipleTypes[] = $name;
+    }
+    // Only DomainError may be extended, so only it may be declared without `final`.
+    if (preg_match('/^class /m', $source) || (preg_match('/^abstract class /m', $source) && $name !== 'DomainError.php')) {
+        $nonFinal[] = $name;
+    }
+    // Token-based, because a signature may span several lines and a constructor legitimately
+    // has no return type.
+    $tokens = array_values(array_filter(
+        token_get_all($source),
+        static fn($token): bool => !is_array($token)
+            || !in_array($token[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)
+    ));
+    foreach ($tokens as $index => $token) {
+        if (!is_array($token) || $token[0] !== T_FUNCTION) {
+            continue;
+        }
+        $next = $tokens[$index + 1] ?? null;
+        if (!is_array($next) || $next[1] === '__construct') {
+            continue;
+        }
+        $depth = 0;
+        for ($cursor = $index + 2; $cursor < count($tokens); $cursor++) {
+            $current = $tokens[$cursor];
+            if ($current === '(') {
+                $depth++;
+            } elseif ($current === ')') {
+                $depth--;
+                if ($depth === 0) {
+                    if (($tokens[$cursor + 1] ?? null) !== ':') {
+                        $untypedReturns[] = $name . '::' . $next[1];
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    $code = preg_replace('/\'[^\']*\'|"[^"]*"/', "''", $source);
+    if (!str_contains($path, 'Persistence') && preg_match('/\b(SELECT|INSERT INTO|UPDATE|DELETE FROM)\b/i', $source)
+        && preg_match('/(SELECT|INSERT INTO|UPDATE|DELETE FROM)\s+[a-z_]+\s/i', $source)) {
+        $sqlOutsidePersistence[] = $name;
+    }
+}
+check('every source file declares strict_types (' . implode(', ', $missingStrictTypes) . ')',
+    $missingStrictTypes === []);
+check('one class, interface or enum per file (' . implode(', ', $multipleTypes) . ')',
+    $multipleTypes === []);
+check('classes are final except the abstract DomainError (' . implode(', ', $nonFinal) . ')',
+    $nonFinal === []);
+check('every method declares a return type (' . implode(', ', $untypedReturns) . ')',
+    $untypedReturns === []);
+check('SQL lives only in Infrastructure/Persistence (' . implode(', ', $sqlOutsidePersistence) . ')',
+    $sqlOutsidePersistence === []);
+check('every domain contract is an interface',
+    count(array_filter(
+        array_keys($sourceFiles),
+        static fn(string $path): bool => str_contains($path, 'Domain' . DIRECTORY_SEPARATOR . 'Contract')
+            && !str_contains($sourceFiles[$path], 'interface ')
+    )) === 0);
 
 // --- Value objects: validation happens in the constructor ----------------------
 check('target url accepts https', TargetUrl::fromString('https://example.com/')->value === 'https://example.com/');
@@ -313,6 +397,43 @@ check('a failed scan is recorded, not lost', $failedAnalysis?->status === Analys
 check('a failed scan keeps its reason', $failedAnalysis?->errorMessage === 'Alvo inacessível.');
 check('a failed scan writes no findings', $failWorld['findings']->byAnalysis($failedId) === []);
 check('a failed scan opens no transaction', $failWorld['transactions']->calls === 0);
+
+// An unreachable engine must close the analysis too, or the history keeps a row stuck running.
+$unreachable = $makeWorld($okResult);
+$unreachable['register']->execute('Portal', 'https://example.com/', true);
+$unreachableRun = new RunAnalysis(
+    $unreachable['applications'],
+    $unreachable['analyses'],
+    $unreachable['findings'],
+    new ThrowingScannerGateway(new ScannerUnavailable('O scanner retornou uma resposta inválida.')),
+    $unreachable['transactions'],
+);
+$unreachableId = $unreachableRun->execute(1, false, false);
+$unreachableAnalysis = $unreachable['analyses']->find($unreachableId);
+check('an unreachable engine closes the analysis', $unreachableAnalysis?->status === AnalysisStatus::Failed);
+check('an unreachable engine records the reason',
+    $unreachableAnalysis?->errorMessage === 'O scanner retornou uma resposta inválida.');
+check('an unreachable engine opens no transaction', $unreachable['transactions']->calls === 0);
+
+// A defect must not leave the row running either: it is closed, then the error keeps travelling.
+$defect = $makeWorld($okResult);
+$defect['register']->execute('Portal', 'https://example.com/', true);
+$defectRun = new RunAnalysis(
+    $defect['applications'],
+    $defect['analyses'],
+    $defect['findings'],
+    new ThrowingScannerGateway(new LogicException('boom')),
+    $defect['transactions'],
+);
+$propagated = false;
+try {
+    $defectRun->execute(1, false, false);
+} catch (LogicException) {
+    $propagated = true;
+}
+check('an unexpected failure keeps propagating', $propagated);
+check('an unexpected failure still closes the analysis',
+    $defect['analyses']->find(1)?->status === AnalysisStatus::Failed);
 
 // Two analyses of the same application, so the comparison has something real to classify.
 $compareWorld = $makeWorld($okResult);

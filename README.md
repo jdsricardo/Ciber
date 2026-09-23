@@ -41,9 +41,11 @@ and drive the use cases through the in-memory repositories in `tests/php/`.
 against deliberately vulnerable targets (DVWA, OWASP Juice Shop, WebGoat) in an authorized
 laboratory. See [evaluation/README.md](evaluation/README.md).
 
-## Capstone article
+## Coursework documents
 
-`docs/TCC_ARTIGO_ABNT.md` (and its generated `docs/TCC_ARTIGO_ABNT.docx`) hold the ABNT
-scientific article describing and evaluating the platform.
+`docs/docsAula/` holds the documents delivered for the course: the roadmap being followed
+(`Roteiro_de_Execucao_do_Projeto.pdf`), the terms of reference, the requirements interview, the
+data-structure activity, and the Fase 2 and Fase 3 documents that consolidate the technical
+decisions and the architecture.
 
 See [the installation and user manual](docs/INSTALLATION_AND_USER_MANUAL.md) for complete instructions.

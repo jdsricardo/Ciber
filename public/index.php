@@ -12,6 +12,7 @@ require __DIR__ . '/../app/bootstrap.php';
 
 use App\Domain\Exception\DomainError;
 use App\Domain\Exception\NotFound;
+use App\Infrastructure\Database;
 use App\Infrastructure\Persistence\PdoAnalysisRepository;
 use App\Infrastructure\Persistence\PdoApplicationRepository;
 use App\Infrastructure\Persistence\PdoFindingRepository;
@@ -112,12 +113,12 @@ try {
     Layout::render('Painel', Views::dashboard($registered, $history, Csrf::token()));
 } catch (DomainError $error) {
     // A rule the request broke: the message is already written for the developer using the app.
-    \App\Infrastructure\Database::rollBackIfActive();
+    Database::rollBackIfActive();
     http_response_code($error->httpStatus());
     Layout::render('Erro', Views::error($error->getMessage()));
 } catch (Throwable $error) {
     // Anything else is a defect or an environment failure: log the detail, show a generic page.
-    \App\Infrastructure\Database::rollBackIfActive();
+    Database::rollBackIfActive();
     error_log('SentinelScope: ' . $error);
     http_response_code(500);
     Layout::render('Erro', Views::error('Ocorreu um erro inesperado. Consulte o log do servidor.'));
