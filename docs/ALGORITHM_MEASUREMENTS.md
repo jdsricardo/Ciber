@@ -98,6 +98,13 @@ be usable within three seconds; the pairwise version spends 95 ms of that budget
 comparison alone and degrades to roughly 10 s at 10 000 findings, while the keyed version stays
 under 3 ms. Implemented in `app/src/Domain/Service/AnalysisComparison.php`.
 
+*Update 2026-10-14 (defect D-01, Fase 5).* The key of the map changed from the bare fingerprint
+to the finding identity (`Finding::identity()`: check id, endpoint without query string,
+parameter location and name), because the fingerprint alone merged the same check on two
+endpoints. The structure — one hash map per side, one lookup per finding — is unchanged, so the
+measurement above still applies; the end-to-end check at 1 000 findings is ST-22 in
+[TEST_REPORT.md](TEST_REPORT.md).
+
 ## Decision 5 — Persistence: B-tree indexes, not in-memory structures
 
 The three collections that grow — `applications`, `analyses`, `findings` — are not held in

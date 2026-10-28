@@ -1,0 +1,10 @@
+{"t": 1792018838.028, "method": "GET", "path": "/", "cookie": "lab_session=s3cr 3D x"}
+{"t": 1792018838.18, "method": "GET", "path": "/", "cookie": "lab_session=s3cr 3D x"}
+{"t": 1792018838.441, "method": "GET", "path": "/search?q=livros", "cookie": "lab_session=s3cr 3D x"}
+{"t": 1792018838.497, "method": "GET", "path": "/search?q=livros", "cookie": "lab_session=s3cr 3D x"}
+{"t": 1792018838.65, "method": "GET", "path": "/profile?name=ana", "cookie": "lab_session=s3cr 3D x"}
+{"t": 1792018838.803, "method": "GET", "path": "/profile?name=ana", "cookie": "lab_session=s3cr 3D x"}
+{"t": 1792018838.98, "method": "GET", "path": "/about", "cookie": "lab_session=s3cr 3D x"}
+{"t": 1792018839.139, "method": "GET", "path": "/about", "cookie": "lab_session=s3cr 3D x"}
+{"t": 1792018839.282, "method": "GET", "path": "/account", "cookie": "lab_session=s3cr 3D x"}
+{"t": 1792018839.402, "method": "GET", "path": "/account", "cookie": "lab_session=s3cr 3D x"}

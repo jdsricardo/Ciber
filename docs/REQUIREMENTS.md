@@ -17,13 +17,13 @@ considered met.
 | FR-03 | Store target, category, CWE, OWASP Top 10:2025, WSTG reference, structured evidence, severity, confidence, status, and remediation. | High | 3 | RF-005 (F1, D3) | CA-02 |
 | FR-04 | Calculate a 0–100 score from weighted findings. | Medium | 4 | RF-007 (E2, F3) | CA-03 |
 | FR-05 | Explain developer impact and an actionable fix for every finding, including a concrete "vulnerable vs. fixed" code (or server-config) example. | High | 5 | RF-006 (D1, F1, F2) | CA-02 |
-| FR-06 | Display analysis history per application. | High | 6 | RF-008 (E2, F3) | CA-05 |
+| FR-06 | Display the analysis history of each application, optionally restricted to a period (start and end dates, both inclusive). | High | 6 | RF-008 (E2, F3) | CA-05 |
 | FR-07 | Compare two analyses as new, persistent, and fixed. | High | 7 | RF-008 (E2, F3) | CA-04 |
 | FR-08 | Generate a complete printable report of one analysis. | Medium | 12 | RF-009 (F3, H1) | CA-06 |
 | FR-09 | Report a confidence score separate from severity for every finding, and flag findings that require manual review. | High | 4 | RF-005 (F1, D3) | CA-02 |
 | FR-10 | Test discovered form fields via POST (not only query-string parameters) in the value-injection active detectors (SQLi, XSS, path traversal, open redirect, command injection, SSTI, SSRF). | High | 2 | RF-003 (H1) | CA-01 |
 | FR-11 | Optionally attach a session credential (cookie/bearer header) to every request to assess authenticated areas, sent only to the authorized target and never persisted. | Medium | 10 | RF-004 (G2, H1) | CA-01 |
-| FR-12 | Export a completed analysis as machine-readable JSON, and let the developer filter findings by severity on the results page. | Medium | 8, 11 | RF-009 (F3, H1) | CA-06 |
+| FR-12 | Export a completed analysis as machine-readable JSON — summary (findings per severity, findings needing manual review, score), analysis metadata and every finding — and let the developer filter findings by severity on the results page. | Medium | 8, 11 | RF-009 (F3, H1) | CA-06 |
 | FR-13 | Expand the submitted URL into the reachable same-origin surface and scan each discovered page, following read-only navigation only: logout and state-changing links are never followed. | High | 9 | RF-010 (C1, G1) | CA-01 |
 
 ## Non-functional requirements

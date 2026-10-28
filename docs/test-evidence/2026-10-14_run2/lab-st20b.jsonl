@@ -1,0 +1,10 @@
+{"t": 1792019640.758, "method": "GET", "path": "/search?q=a%20b", "cookie": null}
+{"t": 1792019640.932, "method": "GET", "path": "/search?q=a%20b", "cookie": null}
+{"t": 1792019641.093, "method": "GET", "path": "/profile?name=ana", "cookie": null}
+{"t": 1792019641.253, "method": "GET", "path": "/profile?name=ana", "cookie": null}
+{"t": 1792019641.375, "method": "GET", "path": "/about", "cookie": null}
+{"t": 1792019641.536, "method": "GET", "path": "/about", "cookie": null}
+{"t": 1792019641.658, "method": "GET", "path": "/account", "cookie": null}
+{"t": 1792019641.828, "method": "GET", "path": "/account", "cookie": null}
+{"t": 1792019641.973, "method": "GET", "path": "/", "cookie": null}
+{"t": 1792019642.133, "method": "GET", "path": "/", "cookie": null}

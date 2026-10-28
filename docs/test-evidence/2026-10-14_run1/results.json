@@ -1,0 +1,1049 @@
+{
+  "meta": {
+    "run": "2026-10-14_run1",
+    "started": "2026-10-14T23:00:15+00:00",
+    "finished": "2026-10-14T23:01:26+00:00",
+    "app_url": "http://localhost/www/Ciber/public/",
+    "passed": 20,
+    "total": 23,
+    "python": "3.12.2",
+    "platform": "win32"
+  },
+  "results": [
+    {
+      "id": "ST-01",
+      "suite": "system",
+      "title": "Register a valid application",
+      "verdict": "PASS",
+      "seconds": 0.4,
+      "checks": [
+        [
+          "HTTP status",
+          true,
+          "expected 302, got 302"
+        ],
+        [
+          "redirect target",
+          true,
+          "expected 'index.php', got 'index.php'"
+        ],
+        [
+          "notice shown",
+          true,
+          ""
+        ],
+        [
+          "card shows the name",
+          true,
+          ""
+        ],
+        [
+          "card shows the URL",
+          true,
+          ""
+        ],
+        [
+          "row persisted",
+          true,
+          "1"
+        ],
+        [
+          "authorization_confirmed_at recorded",
+          true,
+          "2026-10-14 23:00:15"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-02",
+      "suite": "system",
+      "title": "Registration without authorization is refused",
+      "verdict": "PASS",
+      "seconds": 0.1,
+      "checks": [
+        [
+          "HTTP status",
+          true,
+          "expected 400, got 400"
+        ],
+        [
+          "message",
+          true,
+          "A requisição não pôde ser concluída.  Confirme que você possui autorização para analisar este alvo."
+        ],
+        [
+          "rows created",
+          true,
+          "expected 0, got 0"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-03",
+      "suite": "system",
+      "title": "Invalid URLs are refused",
+      "verdict": "PASS",
+      "seconds": 0.1,
+      "checks": [
+        [
+          "HTTP status for ''",
+          true,
+          "expected 400, got 400"
+        ],
+        [
+          "message for ''",
+          true,
+          "A requisição não pôde ser concluída.  Informe a URL da aplicação."
+        ],
+        [
+          "HTTP status for 'ftp://example.com/'",
+          true,
+          "expected 400, got 400"
+        ],
+        [
+          "message for 'ftp://example.com/'",
+          true,
+          "A requisição não pôde ser concluída.  A URL deve usar o esquema HTTP ou HTTPS."
+        ],
+        [
+          "HTTP status for 'javascript:alert(1)'",
+          true,
+          "expected 400, got 400"
+        ],
+        [
+          "message for 'javascript:alert(1)'",
+          true,
+          "A requisição não pôde ser concluída.  Informe uma URL válida."
+        ],
+        [
+          "HTTP status for 'http://user:pw@example.com/'",
+          true,
+          "expected 400, got 400"
+        ],
+        [
+          "message for 'http://user:pw@example.com/'",
+          true,
+          "A requisição não pôde ser concluída.  A URL não pode conter credenciais embutidas."
+        ],
+        [
+          "HTTP status for 'nota-uma-url'",
+          true,
+          "expected 400, got 400"
+        ],
+        [
+          "message for 'nota-uma-url'",
+          true,
+          "A requisição não pôde ser concluída.  Informe uma URL válida."
+        ],
+        [
+          "rows created",
+          true,
+          "expected 0, got 0"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-04",
+      "suite": "system",
+      "title": "Invalid names are refused",
+      "verdict": "PASS",
+      "seconds": 0.1,
+      "checks": [
+        [
+          "HTTP status for empty name",
+          true,
+          "expected 400, got 400"
+        ],
+        [
+          "an explanation for empty name",
+          true,
+          "A requisição não pôde ser concluída.  Informe o nome da aplicação."
+        ],
+        [
+          "HTTP status for spaces name",
+          true,
+          "expected 400, got 400"
+        ],
+        [
+          "an explanation for spaces name",
+          true,
+          "A requisição não pôde ser concluída.  Informe o nome da aplicação."
+        ],
+        [
+          "HTTP status for 121 characters name",
+          true,
+          "expected 400, got 400"
+        ],
+        [
+          "an explanation for 121 characters name",
+          true,
+          "A requisição não pôde ser concluída.  O nome da aplicação deve ter no máximo 120 caracteres."
+        ],
+        [
+          "rows created",
+          true,
+          "expected 0, got 0"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-05",
+      "suite": "system",
+      "title": "POST without a valid CSRF token is refused",
+      "verdict": "PASS",
+      "seconds": 0.2,
+      "checks": [
+        [
+          "create with missing token: status",
+          true,
+          "expected 400, got 400"
+        ],
+        [
+          "create with missing token: message",
+          true,
+          "A requisição não pôde ser concluída.  Seu token de sessão expirou. Atualize a página e tente novamente."
+        ],
+        [
+          "run with missing token: status",
+          true,
+          "expected 400, got 400"
+        ],
+        [
+          "run with missing token: message",
+          true,
+          "A requisição não pôde ser concluída.  Seu token de sessão expirou. Atualize a página e tente novamente."
+        ],
+        [
+          "create with wrong token: status",
+          true,
+          "expected 400, got 400"
+        ],
+        [
+          "create with wrong token: message",
+          true,
+          "A requisição não pôde ser concluída.  Seu token de sessão expirou. Atualize a página e tente novamente."
+        ],
+        [
+          "run with wrong token: status",
+          true,
+          "expected 400, got 400"
+        ],
+        [
+          "run with wrong token: message",
+          true,
+          "A requisição não pôde ser concluída.  Seu token de sessão expirou. Atualize a página e tente novamente."
+        ],
+        [
+          "applications created",
+          true,
+          "expected 0, got 0"
+        ],
+        [
+          "analyses created",
+          true,
+          "expected 0, got 0"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-06",
+      "suite": "system",
+      "title": "Passive analysis of the vulnerable laboratory",
+      "verdict": "PASS",
+      "seconds": 2.5,
+      "checks": [
+        [
+          "redirects to the result",
+          true,
+          "expected 302, got 302"
+        ],
+        [
+          "status",
+          true,
+          "expected 'completed', got 'completed'"
+        ],
+        [
+          "checks run shown",
+          true,
+          "expected '34', got '34'"
+        ],
+        [
+          "baseline GETs to /",
+          true,
+          "expected 2, got 2"
+        ],
+        [
+          "baseline GETs to /search?q=livros",
+          true,
+          "expected 2, got 2"
+        ],
+        [
+          "baseline GETs to /profile?name=ana",
+          true,
+          "expected 2, got 2"
+        ],
+        [
+          "baseline GETs to /about",
+          true,
+          "expected 2, got 2"
+        ],
+        [
+          "requests to logout/destructive links",
+          true,
+          "expected [], got []"
+        ],
+        [
+          "headers.csp_missing reported",
+          true,
+          "['cache.sensitive_no_store_missing', 'cookies.missing_httponly', 'cookies.missing_samesite', 'disclosure.server_header', 'headers.coop_missing', 'headers.corp_missing', 'headers.csp_missing', 'headers.frame_options_missing', 'headers.nosniff_missing', 'headers.permissions_policy_missing', 'headers.referrer_policy_missing', 'transport.https']"
+        ],
+        [
+          "no xss finding in passive mode",
+          true,
+          "['cache.sensitive_no_store_missing', 'cookies.missing_httponly', 'cookies.missing_samesite', 'disclosure.server_header', 'headers.coop_missing', 'headers.corp_missing', 'headers.csp_missing', 'headers.frame_options_missing', 'headers.nosniff_missing', 'headers.permissions_policy_missing', 'headers.referrer_policy_missing', 'transport.https']"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-07",
+      "suite": "system",
+      "title": "Active analysis without the active authorization is refused",
+      "verdict": "PASS",
+      "seconds": 0.1,
+      "checks": [
+        [
+          "HTTP status",
+          true,
+          "expected 400, got 400"
+        ],
+        [
+          "message",
+          true,
+          "A requisição não pôde ser concluída.  Autorize o envio de payloads de teste ativos para usar a análise completa."
+        ],
+        [
+          "analyses created",
+          true,
+          "expected 0, got 0"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-08",
+      "suite": "system",
+      "title": "Active analysis of the vulnerable laboratory",
+      "verdict": "PASS",
+      "seconds": 15.2,
+      "checks": [
+        [
+          "status",
+          true,
+          "expected 'completed', got 'completed'"
+        ],
+        [
+          "checks run shown",
+          true,
+          "expected '64', got '64'"
+        ],
+        [
+          "XSS on /search, parameter q",
+          true,
+          "[('q', '/search'), ('name', '/profile')]"
+        ],
+        [
+          "XSS on /profile, parameter name",
+          true,
+          "[('q', '/search'), ('name', '/profile')]"
+        ],
+        [
+          "requests to logout/destructive links",
+          true,
+          "expected [], got []"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-09",
+      "suite": "system",
+      "title": "Every finding carries the minimum information (CA-02)",
+      "verdict": "PASS",
+      "seconds": 0.1,
+      "checks": [
+        [
+          "there are findings to inspect",
+          true,
+          "14"
+        ],
+        [
+          "transport.https @ -: complete",
+          true,
+          "missing=[] confidence=80 evidence_reason=True"
+        ],
+        [
+          "transport.https @ -: shown with title and severity",
+          true,
+          ""
+        ],
+        [
+          "xss.reflected_html_text @ q: complete",
+          true,
+          "missing=[] confidence=89 evidence_reason=True"
+        ],
+        [
+          "xss.reflected_html_text @ q: shown with title and severity",
+          true,
+          ""
+        ],
+        [
+          "xss.reflected_html_text @ name: complete",
+          true,
+          "missing=[] confidence=89 evidence_reason=True"
+        ],
+        [
+          "xss.reflected_html_text @ name: shown with title and severity",
+          true,
+          ""
+        ],
+        [
+          "cookies.missing_samesite @ -: complete",
+          true,
+          "missing=[] confidence=78 evidence_reason=True"
+        ],
+        [
+          "cookies.missing_samesite @ -: shown with title and severity",
+          true,
+          ""
+        ],
+        [
+          "cookies.missing_httponly @ -: complete",
+          true,
+          "missing=[] confidence=78 evidence_reason=True"
+        ],
+        [
+          "cookies.missing_httponly @ -: shown with title and severity",
+          true,
+          ""
+        ],
+        [
+          "headers.csp_missing @ -: complete",
+          true,
+          "missing=[] confidence=76 evidence_reason=True"
+        ],
+        [
+          "headers.csp_missing @ -: shown with title and severity",
+          true,
+          ""
+        ],
+        [
+          "headers.frame_options_missing @ -: complete",
+          true,
+          "missing=[] confidence=76 evidence_reason=True"
+        ],
+        [
+          "headers.frame_options_missing @ -: shown with title and severity",
+          true,
+          ""
+        ],
+        [
+          "cache.sensitive_no_store_missing @ -: complete",
+          true,
+          "missing=[] confidence=75 evidence_reason=True"
+        ],
+        [
+          "cache.sensitive_no_store_missing @ -: shown with title and severity",
+          true,
+          ""
+        ],
+        [
+          "headers.permissions_policy_missing @ -: complete",
+          true,
+          "missing=[] confidence=76 evidence_reason=True"
+        ],
+        [
+          "headers.permissions_policy_missing @ -: shown with title and severity",
+          true,
+          ""
+        ],
+        [
+          "disclosure.server_header @ -: complete",
+          true,
+          "missing=[] confidence=76 evidence_reason=True"
+        ],
+        [
+          "disclosure.server_header @ -: shown with title and severity",
+          true,
+          ""
+        ],
+        [
+          "headers.coop_missing @ -: complete",
+          true,
+          "missing=[] confidence=76 evidence_reason=True"
+        ],
+        [
+          "headers.coop_missing @ -: shown with title and severity",
+          true,
+          ""
+        ],
+        [
+          "headers.nosniff_missing @ -: complete",
+          true,
+          "missing=[] confidence=76 evidence_reason=True"
+        ],
+        [
+          "headers.nosniff_missing @ -: shown with title and severity",
+          true,
+          ""
+        ],
+        [
+          "headers.corp_missing @ -: complete",
+          true,
+          "missing=[] confidence=76 evidence_reason=True"
+        ],
+        [
+          "headers.corp_missing @ -: shown with title and severity",
+          true,
+          ""
+        ],
+        [
+          "headers.referrer_policy_missing @ -: complete",
+          true,
+          "missing=[] confidence=76 evidence_reason=True"
+        ],
+        [
+          "headers.referrer_policy_missing @ -: shown with title and severity",
+          true,
+          ""
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-10",
+      "suite": "system",
+      "title": "Score equals the manual 30/15/7/2 calculation (CA-03)",
+      "verdict": "PASS",
+      "seconds": 0.1,
+      "checks": [
+        [
+          "passive: score on the page",
+          true,
+          "expected '38', got '38'"
+        ],
+        [
+          "passive: score in the export",
+          true,
+          "expected 38, got 38"
+        ],
+        [
+          "active: score on the page",
+          true,
+          "expected '8', got '8'"
+        ],
+        [
+          "active: score in the export",
+          true,
+          "expected 8, got 8"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-11",
+      "suite": "system",
+      "title": "User-supplied and target-supplied content is escaped (NFR-02)",
+      "verdict": "PASS",
+      "seconds": 0.1,
+      "checks": [
+        [
+          "registered",
+          true,
+          "expected 302, got 302"
+        ],
+        [
+          "raw tag absent from dashboard",
+          true,
+          ""
+        ],
+        [
+          "escaped form present",
+          true,
+          ""
+        ],
+        [
+          "no raw probe tag on the result page",
+          true,
+          "[]"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-12",
+      "suite": "system",
+      "title": "History lists every analysis, most recent first (FR-06)",
+      "verdict": "PASS",
+      "seconds": 0.0,
+      "checks": [
+        [
+          "both analyses listed",
+          true,
+          "[2, 1]"
+        ],
+        [
+          "most recent first",
+          true,
+          "expected [2, 1], got [2, 1]"
+        ],
+        [
+          "#2 shows mode, completed status and score",
+          true,
+          "('Completa (ativa)', 'completed', '8')"
+        ],
+        [
+          "#1 shows mode, completed status and score",
+          true,
+          "('Passiva', 'completed', '38')"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-19",
+      "suite": "system",
+      "title": "Authenticated scan reaches the private area; the credential is never kept (FR-11, NFR-07)",
+      "verdict": "PASS",
+      "seconds": 2.7,
+      "checks": [
+        [
+          "status",
+          true,
+          "expected 'completed', got 'completed'"
+        ],
+        [
+          "/account/notes reached",
+          true,
+          "['/', '/', '/search?q=livros', '/search?q=livros', '/profile?name=ana', '/profile?name=ana', '/about', '/about', '/account', '/account', '/account/notes?n=nota', '/account/notes?n=nota']"
+        ],
+        [
+          "cookie sent to the target",
+          true,
+          "{'lab_session=st19-200015-segredo'}"
+        ],
+        [
+          "database dump obtained",
+          true,
+          ""
+        ],
+        [
+          "secret absent from the database",
+          true,
+          ""
+        ],
+        [
+          "secret absent from the Apache access log",
+          true,
+          ""
+        ],
+        [
+          "secret absent from the PHP error log",
+          true,
+          ""
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-20",
+      "suite": "system",
+      "title": "Arguments reach the engine intact (contract R1)",
+      "verdict": "FAIL",
+      "seconds": 3.0,
+      "checks": [
+        [
+          "cookie received exactly as typed",
+          false,
+          "{'lab_session=s3cr 3D x'}"
+        ],
+        [
+          "/account/notes reached with it",
+          false,
+          ""
+        ],
+        [
+          "first request received",
+          false,
+          "expected '/search?q=a%20b', got None"
+        ],
+        [
+          "analysis status",
+          false,
+          "expected 'completed', got 'failed'"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-13",
+      "suite": "system",
+      "title": "Comparison after a partial fix (CA-04)",
+      "verdict": "FAIL",
+      "seconds": 29.4,
+      "checks": [
+        [
+          "XSS of /search is in 'Corrigidos'",
+          false,
+          "[]"
+        ],
+        [
+          "XSS of /profile is in 'Ainda presentes'",
+          false,
+          "[' Cross-Site Scripting refletido em contexto de texto HTML  high ']"
+        ],
+        [
+          "'Novos problemas' is empty",
+          true,
+          "expected 0, got 0"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-14",
+      "suite": "system",
+      "title": "Comparison after the complete fix (CA-04)",
+      "verdict": "FAIL",
+      "seconds": 14.6,
+      "checks": [
+        [
+          "both XSS findings in 'Corrigidos'",
+          false,
+          "expected 2, got 1"
+        ],
+        [
+          "headers.csp_missing in 'Corrigidos'",
+          true,
+          ""
+        ],
+        [
+          "headers.frame_options_missing in 'Corrigidos'",
+          true,
+          ""
+        ],
+        [
+          "headers.nosniff_missing in 'Corrigidos'",
+          true,
+          ""
+        ],
+        [
+          "headers.referrer_policy_missing in 'Corrigidos'",
+          true,
+          ""
+        ],
+        [
+          "'Novos problemas' is empty",
+          true,
+          "expected 0, got 0"
+        ],
+        [
+          "score improved",
+          true,
+          "8 -> 56"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-15",
+      "suite": "system",
+      "title": "Comparison across applications is refused",
+      "verdict": "PASS",
+      "seconds": 0.0,
+      "checks": [
+        [
+          "HTTP status",
+          true,
+          "expected 400, got 400"
+        ],
+        [
+          "message",
+          true,
+          "A requisição não pôde ser concluída.  Escolha duas análises da mesma aplicação."
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-16",
+      "suite": "system",
+      "title": "JSON export is complete and equal to what is stored and shown (CA-06)",
+      "verdict": "PASS",
+      "seconds": 0.1,
+      "checks": [
+        [
+          "HTTP status",
+          true,
+          "expected 200, got 200"
+        ],
+        [
+          "JSON content type",
+          true,
+          ""
+        ],
+        [
+          "downloaded as attachment",
+          true,
+          ""
+        ],
+        [
+          "application identified",
+          true,
+          "ST-01 Loja de laboratório 200015"
+        ],
+        [
+          "analysis date present",
+          true,
+          "2026-10-14 20:00:19"
+        ],
+        [
+          "score present",
+          true,
+          "8"
+        ],
+        [
+          "count export = database",
+          true,
+          "expected 14, got 14"
+        ],
+        [
+          "count export = page",
+          true,
+          "expected '14', got '14'"
+        ],
+        [
+          "fingerprints export = database",
+          true,
+          "expected Counter({'xss.reflected_html_text': 2, 'cache.sensitive_no_store_missing': 1, 'cookies.missing_httponly': 1, 'cookies.missing_samesite': 1, 'disclosure.server_header': 1, 'headers.coop_missing': 1, 'headers.corp_missing': 1, 'headers.csp_missing': 1, 'headers.frame_options_missing': 1, 'headers.nosniff_missing': 1, 'headers.permissions_policy_missing': 1, 'headers.referrer_policy_missing': 1, 'transport.https': 1}), got Counter({'xss.reflected_html_text': 2, 'transport.https': 1, 'cookies.missing_samesite': 1, 'cookies.missing_httponly': 1, 'headers.csp_missing': 1, 'headers.frame_options_missing': 1, 'cache.sensitive_no_store_missing': 1, 'headers.permissions_policy_missing': 1, 'disclosure.server_header': 1, 'headers.coop_missing': 1, 'headers.nosniff_missing': 1, 'headers.corp_missing': 1, 'headers.referrer_policy_missing': 1})"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-17",
+      "suite": "system",
+      "title": "Printable report (FR-08)",
+      "verdict": "PASS",
+      "seconds": 0.0,
+      "checks": [
+        [
+          "HTTP status",
+          true,
+          "expected 200, got 200"
+        ],
+        [
+          "application name",
+          true,
+          ""
+        ],
+        [
+          "score",
+          true,
+          "expected '8', got '8'"
+        ],
+        [
+          "metric Verificações executadas",
+          true,
+          ""
+        ],
+        [
+          "metric Achados",
+          true,
+          ""
+        ],
+        [
+          "metric Status HTTP",
+          true,
+          ""
+        ],
+        [
+          "metric Duração",
+          true,
+          ""
+        ],
+        [
+          "every finding title and remediation",
+          true,
+          ""
+        ],
+        [
+          "print button",
+          true,
+          ""
+        ],
+        [
+          "no export link",
+          true,
+          ""
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-18",
+      "suite": "system",
+      "title": "Severity filter counts (FR-12)",
+      "verdict": "PASS",
+      "seconds": 0.0,
+      "checks": [
+        [
+          "'Todos' chip",
+          true,
+          "expected '14', got '14'"
+        ],
+        [
+          "'high' chip",
+          true,
+          "expected '3', got '3'"
+        ],
+        [
+          "'medium' chip",
+          true,
+          "expected '5', got '5'"
+        ],
+        [
+          "'low' chip",
+          true,
+          "expected '6', got '6'"
+        ],
+        [
+          "no chip for absent severities",
+          true,
+          "expected {'high', 'low', 'medium'}, got {'high', 'low', 'medium'}"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-21",
+      "suite": "system",
+      "title": "Unknown identifiers answer 404",
+      "verdict": "PASS",
+      "seconds": 0.1,
+      "checks": [
+        [
+          "page=result&id=999999: status",
+          true,
+          "expected 404, got 404"
+        ],
+        [
+          "page=result&id=999999: message",
+          true,
+          "A requisição não pôde ser concluída.  Análise não encontrada."
+        ],
+        [
+          "page=export&id=999999: status",
+          true,
+          "expected 404, got 404"
+        ],
+        [
+          "page=export&id=999999: message",
+          true,
+          "A requisição não pôde ser concluída.  Análise não encontrada."
+        ],
+        [
+          "page=compare&old=999999&new=999999: status",
+          true,
+          "expected 404, got 404"
+        ],
+        [
+          "page=compare&old=999999&new=999999: message",
+          true,
+          "A requisição não pôde ser concluída.  Análise não encontrada."
+        ],
+        [
+          "run unknown application: status",
+          true,
+          "expected 404, got 404"
+        ],
+        [
+          "run unknown application: message",
+          true,
+          "A requisição não pôde ser concluída.  Aplicação não encontrada."
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-22",
+      "suite": "system",
+      "title": "1,000 findings presented in under 3 seconds (CA-05, NFR-01)",
+      "verdict": "PASS",
+      "seconds": 1.8,
+      "checks": [
+        [
+          "findings seeded",
+          true,
+          "expected 1000, got 1000"
+        ],
+        [
+          "result page: 5 runs under 3,000 ms",
+          true,
+          "[69.0, 58.9, 53.6, 52.4, 41.8]"
+        ],
+        [
+          "report: 5 runs under 3,000 ms",
+          true,
+          "[43.2, 44.2, 61.3, 59.3, 53.4]"
+        ],
+        [
+          "export: 5 runs under 3,000 ms",
+          true,
+          "[30.2, 33.8, 36.6, 60.0, 37.0]"
+        ],
+        [
+          "comparison: 5 runs under 3,000 ms",
+          true,
+          "[158.2, 74.0, 70.8, 62.0, 99.7]"
+        ],
+        [
+          "result page renders 1,000 findings",
+          true,
+          "expected 1000, got 1000"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-23",
+      "suite": "system",
+      "title": "Loading indicator is present (roadmap step 23)",
+      "verdict": "PASS",
+      "seconds": 0.1,
+      "checks": [
+        [
+          "run form marked data-busy",
+          true,
+          ""
+        ],
+        [
+          "status element with role=status",
+          true,
+          ""
+        ],
+        [
+          "script handles submit, locks the button and shows the status",
+          true,
+          ""
+        ]
+      ],
+      "error": null
+    }
+  ]
+}

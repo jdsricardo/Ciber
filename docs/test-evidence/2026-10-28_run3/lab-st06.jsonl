@@ -1,0 +1,10 @@
+{"t": 1793227020.561, "method": "GET", "path": "/", "cookie": null}
+{"t": 1793227020.704, "method": "GET", "path": "/", "cookie": null}
+{"t": 1793227020.891, "method": "GET", "path": "/search?q=livros", "cookie": null}
+{"t": 1793227021.039, "method": "GET", "path": "/search?q=livros", "cookie": null}
+{"t": 1793227021.16, "method": "GET", "path": "/profile?name=ana", "cookie": null}
+{"t": 1793227021.313, "method": "GET", "path": "/profile?name=ana", "cookie": null}
+{"t": 1793227021.484, "method": "GET", "path": "/about", "cookie": null}
+{"t": 1793227021.636, "method": "GET", "path": "/about", "cookie": null}
+{"t": 1793227021.773, "method": "GET", "path": "/account", "cookie": null}
+{"t": 1793227021.925, "method": "GET", "path": "/account", "cookie": null}

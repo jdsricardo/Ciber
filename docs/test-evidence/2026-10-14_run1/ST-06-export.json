@@ -1,0 +1,669 @@
+{
+  "tool": "SentinelScope",
+  "analysis": {
+    "id": 1,
+    "application": "ST-01 Loja de laboratório 200015",
+    "base_url": "http://127.0.0.1:8765/",
+    "mode": "passive",
+    "status": "completed",
+    "security_score": 38,
+    "checks_run": 34,
+    "http_status": 200,
+    "duration_ms": 16,
+    "started_at": "2026-10-14 20:00:17",
+    "completed_at": "2026-10-14 23:00:18"
+  },
+  "summary": {
+    "findings": 12
+  },
+  "findings": [
+    {
+      "fingerprint": "transport.https",
+      "title": "Conexão não é criptografada",
+      "category": "Segurança de Transporte",
+      "severity": "high",
+      "confidence": 80,
+      "status": "high_confidence",
+      "cwe": "CWE-319",
+      "owasp": "A04:2025 Cryptographic Failures",
+      "wstg": "WSTG-CRYP-01",
+      "affected_url": "http://127.0.0.1:8765/",
+      "method": "GET",
+      "parameter": null,
+      "parameter_location": null,
+      "manual_review_required": false,
+      "observed": "A URL informada usa o esquema http://.",
+      "developer_impact": "Qualquer pessoa no caminho de rede pode ler ou modificar requisições e respostas, incluindo credenciais e cookies de sessão.",
+      "remediation": "Redirecione toda requisição HTTP para HTTPS e configure um certificado TLS válido.",
+      "remediation_example": {
+        "language": "Apache (.htaccess)",
+        "vulnerable": "# Site servido por http:// simples, sem redirecionamento.",
+        "fixed": "# Forca HTTPS para todo o trafego:\nRewriteEngine On\nRewriteCond %{HTTPS} off\nRewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]",
+        "note": "Redirecione todo HTTP para HTTPS e instale um certificado TLS válido (ex.: Let's Encrypt)."
+      },
+      "evidence": {
+        "reason": "A URL informada usa o esquema http://.",
+        "baseline": {
+          "status": 200,
+          "length": 393,
+          "elapsed_ms": 16
+        },
+        "probe_request": {
+          "method": "GET",
+          "url": "http://127.0.0.1:8765/",
+          "headers": {
+            "Accept": "text/html,application/json,*/*;q=0.5"
+          }
+        },
+        "probe_response": {
+          "status": 200,
+          "headers": {
+            "server": "LabTarget/1.0 Python/3.12.2",
+            "date": "Wed, 14 Oct 2026 23:00:17 GMT",
+            "content-type": "text/html; charset=utf-8",
+            "content-length": "393",
+            "set-cookie": "tracking=abc123; Path=/"
+          },
+          "elapsed_ms": 16,
+          "snippet": "http://127.0.0.1:8765/"
+        },
+        "differences": [],
+        "verification_count": 1
+      }
+    },
+    {
+      "fingerprint": "cookies.missing_samesite",
+      "title": "Cookie não possui política explícita entre sites",
+      "category": "Gerenciamento de Sessão",
+      "severity": "medium",
+      "confidence": 78,
+      "status": "high_confidence",
+      "cwe": "CWE-352",
+      "owasp": "A07:2025 Authentication Failures",
+      "wstg": "WSTG-SESS-02",
+      "affected_url": "http://127.0.0.1:8765/",
+      "method": "GET",
+      "parameter": null,
+      "parameter_location": "cookie",
+      "manual_review_required": false,
+      "observed": "Ao menos um cabeçalho Set-Cookie não possui SameSite.",
+      "developer_impact": "O navegador pode incluir o cookie em requisições entre sites, aumentando a exposição a CSRF.",
+      "remediation": "Defina `SameSite=Lax` ou `Strict`; use `None; Secure` somente quando o uso entre sites for necessário.",
+      "remediation_example": {
+        "language": "PHP",
+        "vulnerable": "setcookie('sessao', $id, ['secure' => true, 'httponly' => true]);",
+        "fixed": "setcookie('sessao', $id, ['secure' => true, 'httponly' => true, 'samesite' => 'Lax']);",
+        "note": "SameSite=Lax (ou Strict) reduz a superfície de CSRF."
+      },
+      "evidence": {
+        "reason": "Ao menos um cabeçalho Set-Cookie não possui SameSite.",
+        "baseline": {
+          "status": 200,
+          "length": 393,
+          "elapsed_ms": 16
+        },
+        "probe_request": {
+          "method": "GET",
+          "url": "http://127.0.0.1:8765/",
+          "headers": {
+            "Accept": "text/html,application/json,*/*;q=0.5"
+          }
+        },
+        "probe_response": {
+          "status": 200,
+          "headers": {
+            "server": "LabTarget/1.0 Python/3.12.2",
+            "date": "Wed, 14 Oct 2026 23:00:17 GMT",
+            "content-type": "text/html; charset=utf-8",
+            "content-length": "393",
+            "set-cookie": "tracking=abc123; Path=/"
+          },
+          "elapsed_ms": 16,
+          "snippet": "tracking=abc123; Path=/"
+        },
+        "differences": [],
+        "verification_count": 1
+      }
+    },
+    {
+      "fingerprint": "cookies.missing_httponly",
+      "title": "JavaScript pode ler um cookie",
+      "category": "Gerenciamento de Sessão",
+      "severity": "medium",
+      "confidence": 78,
+      "status": "high_confidence",
+      "cwe": "CWE-1004",
+      "owasp": "A07:2025 Authentication Failures",
+      "wstg": "WSTG-SESS-02",
+      "affected_url": "http://127.0.0.1:8765/",
+      "method": "GET",
+      "parameter": null,
+      "parameter_location": "cookie",
+      "manual_review_required": false,
+      "observed": "Ao menos um cabeçalho Set-Cookie não possui HttpOnly.",
+      "developer_impact": "Se existir uma falha de XSS em outro ponto, scripts podem roubar cookies que não possuem HttpOnly.",
+      "remediation": "Defina `HttpOnly` em cookies que não precisam de acesso via JavaScript.",
+      "remediation_example": {
+        "language": "PHP",
+        "vulnerable": "setcookie('sessao', $id, ['secure' => true]);   // acessivel via JS",
+        "fixed": "setcookie('sessao', $id, ['secure' => true, 'httponly' => true, 'samesite' => 'Lax']);",
+        "note": "HttpOnly impede que scripts (XSS) leiam o cookie de sessão."
+      },
+      "evidence": {
+        "reason": "Ao menos um cabeçalho Set-Cookie não possui HttpOnly.",
+        "baseline": {
+          "status": 200,
+          "length": 393,
+          "elapsed_ms": 16
+        },
+        "probe_request": {
+          "method": "GET",
+          "url": "http://127.0.0.1:8765/",
+          "headers": {
+            "Accept": "text/html,application/json,*/*;q=0.5"
+          }
+        },
+        "probe_response": {
+          "status": 200,
+          "headers": {
+            "server": "LabTarget/1.0 Python/3.12.2",
+            "date": "Wed, 14 Oct 2026 23:00:17 GMT",
+            "content-type": "text/html; charset=utf-8",
+            "content-length": "393",
+            "set-cookie": "tracking=abc123; Path=/"
+          },
+          "elapsed_ms": 16,
+          "snippet": "tracking=abc123; Path=/"
+        },
+        "differences": [],
+        "verification_count": 1
+      }
+    },
+    {
+      "fingerprint": "headers.csp_missing",
+      "title": "Navegador não possui política de execução de conteúdo",
+      "category": "Cabeçalhos de Segurança",
+      "severity": "medium",
+      "confidence": 76,
+      "status": "high_confidence",
+      "cwe": "CWE-693",
+      "owasp": "A02:2025 Security Misconfiguration",
+      "wstg": "WSTG-CONF-12",
+      "affected_url": "http://127.0.0.1:8765/",
+      "method": "GET",
+      "parameter": null,
+      "parameter_location": null,
+      "manual_review_required": false,
+      "observed": "Nenhum cabeçalho Content-Security-Policy foi retornado.",
+      "developer_impact": "Scripts injetados têm menos restrições em nível de navegador, aumentando o impacto de qualquer falha de XSS.",
+      "remediation": "Comece com uma Content-Security-Policy em modo somente-relatório, inventarie as origens necessárias e depois aplique uma política restritiva sem `unsafe-inline`.",
+      "remediation_example": {
+        "language": "Apache (.htaccess) / PHP",
+        "vulnerable": "# Nenhuma Content-Security-Policy e enviada.",
+        "fixed": "# Comece em modo relatorio, inventarie as origens e depois aplique:\nHeader always set Content-Security-Policy \"default-src 'self'; object-src 'none'; base-uri 'self'\"",
+        "note": "Implante primeiro como Report-Only, ajuste as origens e então aplique sem unsafe-inline."
+      },
+      "evidence": {
+        "reason": "Nenhum cabeçalho Content-Security-Policy foi retornado.",
+        "baseline": {
+          "status": 200,
+          "length": 393,
+          "elapsed_ms": 16
+        },
+        "probe_request": {
+          "method": "GET",
+          "url": "http://127.0.0.1:8765/",
+          "headers": {
+            "Accept": "text/html,application/json,*/*;q=0.5"
+          }
+        },
+        "probe_response": {
+          "status": 200,
+          "headers": {
+            "server": "LabTarget/1.0 Python/3.12.2",
+            "date": "Wed, 14 Oct 2026 23:00:17 GMT",
+            "content-type": "text/html; charset=utf-8",
+            "content-length": "393",
+            "set-cookie": "tracking=abc123; Path=/"
+          },
+          "elapsed_ms": 16,
+          "snippet": ""
+        },
+        "differences": [],
+        "verification_count": 1
+      }
+    },
+    {
+      "fingerprint": "headers.frame_options_missing",
+      "title": "Página pode ser incorporada em outro site",
+      "category": "Cabeçalhos de Segurança",
+      "severity": "medium",
+      "confidence": 76,
+      "status": "high_confidence",
+      "cwe": "CWE-1021",
+      "owasp": "A02:2025 Security Misconfiguration",
+      "wstg": "WSTG-CLNT-09",
+      "affected_url": "http://127.0.0.1:8765/",
+      "method": "GET",
+      "parameter": null,
+      "parameter_location": null,
+      "manual_review_required": false,
+      "observed": "Nem CSP frame-ancestors nem X-Frame-Options foram retornados.",
+      "developer_impact": "Um atacante pode sobrepor esta página e induzir usuários a clicar em controles sensíveis (clickjacking).",
+      "remediation": "Adicione `frame-ancestors 'none'` (ou origens confiáveis) ao Content-Security-Policy. X-Frame-Options: DENY é um fallback legado.",
+      "remediation_example": {
+        "language": "Apache (.htaccess) / PHP",
+        "vulnerable": "# Resposta atual: o cabecalho abaixo NAO e enviado.",
+        "fixed": "# .htaccess (ou vhost) — modulo headers habilitado:\nHeader always set Content-Security-Policy \"frame-ancestors 'none'\"\n\n// Alternativa em PHP, antes de qualquer saida:\nheader('Content-Security-Policy \"frame-ancestors 'none'\"');",
+        "note": "frame-ancestors no CSP é o mecanismo atual; X-Frame-Options: DENY é fallback legado."
+      },
+      "evidence": {
+        "reason": "Nem CSP frame-ancestors nem X-Frame-Options foram retornados.",
+        "baseline": {
+          "status": 200,
+          "length": 393,
+          "elapsed_ms": 16
+        },
+        "probe_request": {
+          "method": "GET",
+          "url": "http://127.0.0.1:8765/",
+          "headers": {
+            "Accept": "text/html,application/json,*/*;q=0.5"
+          }
+        },
+        "probe_response": {
+          "status": 200,
+          "headers": {
+            "server": "LabTarget/1.0 Python/3.12.2",
+            "date": "Wed, 14 Oct 2026 23:00:17 GMT",
+            "content-type": "text/html; charset=utf-8",
+            "content-length": "393",
+            "set-cookie": "tracking=abc123; Path=/"
+          },
+          "elapsed_ms": 16,
+          "snippet": ""
+        },
+        "differences": [],
+        "verification_count": 1
+      }
+    },
+    {
+      "fingerprint": "cache.sensitive_no_store_missing",
+      "title": "Resposta potencialmente vinculada à sessão sem política no-store",
+      "category": "Segurança de Cache",
+      "severity": "medium",
+      "confidence": 75,
+      "status": "high_confidence",
+      "cwe": "CWE-525",
+      "owasp": "A02:2025 Security Misconfiguration",
+      "wstg": "WSTG-CONF-12",
+      "affected_url": "http://127.0.0.1:8765/",
+      "method": "GET",
+      "parameter": null,
+      "parameter_location": null,
+      "manual_review_required": false,
+      "observed": "A resposta define cookies (ou varia por Authorization), mas Cache-Control não contém no-store.",
+      "developer_impact": "Navegadores compartilhados, proxies ou CDNs podem reter uma resposta associada à sessão de um usuário específico.",
+      "remediation": "Para respostas sensíveis e autenticadas, retorne `Cache-Control: no-store, private`.",
+      "remediation_example": {
+        "language": "PHP",
+        "vulnerable": "// Pagina autenticada sem diretiva de cache (pode ser guardada).",
+        "fixed": "header('Cache-Control: no-store, no-cache, must-revalidate, private');\nheader('Pragma: no-cache');",
+        "note": "Em respostas com dados sensíveis, use Cache-Control: no-store."
+      },
+      "evidence": {
+        "reason": "A resposta define cookies (ou varia por Authorization), mas Cache-Control não contém no-store.",
+        "baseline": {
+          "status": 200,
+          "length": 393,
+          "elapsed_ms": 16
+        },
+        "probe_request": {
+          "method": "GET",
+          "url": "http://127.0.0.1:8765/",
+          "headers": {
+            "Accept": "text/html,application/json,*/*;q=0.5"
+          }
+        },
+        "probe_response": {
+          "status": 200,
+          "headers": {
+            "server": "LabTarget/1.0 Python/3.12.2",
+            "date": "Wed, 14 Oct 2026 23:00:17 GMT",
+            "content-type": "text/html; charset=utf-8",
+            "content-length": "393",
+            "set-cookie": "tracking=abc123; Path=/"
+          },
+          "elapsed_ms": 16,
+          "snippet": "Cache-Control: (absent)"
+        },
+        "differences": [],
+        "verification_count": 1
+      }
+    },
+    {
+      "fingerprint": "headers.permissions_policy_missing",
+      "title": "Capacidades do navegador não são explicitamente restringidas",
+      "category": "Cabeçalhos de Segurança",
+      "severity": "low",
+      "confidence": 76,
+      "status": "high_confidence",
+      "cwe": "CWE-693",
+      "owasp": "A02:2025 Security Misconfiguration",
+      "wstg": "WSTG-CONF-12",
+      "affected_url": "http://127.0.0.1:8765/",
+      "method": "GET",
+      "parameter": null,
+      "parameter_location": null,
+      "manual_review_required": false,
+      "observed": "Permissions-Policy está ausente.",
+      "developer_impact": "Conteúdo incorporado ou comprometido pode solicitar capacidades do navegador que a aplicação não precisa.",
+      "remediation": "Adicione uma Permissions-Policy que desabilite recursos não utilizados, por exemplo `camera=(), microphone=(), geolocation=()`.",
+      "remediation_example": {
+        "language": "Apache (.htaccess) / PHP",
+        "vulnerable": "# Resposta atual: o cabecalho abaixo NAO e enviado.",
+        "fixed": "# .htaccess (ou vhost) — modulo headers habilitado:\nHeader always set Permissions-Policy \"geolocation=(), camera=(), microphone=()\"\n\n// Alternativa em PHP, antes de qualquer saida:\nheader('Permissions-Policy \"geolocation=(), camera=(), microphone=()\"');",
+        "note": "Desabilite recursos do navegador que a aplicação não usa."
+      },
+      "evidence": {
+        "reason": "Permissions-Policy está ausente.",
+        "baseline": {
+          "status": 200,
+          "length": 393,
+          "elapsed_ms": 16
+        },
+        "probe_request": {
+          "method": "GET",
+          "url": "http://127.0.0.1:8765/",
+          "headers": {
+            "Accept": "text/html,application/json,*/*;q=0.5"
+          }
+        },
+        "probe_response": {
+          "status": 200,
+          "headers": {
+            "server": "LabTarget/1.0 Python/3.12.2",
+            "date": "Wed, 14 Oct 2026 23:00:17 GMT",
+            "content-type": "text/html; charset=utf-8",
+            "content-length": "393",
+            "set-cookie": "tracking=abc123; Path=/"
+          },
+          "elapsed_ms": 16,
+          "snippet": ""
+        },
+        "differences": [],
+        "verification_count": 1
+      }
+    },
+    {
+      "fingerprint": "disclosure.server_header",
+      "title": "Detalhes do servidor web são expostos",
+      "category": "Exposição de Informações",
+      "severity": "low",
+      "confidence": 76,
+      "status": "high_confidence",
+      "cwe": "CWE-200",
+      "owasp": "A02:2025 Security Misconfiguration",
+      "wstg": "WSTG-INFO-02",
+      "affected_url": "http://127.0.0.1:8765/",
+      "method": "GET",
+      "parameter": null,
+      "parameter_location": null,
+      "manual_review_required": false,
+      "observed": "O cabeçalho de resposta Server expõe informações de produto ou versão.",
+      "developer_impact": "Indícios de versão ajudam atacantes a priorizar técnicas específicas do produto e CVEs conhecidas.",
+      "remediation": "Remova detalhes de versão do cabeçalho Server no servidor web ou proxy reverso.",
+      "remediation_example": {
+        "language": "Apache",
+        "vulnerable": "ServerTokens Full          # expoe versao exata do servidor",
+        "fixed": "ServerTokens Prod\nServerSignature Off",
+        "note": "Reduza a informação de versão nos cabeçalhos do servidor."
+      },
+      "evidence": {
+        "reason": "O cabeçalho de resposta Server expõe informações de produto ou versão.",
+        "baseline": {
+          "status": 200,
+          "length": 393,
+          "elapsed_ms": 16
+        },
+        "probe_request": {
+          "method": "GET",
+          "url": "http://127.0.0.1:8765/",
+          "headers": {
+            "Accept": "text/html,application/json,*/*;q=0.5"
+          }
+        },
+        "probe_response": {
+          "status": 200,
+          "headers": {
+            "server": "LabTarget/1.0 Python/3.12.2",
+            "date": "Wed, 14 Oct 2026 23:00:17 GMT",
+            "content-type": "text/html; charset=utf-8",
+            "content-length": "393",
+            "set-cookie": "tracking=abc123; Path=/"
+          },
+          "elapsed_ms": 16,
+          "snippet": "Server: LabTarget/1.0 Python/3.12.2"
+        },
+        "differences": [],
+        "verification_count": 1
+      }
+    },
+    {
+      "fingerprint": "headers.coop_missing",
+      "title": "Janela de nível superior não está isolada",
+      "category": "Cabeçalhos de Segurança",
+      "severity": "low",
+      "confidence": 76,
+      "status": "high_confidence",
+      "cwe": "CWE-693",
+      "owasp": "A02:2025 Security Misconfiguration",
+      "wstg": "WSTG-CONF-12",
+      "affected_url": "http://127.0.0.1:8765/",
+      "method": "GET",
+      "parameter": null,
+      "parameter_location": null,
+      "manual_review_required": false,
+      "observed": "Cross-Origin-Opener-Policy está ausente.",
+      "developer_impact": "Sem COOP, janelas de origem cruzada podem manter referências que habilitam ataques de canal lateral ou baseados em opener.",
+      "remediation": "Adicione `Cross-Origin-Opener-Policy: same-origin` após testar integrações e pop-ups de login.",
+      "remediation_example": {
+        "language": "Apache (.htaccess) / PHP",
+        "vulnerable": "# Resposta atual: o cabecalho abaixo NAO e enviado.",
+        "fixed": "# .htaccess (ou vhost) — modulo headers habilitado:\nHeader always set Cross-Origin-Opener-Policy \"same-origin\"\n\n// Alternativa em PHP, antes de qualquer saida:\nheader('Cross-Origin-Opener-Policy \"same-origin\"');",
+        "note": "Isola o contexto de navegação de janelas de outras origens."
+      },
+      "evidence": {
+        "reason": "Cross-Origin-Opener-Policy está ausente.",
+        "baseline": {
+          "status": 200,
+          "length": 393,
+          "elapsed_ms": 16
+        },
+        "probe_request": {
+          "method": "GET",
+          "url": "http://127.0.0.1:8765/",
+          "headers": {
+            "Accept": "text/html,application/json,*/*;q=0.5"
+          }
+        },
+        "probe_response": {
+          "status": 200,
+          "headers": {
+            "server": "LabTarget/1.0 Python/3.12.2",
+            "date": "Wed, 14 Oct 2026 23:00:17 GMT",
+            "content-type": "text/html; charset=utf-8",
+            "content-length": "393",
+            "set-cookie": "tracking=abc123; Path=/"
+          },
+          "elapsed_ms": 16,
+          "snippet": ""
+        },
+        "differences": [],
+        "verification_count": 1
+      }
+    },
+    {
+      "fingerprint": "headers.nosniff_missing",
+      "title": "Navegador pode adivinhar o tipo de conteúdo da resposta",
+      "category": "Cabeçalhos de Segurança",
+      "severity": "low",
+      "confidence": 76,
+      "status": "high_confidence",
+      "cwe": "CWE-693",
+      "owasp": "A02:2025 Security Misconfiguration",
+      "wstg": "WSTG-CONF-12",
+      "affected_url": "http://127.0.0.1:8765/",
+      "method": "GET",
+      "parameter": null,
+      "parameter_location": null,
+      "manual_review_required": false,
+      "observed": "X-Content-Type-Options está ausente ou não é `nosniff`.",
+      "developer_impact": "Conteúdo enviado ou servido com o tipo errado pode ser interpretado como conteúdo executável pelo navegador.",
+      "remediation": "Retorne o Content-Type correto e adicione `X-Content-Type-Options: nosniff`.",
+      "remediation_example": {
+        "language": "Apache (.htaccess) / PHP",
+        "vulnerable": "# Resposta atual: o cabecalho abaixo NAO e enviado.",
+        "fixed": "# .htaccess (ou vhost) — modulo headers habilitado:\nHeader always set X-Content-Type-Options \"nosniff\"\n\n// Alternativa em PHP, antes de qualquer saida:\nheader('X-Content-Type-Options \"nosniff\"');",
+        "note": "Impede o navegador de adivinhar (sniff) o tipo de conteúdo."
+      },
+      "evidence": {
+        "reason": "X-Content-Type-Options está ausente ou não é `nosniff`.",
+        "baseline": {
+          "status": 200,
+          "length": 393,
+          "elapsed_ms": 16
+        },
+        "probe_request": {
+          "method": "GET",
+          "url": "http://127.0.0.1:8765/",
+          "headers": {
+            "Accept": "text/html,application/json,*/*;q=0.5"
+          }
+        },
+        "probe_response": {
+          "status": 200,
+          "headers": {
+            "server": "LabTarget/1.0 Python/3.12.2",
+            "date": "Wed, 14 Oct 2026 23:00:17 GMT",
+            "content-type": "text/html; charset=utf-8",
+            "content-length": "393",
+            "set-cookie": "tracking=abc123; Path=/"
+          },
+          "elapsed_ms": 16,
+          "snippet": ""
+        },
+        "differences": [],
+        "verification_count": 1
+      }
+    },
+    {
+      "fingerprint": "headers.corp_missing",
+      "title": "Política de carregamento de recursos não é explícita",
+      "category": "Cabeçalhos de Segurança",
+      "severity": "low",
+      "confidence": 76,
+      "status": "high_confidence",
+      "cwe": "CWE-693",
+      "owasp": "A02:2025 Security Misconfiguration",
+      "wstg": "WSTG-CONF-12",
+      "affected_url": "http://127.0.0.1:8765/",
+      "method": "GET",
+      "parameter": null,
+      "parameter_location": null,
+      "manual_review_required": false,
+      "observed": "Cross-Origin-Resource-Policy está ausente.",
+      "developer_impact": "Outras origens podem conseguir incorporar este recurso, a menos que outro comportamento da aplicação impeça isso.",
+      "remediation": "Para recursos não públicos, defina `Cross-Origin-Resource-Policy: same-origin` ou `same-site`.",
+      "remediation_example": {
+        "language": "Apache (.htaccess) / PHP",
+        "vulnerable": "# Resposta atual: o cabecalho abaixo NAO e enviado.",
+        "fixed": "# .htaccess (ou vhost) — modulo headers habilitado:\nHeader always set Cross-Origin-Resource-Policy \"same-origin\"\n\n// Alternativa em PHP, antes de qualquer saida:\nheader('Cross-Origin-Resource-Policy \"same-origin\"');",
+        "note": "Impede que outras origens embutam este recurso."
+      },
+      "evidence": {
+        "reason": "Cross-Origin-Resource-Policy está ausente.",
+        "baseline": {
+          "status": 200,
+          "length": 393,
+          "elapsed_ms": 16
+        },
+        "probe_request": {
+          "method": "GET",
+          "url": "http://127.0.0.1:8765/",
+          "headers": {
+            "Accept": "text/html,application/json,*/*;q=0.5"
+          }
+        },
+        "probe_response": {
+          "status": 200,
+          "headers": {
+            "server": "LabTarget/1.0 Python/3.12.2",
+            "date": "Wed, 14 Oct 2026 23:00:17 GMT",
+            "content-type": "text/html; charset=utf-8",
+            "content-length": "393",
+            "set-cookie": "tracking=abc123; Path=/"
+          },
+          "elapsed_ms": 16,
+          "snippet": ""
+        },
+        "differences": [],
+        "verification_count": 1
+      }
+    },
+    {
+      "fingerprint": "headers.referrer_policy_missing",
+      "title": "URLs podem vazar pelo cabeçalho Referer",
+      "category": "Cabeçalhos de Segurança",
+      "severity": "low",
+      "confidence": 76,
+      "status": "high_confidence",
+      "cwe": "CWE-200",
+      "owasp": "A02:2025 Security Misconfiguration",
+      "wstg": "WSTG-CONF-12",
+      "affected_url": "http://127.0.0.1:8765/",
+      "method": "GET",
+      "parameter": null,
+      "parameter_location": null,
+      "manual_review_required": false,
+      "observed": "Referrer-Policy está ausente.",
+      "developer_impact": "Caminhos e parâmetros de query podem ser expostos a sites de terceiros quando usuários seguem links externos.",
+      "remediation": "Adicione `Referrer-Policy: strict-origin-when-cross-origin` e nunca coloque segredos em URLs.",
+      "remediation_example": {
+        "language": "Apache (.htaccess) / PHP",
+        "vulnerable": "# Resposta atual: o cabecalho abaixo NAO e enviado.",
+        "fixed": "# .htaccess (ou vhost) — modulo headers habilitado:\nHeader always set Referrer-Policy \"strict-origin-when-cross-origin\"\n\n// Alternativa em PHP, antes de qualquer saida:\nheader('Referrer-Policy \"strict-origin-when-cross-origin\"');",
+        "note": "Evita vazar a URL completa (com tokens) para terceiros."
+      },
+      "evidence": {
+        "reason": "Referrer-Policy está ausente.",
+        "baseline": {
+          "status": 200,
+          "length": 393,
+          "elapsed_ms": 16
+        },
+        "probe_request": {
+          "method": "GET",
+          "url": "http://127.0.0.1:8765/",
+          "headers": {
+            "Accept": "text/html,application/json,*/*;q=0.5"
+          }
+        },
+        "probe_response": {
+          "status": 200,
+          "headers": {
+            "server": "LabTarget/1.0 Python/3.12.2",
+            "date": "Wed, 14 Oct 2026 23:00:17 GMT",
+            "content-type": "text/html; charset=utf-8",
+            "content-length": "393",
+            "set-cookie": "tracking=abc123; Path=/"
+          },
+          "elapsed_ms": 16,
+          "snippet": ""
+        },
+        "differences": [],
+        "verification_count": 1
+      }
+    }
+  ]
+}

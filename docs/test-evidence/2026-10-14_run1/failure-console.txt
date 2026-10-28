@@ -1,0 +1,20 @@
+FI-01  PASS      0.0s  .env absent
+FI-02  FAIL      3.3s  MariaDB stopped
+         - no technical detail in the response: ['.php']
+         - detail logged: 
+FI-03  FAIL      0.0s  Wrong database password
+         - no technical detail in the response: 
+FI-04  PASS      2.7s  Target unreachable
+FI-05  PASS      1.0s  Loopback target with private targets denied
+FI-06  PASS      0.6s  Python binary misconfigured
+FI-07  PASS      0.4s  Engine answers a document that breaks the contract
+FI-08  FAIL      2.4s  Database refuses the write of findings
+         - no technical detail in the response: 
+         - status: expected 'failed', got 'running'
+         - reason recorded: 
+FI-09  PASS    116.4s  Scan outlives PHP's max_execution_time
+FI-10  FAIL     20.2s  Value longer than its column, strict SQL mode
+         - status: expected 'completed', got 'running'
+         - form finding stored: []
+
+6/10 passed — evidence in docs\test-evidence\2026-10-14_run1-failure

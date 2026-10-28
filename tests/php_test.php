@@ -21,17 +21,20 @@ use App\Domain\Model\Analysis;
 use App\Domain\Model\AnalysisStatus;
 use App\Domain\Model\Application;
 use App\Domain\Model\Finding;
+use App\Domain\Model\Period;
 use App\Domain\Model\ScanMode;
 use App\Domain\Model\ScanResult;
 use App\Domain\Model\SecurityScore;
 use App\Domain\Model\Severity;
 use App\Domain\Model\TargetUrl;
 use App\Domain\Service\AnalysisComparison;
+use App\Infrastructure\Scanner\PythonScannerGateway;
 use App\Presentation\FindingPresenter;
 use App\UseCase\CompareAnalyses;
 use App\UseCase\ExportAnalysis;
 use App\UseCase\RegisterApplication;
 use App\UseCase\RunAnalysis;
+use Tests\Php\FailingTransactionManager;
 use Tests\Php\FakeScannerGateway;
 use Tests\Php\ImmediateTransactionManager;
 use Tests\Php\InMemoryAnalysisRepository;
@@ -443,9 +446,13 @@ $compareWorld['findings']->saveAll($first, [makeFinding(['fingerprint' => 'cooki
 $second = $compareWorld['run']->execute(1, false, false);
 $compareWorld['findings']->saveAll($second, [makeFinding(['fingerprint' => 'transport.no_hsts', 'severity' => 'medium'])]);
 $comparison = $compareWorld['compare']->execute($first, $second);
-check('compare finds the new finding', array_keys($comparison['new']) === ['transport.no_hsts']);
-check('compare finds the persistent finding', array_keys($comparison['persistent']) === ['headers.csp_missing']);
-check('compare finds the fixed finding', array_keys($comparison['fixed']) === ['cookies.no_secure']);
+// The groups are keyed by identity (check + endpoint + input); assert on the check they hold.
+$checksIn = static fn(array $group): array => array_values(array_column($group, 'fingerprint'));
+check('compare finds the new finding', $checksIn($comparison['new']) === ['transport.no_hsts']);
+check('compare finds the persistent finding', $checksIn($comparison['persistent']) === ['headers.csp_missing']);
+check('compare finds the fixed finding', $checksIn($comparison['fixed']) === ['cookies.no_secure']);
+check('compare tells where each finding is', ($comparison['fixed'][array_key_first($comparison['fixed'])]['endpoint'] ?? '')
+    === 'https://example.com/');
 checkThrows('compare rejects an unknown analysis', NotFound::class,
     static fn() => $compareWorld['compare']->execute($first, 999));
 
@@ -489,6 +496,161 @@ foreach ($many as $finding) {
 $elapsed = microtime(true) - $start;
 check('rendered all 1,000 findings', substr_count($rendered, '<article class="finding"') === 1000);
 check('rendering 1,000 findings under 3s (CA-05), got ' . round($elapsed, 3) . 's', $elapsed < 3.0);
+
+// --- Integration contract, consumer side (docs/INTEGRATION_CONTRACT.md) ---------
+// The sample is a real engine answer captured by tests/test_integration_contract.py, which
+// validates the same file on the producer side.
+$sample = json_decode((string) file_get_contents(__DIR__ . '/fixtures/scan_result.sample.json'), true);
+check('contract sample is valid JSON', is_array($sample) && ($sample['ok'] ?? null) === true);
+$sampleResult = ScanResult::fromEnginePayload($sample);
+check('contract: a success document is read as success', $sampleResult->ok);
+check('contract: every finding is read', count($sampleResult->findings) === count($sample['findings']));
+check('contract: run metrics are read', $sampleResult->checksRun === $sample['checks_run']
+    && $sampleResult->durationMs === $sample['duration_ms'] && $sampleResult->httpStatus === $sample['status_code']);
+$sampleXss = null;
+foreach ($sampleResult->findings as $finding) {
+    if ($finding->parameter !== null) {
+        $sampleXss = $finding;
+        break;
+    }
+}
+check('contract: parameter, location and method survive the boundary', $sampleXss !== null
+    && $sampleXss->parameterLocation === 'query' && $sampleXss->method === 'GET');
+check('contract: taxonomy and example survive the boundary', $sampleXss?->cwe === 'CWE-79'
+    && ($sampleXss->example?->fixed ?? '') !== '');
+check('contract: structured evidence survives the boundary', isset($sampleXss?->evidence['reason']));
+checkThrows('contract C4: an unknown severity is rejected, not stored', InvalidInput::class,
+    static fn() => ScanResult::fromEnginePayload(['ok' => true, 'findings' => [
+        ['fingerprint' => 'x.y', 'title' => 'T', 'severity' => 'info', 'affected_url' => 'https://e.x/'],
+    ]]));
+checkThrows('contract C4: a finding without fingerprint is rejected', InvalidInput::class,
+    static fn() => ScanResult::fromEnginePayload(['ok' => true, 'findings' => [
+        ['title' => 'T', 'severity' => 'low', 'affected_url' => 'https://e.x/'],
+    ]]));
+check('contract: ok:false without a reason still fails with a reason',
+    ScanResult::fromEnginePayload(['ok' => false])->error !== '');
+
+// C4 through the use case: an invalid document fails the analysis instead of crashing it.
+$invalidWorld = $makeWorld($okResult);
+$invalidWorld['register']->execute('Portal', 'https://example.com/', true);
+$invalidRun = new RunAnalysis(
+    $invalidWorld['applications'],
+    $invalidWorld['analyses'],
+    $invalidWorld['findings'],
+    new ThrowingScannerGateway(new InvalidInput('Severidade desconhecida: info.')),
+    $invalidWorld['transactions'],
+);
+$invalidId = $invalidRun->execute(1, false, false);
+check('contract C4: an invalid document fails the analysis with the reason',
+    $invalidWorld['analyses']->find($invalidId)?->status === AnalysisStatus::Failed
+    && $invalidWorld['analyses']->find($invalidId)?->errorMessage === 'Severidade desconhecida: info.');
+
+// C2/C3: a failure while *storing* the result must close the analysis, with no findings.
+$storeWorld = $makeWorld($okResult);
+$storeWorld['register']->execute('Portal', 'https://example.com/', true);
+$storeRun = new RunAnalysis(
+    $storeWorld['applications'],
+    $storeWorld['analyses'],
+    $storeWorld['findings'],
+    $storeWorld['scanner'],
+    new FailingTransactionManager(),
+);
+$storeFailurePropagated = false;
+try {
+    $storeRun->execute(1, false, false);
+} catch (Throwable) {
+    $storeFailurePropagated = true;
+}
+$storeAnalysis = $storeWorld['analyses']->find(1);
+check('contract C2: a failure while storing does not leave the analysis running',
+    $storeAnalysis?->status === AnalysisStatus::Failed);
+check('contract C2: a failure while storing records a reason', ($storeAnalysis?->errorMessage ?? '') !== '');
+check('contract C3: a failure while storing leaves no findings', $storeWorld['findings']->byAnalysis(1) === []);
+check('a failure while storing is still reported as an error', $storeFailurePropagated);
+
+// §5 identity: the same check on two endpoints are two findings; fixing one is "fixed", the
+// other "persistent" — even though every run puts a different probe marker in the URL.
+$identityWorld = $makeWorld($okResult);
+$identityWorld['register']->execute('Portal', 'https://example.com/', true);
+$xssAt = static fn(string $path, string $parameter, string $marker): Finding => makeFinding([
+    'fingerprint' => 'xss.reflected_html_text', 'severity' => 'high',
+    'affected_url' => 'https://example.com' . $path . '?' . $parameter . '=a%3C' . $marker . '%3E',
+    'parameter' => $parameter, 'parameter_location' => 'query',
+]);
+$before = $identityWorld['run']->execute(1, false, false);
+$identityWorld['findings']->saveAll($before, [$xssAt('/search', 'q', 'm1'), $xssAt('/profile', 'name', 'm1')]);
+$after = $identityWorld['run']->execute(1, false, false);
+$identityWorld['findings']->saveAll($after, [$xssAt('/profile', 'name', 'm2')]);
+// Each run also stores the scanner's own headers.csp_missing, so: before = {csp, xss@/search,
+// xss@/profile}; after = {csp, xss@/profile}.
+$identityDiff = $identityWorld['compare']->execute($before, $after);
+check('contract §5: the endpoint that was fixed is reported as fixed',
+    count($identityDiff['fixed']) === 1 && str_contains((string) json_encode($identityDiff['fixed']), '/search'));
+check('contract §5: the header and the endpoint still vulnerable are persistent, despite a new probe marker',
+    count($identityDiff['persistent']) === 2 && str_contains((string) json_encode($identityDiff['persistent']), '/profile'));
+check('contract §5: nothing is reported as new', $identityDiff['new'] === []);
+
+// Contract R1/R2: the engine is started from an argument list, so every value is one argument,
+// unaltered — `%`, `!` and `"` included (escapeshellarg on Windows turned them into spaces).
+$argv = PythonScannerGateway::command(
+    TargetUrl::fromString('http://127.0.0.1:8765/search?q=a%20b!'),
+    ScanMode::SafeActive,
+    'lab_session=s3cr%3D!x"; other=1',
+    true,
+);
+check('contract R1: the URL is passed byte for byte', in_array('http://127.0.0.1:8765/search?q=a%20b!', $argv, true));
+check('contract R1: the cookie is passed byte for byte', in_array('--cookie=lab_session=s3cr%3D!x"; other=1', $argv, true));
+check('contract R2: each value is a single argument', count($argv) === 6
+    && $argv[3] === '--mode=safe_active' && $argv[4] === '--allow-private');
+check('contract: no cookie argument without a cookie', !in_array('--cookie=', PythonScannerGateway::command(
+    TargetUrl::fromString('https://example.com/'), ScanMode::Passive, '', false), true));
+check('identity ignores the probe marker in the query string',
+    makeFinding(['affected_url' => 'https://e.x:8080/a?q=%3Cm1%3E', 'parameter' => 'q'])->identity()
+    === makeFinding(['affected_url' => 'https://e.x:8080/a?q=%3Cm2%3E', 'parameter' => 'q'])->identity());
+check('identity separates two endpoints of the same check',
+    makeFinding(['affected_url' => 'https://e.x/a?q=1'])->identity() !== makeFinding(['affected_url' => 'https://e.x/b?q=1'])->identity());
+
+// --- History by period (Termo item 6) -------------------------------------------
+$utc = new DateTimeZone('UTC');
+$february = Period::fromStrings('2026-02-01', '2026-02-28');
+check('period: inclusive start', $february->contains(new DateTimeImmutable('2026-02-01 00:00:00', $utc)));
+check('period: inclusive end day', $february->contains(new DateTimeImmutable('2026-02-28 23:59:59', $utc)));
+check('period: day after the end is outside', !$february->contains(new DateTimeImmutable('2026-03-01 00:00:00', $utc)));
+check('period: open ends', Period::fromStrings('', '')->isUnbounded()
+    && Period::fromStrings('2026-02-01', '')->contains(new DateTimeImmutable('2030-01-01', $utc)));
+checkThrows('period: reversed ends are refused', InvalidInput::class,
+    static fn() => Period::fromStrings('2026-03-01', '2026-02-01'));
+checkThrows('period: a non-ISO date is refused', InvalidInput::class,
+    static fn() => Period::fromStrings('31/02/2026', ''));
+checkThrows('period: an impossible date is refused, not normalised', InvalidInput::class,
+    static fn() => Period::fromStrings('2026-02-31', ''));
+
+$historyRepository = new InMemoryAnalysisRepository();
+foreach ([1 => '2026-01-10 09:00:00', 2 => '2026-02-15 12:30:00', 3 => '2026-03-20 18:45:00'] as $id => $started) {
+    $historyRepository->seed(new Analysis(
+        id: $id, applicationId: 7, mode: ScanMode::Passive, status: AnalysisStatus::Running,
+        startedAt: new DateTimeImmutable($started, $utc),
+    ));
+}
+$idsOf = static fn(array $list): array => array_map(static fn(Analysis $a): int => $a->requireId(), $list);
+check('history: no period lists everything, newest first', $idsOf($historyRepository->listByApplication(7)) === [3, 2, 1]);
+check('history: a period keeps only its analyses', $idsOf($historyRepository->listByApplication(7, $february)) === [2]);
+check('history: both ends inclusive',
+    $idsOf($historyRepository->listByApplication(7, Period::fromStrings('2026-02-15', '2026-03-20'))) === [3, 2]);
+
+// --- Export summary (Termo item 8) --------------------------------------------------
+$summaryDocument = ExportAnalysis::document(
+    new Analysis(id: 9, applicationId: 1, mode: ScanMode::SafeActive, status: AnalysisStatus::Completed,
+        startedAt: new DateTimeImmutable('now'), score: SecurityScore::fromInt(76),
+        completedAt: new DateTimeImmutable('now')),
+    [makeFinding(['severity' => 'high']), makeFinding(['severity' => 'low', 'manual_review_required' => 1]),
+        makeFinding(['severity' => 'low'])],
+);
+check('export summary counts by severity', ($summaryDocument['summary']['by_severity'] ?? null)
+    === ['critical' => 0, 'high' => 1, 'medium' => 0, 'low' => 2]);
+check('export summary counts findings needing review', ($summaryDocument['summary']['manual_review_required'] ?? null) === 1);
+check('export summary carries the score', ($summaryDocument['summary']['security_score'] ?? null) === 76
+    && $summaryDocument['summary']['findings'] === 3);
 
 // --- Summary -------------------------------------------------------------------
 echo "PHP tests: {$passed} passed, {$failed} failed.\n";

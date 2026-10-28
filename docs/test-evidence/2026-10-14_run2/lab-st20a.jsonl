@@ -1,0 +1,12 @@
+{"t": 1792019638.098, "method": "GET", "path": "/", "cookie": "lab_session=s3cr%3D!x"}
+{"t": 1792019638.26, "method": "GET", "path": "/", "cookie": "lab_session=s3cr%3D!x"}
+{"t": 1792019638.437, "method": "GET", "path": "/search?q=livros", "cookie": "lab_session=s3cr%3D!x"}
+{"t": 1792019638.597, "method": "GET", "path": "/search?q=livros", "cookie": "lab_session=s3cr%3D!x"}
+{"t": 1792019638.742, "method": "GET", "path": "/profile?name=ana", "cookie": "lab_session=s3cr%3D!x"}
+{"t": 1792019638.902, "method": "GET", "path": "/profile?name=ana", "cookie": "lab_session=s3cr%3D!x"}
+{"t": 1792019639.062, "method": "GET", "path": "/about", "cookie": "lab_session=s3cr%3D!x"}
+{"t": 1792019639.222, "method": "GET", "path": "/about", "cookie": "lab_session=s3cr%3D!x"}
+{"t": 1792019639.345, "method": "GET", "path": "/account", "cookie": "lab_session=s3cr%3D!x"}
+{"t": 1792019639.526, "method": "GET", "path": "/account", "cookie": "lab_session=s3cr%3D!x"}
+{"t": 1792019639.689, "method": "GET", "path": "/account/notes?n=nota", "cookie": "lab_session=s3cr%3D!x"}
+{"t": 1792019639.832, "method": "GET", "path": "/account/notes?n=nota", "cookie": "lab_session=s3cr%3D!x"}

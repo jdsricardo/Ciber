@@ -8,6 +8,7 @@ use App\Domain\Model\Analysis;
 use App\Domain\Model\AnalysisStatus;
 use App\Domain\Model\Application;
 use App\Domain\Model\Finding;
+use App\Domain\Model\Period;
 use App\Domain\Model\ScanMode;
 use App\Domain\Model\Severity;
 
@@ -54,14 +55,20 @@ final class Views
      * @param list<Application> $applications
      * @param array<int,list<Analysis>> $historyByApplication analyses keyed by application id
      */
-    public static function dashboard(array $applications, array $historyByApplication, string $csrfToken): string
-    {
+    public static function dashboard(
+        array $applications,
+        array $historyByApplication,
+        string $csrfToken,
+        ?Period $period = null,
+    ): string {
+        $period ??= Period::unbounded();
         $cards = '';
         foreach ($applications as $application) {
             $cards .= self::applicationCard(
                 $application,
                 $historyByApplication[$application->requireId()] ?? [],
                 $csrfToken,
+                $period,
             );
         }
 
@@ -72,7 +79,25 @@ final class Views
             . '<a class="button" href="index.php?page=add">Adicionar uma aplicação</a></section>'
             . '<div class="section-head"><h2>Aplicações</h2><span>' . count($applications)
             . ' registrada(s)</span></div>'
+            . ($applications !== [] ? self::periodFilter($period) : '')
             . ($cards !== '' ? $cards : '<div class="empty">Nenhuma aplicação registrada ainda.</div>');
+    }
+
+    /** The history-by-period form (Termo de Referência, item 6). A GET form: it changes nothing. */
+    private static function periodFilter(Period $period): string
+    {
+        $from = $period->from?->format('Y-m-d') ?? '';
+        $to = $period->to?->format('Y-m-d') ?? '';
+        return '<form class="period-form card" action="index.php" method="get">'
+            . '<span>Histórico por período</span>'
+            . '<label>De<input type="date" name="from" value="' . Html::escape($from) . '"></label>'
+            . '<label>Até<input type="date" name="to" value="' . Html::escape($to) . '"></label>'
+            . '<button class="secondary">Filtrar</button>'
+            . ($period->isUnbounded() ? '' : '<a href="index.php">Limpar</a>'
+                . '<p class="muted">Exibindo as análises iniciadas '
+                . ($from !== '' ? 'a partir de ' . Html::escape($from) : 'desde a primeira')
+                . ($to !== '' ? ' até ' . Html::escape($to) : ' até hoje') . ' (UTC).</p>')
+            . '</form>';
     }
 
     /**
@@ -142,8 +167,12 @@ final class Views
     }
 
     /** @param list<Analysis> $history */
-    private static function applicationCard(Application $application, array $history, string $csrfToken): string
-    {
+    private static function applicationCard(
+        Application $application,
+        array $history,
+        string $csrfToken,
+        Period $period,
+    ): string {
         $options = '';
         $rows = '';
         foreach ($history as $analysis) {
@@ -169,7 +198,8 @@ final class Views
             ? '<div class="scroll"><table><thead><tr><th>ID</th><th>Data (UTC)</th><th>Modo</th>'
                 . '<th>Status</th><th>Pontuação</th><th>Verificações</th></tr></thead>'
                 . '<tbody>' . $rows . '</tbody></table></div>'
-            : '<p class="muted">Nenhuma análise ainda.</p>';
+            : '<p class="muted">' . ($period->isUnbounded() ? 'Nenhuma análise ainda.' : 'Nenhuma análise neste período.')
+                . '</p>';
 
         return '<section class="card"><div class="app-head"><div>'
             . '<h2>' . Html::escape($application->name) . '</h2>'
@@ -182,7 +212,7 @@ final class Views
 
     private static function runForm(Application $application, string $csrfToken): string
     {
-        return '<form method="post" action="index.php?page=run" class="run-form">'
+        return '<form method="post" action="index.php?page=run" class="run-form" data-busy>'
             . '<input type="hidden" name="csrf" value="' . Html::escape($csrfToken) . '">'
             . '<input type="hidden" name="application_id" value="' . $application->requireId() . '">'
             . '<label class="check"><input type="checkbox" name="mode_active" value="1" '
@@ -197,7 +227,10 @@ final class Views
             . '<label>Cookie de sessão<input name="session_cookie" placeholder="PHPSESSID=...; outro=valor" '
             . 'autocomplete="off"></label>'
             . '<p class="muted">Enviado apenas ao alvo autorizado nesta análise e não armazenado.</p></details>'
-            . '<button>Executar análise</button></form>';
+            . '<button>Executar análise</button>'
+            . '<p class="run-status" role="status" aria-live="polite" hidden>'
+            . '<span class="spinner" aria-hidden="true"></span>Análise em execução. O rastreamento e as '
+            . 'verificações podem levar alguns minutos; não feche nem recarregue esta página.</p></form>';
     }
 
     /** @param list<Finding> $findings */
@@ -230,9 +263,14 @@ final class Views
         $html = '<section class="card"><h2>' . Html::escape($title) . ' <small>'
             . count($findings) . '</small></h2>';
         foreach ($findings as $finding) {
+            // Where the finding is matters as much as what it is: the same check can be fixed on
+            // one endpoint and still open on another.
+            $where = (string) ($finding['endpoint'] ?? '')
+                . (($finding['parameter'] ?? null) !== null ? ' · parâmetro ' . $finding['parameter'] : '');
             $html .= '<div class="compare ' . $type . '">'
                 . '<b>' . Html::escape((string) ($finding['title'] ?? '')) . '</b>'
-                . '<span>' . Html::escape((string) ($finding['severity'] ?? '')) . '</span></div>';
+                . '<span>' . Html::escape((string) ($finding['severity'] ?? '')) . '</span>'
+                . ($where !== '' ? '<small>' . Html::escape($where) . '</small>' : '') . '</div>';
         }
         return $html . '</section>';
     }

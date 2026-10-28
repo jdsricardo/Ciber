@@ -1,0 +1,299 @@
+{
+  "meta": {
+    "run": "2026-10-14_run1-failure",
+    "started": "2026-10-14T23:01:36+00:00",
+    "finished": "2026-10-14T23:04:03+00:00",
+    "app_url": "http://localhost/www/Ciber/public/",
+    "passed": 6,
+    "total": 10,
+    "python": "3.12.2",
+    "platform": "win32"
+  },
+  "results": [
+    {
+      "id": "FI-01",
+      "suite": "failure",
+      "title": ".env absent",
+      "verdict": "PASS",
+      "seconds": 0.0,
+      "checks": [
+        [
+          "HTTP status",
+          true,
+          "expected 503, got 503"
+        ],
+        [
+          "guidance message",
+          true,
+          "Configuração necessária: copie .env.example para .env e importe database.sql."
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "FI-02",
+      "suite": "failure",
+      "title": "MariaDB stopped",
+      "verdict": "FAIL",
+      "seconds": 3.3,
+      "checks": [
+        [
+          "database stopped",
+          true,
+          ""
+        ],
+        [
+          "database restarted",
+          true,
+          ""
+        ],
+        [
+          "HTTP status",
+          true,
+          "expected 500, got 500"
+        ],
+        [
+          "generic message",
+          true,
+          "A requisição não pôde ser concluída.  Ocorreu um erro inesperado. Consulte o log do servidor."
+        ],
+        [
+          "no technical detail in the response",
+          false,
+          "['.php']"
+        ],
+        [
+          "detail logged",
+          false,
+          ""
+        ],
+        [
+          "password not logged",
+          true,
+          ""
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "FI-03",
+      "suite": "failure",
+      "title": "Wrong database password",
+      "verdict": "FAIL",
+      "seconds": 0.0,
+      "checks": [
+        [
+          "HTTP status",
+          true,
+          "expected 500, got 500"
+        ],
+        [
+          "generic message",
+          true,
+          "A requisição não pôde ser concluída.  Ocorreu um erro inesperado. Consulte o log do servidor."
+        ],
+        [
+          "no technical detail in the response",
+          false,
+          ""
+        ],
+        [
+          "wrong password not in the response",
+          true,
+          ""
+        ],
+        [
+          "wrong password not logged",
+          true,
+          ""
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "FI-04",
+      "suite": "failure",
+      "title": "Target unreachable",
+      "verdict": "PASS",
+      "seconds": 2.7,
+      "checks": [
+        [
+          "status",
+          true,
+          "expected 'failed', got 'failed'"
+        ],
+        [
+          "reason recorded and shown",
+          true,
+          "Nenhuma página pôde ser acessada no alvo."
+        ],
+        [
+          "findings",
+          true,
+          "expected 0, got 0"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "FI-05",
+      "suite": "failure",
+      "title": "Loopback target with private targets denied",
+      "verdict": "PASS",
+      "seconds": 1.0,
+      "checks": [
+        [
+          "status",
+          true,
+          "expected 'failed', got 'failed'"
+        ],
+        [
+          "scope reason recorded",
+          true,
+          "Private, loopback, link-local, and reserved targets are blocked"
+        ],
+        [
+          "requests received by the target",
+          true,
+          "expected 0, got 0"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "FI-06",
+      "suite": "failure",
+      "title": "Python binary misconfigured",
+      "verdict": "PASS",
+      "seconds": 0.6,
+      "checks": [
+        [
+          "status",
+          true,
+          "expected 'failed', got 'failed'"
+        ],
+        [
+          "reason",
+          true,
+          "expected 'O scanner retornou uma resposta inválida. Verifique a configuração do Python.', got 'O scanner retornou uma resposta inválida. Verifique a configuração do Python.'"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "FI-07",
+      "suite": "failure",
+      "title": "Engine answers a document that breaks the contract",
+      "verdict": "PASS",
+      "seconds": 0.4,
+      "checks": [
+        [
+          "status",
+          true,
+          "expected 'failed', got 'failed'"
+        ],
+        [
+          "reason",
+          true,
+          "expected 'Severidade desconhecida: info.', got 'Severidade desconhecida: info.'"
+        ],
+        [
+          "findings",
+          true,
+          "expected 0, got 0"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "FI-08",
+      "suite": "failure",
+      "title": "Database refuses the write of findings",
+      "verdict": "FAIL",
+      "seconds": 2.4,
+      "checks": [
+        [
+          "the user gets an answer (error page or result)",
+          true,
+          "500"
+        ],
+        [
+          "no technical detail in the response",
+          false,
+          ""
+        ],
+        [
+          "status",
+          false,
+          "expected 'failed', got 'running'"
+        ],
+        [
+          "reason recorded",
+          false,
+          ""
+        ],
+        [
+          "findings",
+          true,
+          "expected 0, got 0"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "FI-09",
+      "suite": "failure",
+      "title": "Scan outlives PHP's max_execution_time",
+      "verdict": "PASS",
+      "seconds": 116.4,
+      "checks": [
+        [
+          "the user gets an answer (after 115.8 s)",
+          true,
+          "302"
+        ],
+        [
+          "no technical detail in the response",
+          true,
+          ""
+        ],
+        [
+          "analysis not left running",
+          true,
+          "{'status': 'completed', 'error': '', 'score': '8', 'checks_run': '64'}"
+        ],
+        [
+          "a failure carries a reason",
+          true,
+          ""
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "FI-10",
+      "suite": "failure",
+      "title": "Value longer than its column, strict SQL mode",
+      "verdict": "FAIL",
+      "seconds": 20.2,
+      "checks": [
+        [
+          "status",
+          false,
+          "expected 'completed', got 'running'"
+        ],
+        [
+          "form finding stored",
+          false,
+          "[]"
+        ],
+        [
+          "parameter within 180 characters",
+          true,
+          "[]"
+        ]
+      ],
+      "error": null
+    }
+  ]
+}

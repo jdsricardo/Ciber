@@ -1,0 +1,12 @@
+{"t": 1792018835.411, "method": "GET", "path": "/", "cookie": "lab_session=st19-200015-segredo"}
+{"t": 1792018835.564, "method": "GET", "path": "/", "cookie": "lab_session=st19-200015-segredo"}
+{"t": 1792018835.719, "method": "GET", "path": "/search?q=livros", "cookie": "lab_session=st19-200015-segredo"}
+{"t": 1792018835.876, "method": "GET", "path": "/search?q=livros", "cookie": "lab_session=st19-200015-segredo"}
+{"t": 1792018835.998, "method": "GET", "path": "/profile?name=ana", "cookie": "lab_session=st19-200015-segredo"}
+{"t": 1792018836.147, "method": "GET", "path": "/profile?name=ana", "cookie": "lab_session=st19-200015-segredo"}
+{"t": 1792018836.307, "method": "GET", "path": "/about", "cookie": "lab_session=st19-200015-segredo"}
+{"t": 1792018836.444, "method": "GET", "path": "/about", "cookie": "lab_session=st19-200015-segredo"}
+{"t": 1792018836.597, "method": "GET", "path": "/account", "cookie": "lab_session=st19-200015-segredo"}
+{"t": 1792018836.75, "method": "GET", "path": "/account", "cookie": "lab_session=st19-200015-segredo"}
+{"t": 1792018836.888, "method": "GET", "path": "/account/notes?n=nota", "cookie": "lab_session=st19-200015-segredo"}
+{"t": 1792018837.055, "method": "GET", "path": "/account/notes?n=nota", "cookie": "lab_session=st19-200015-segredo"}

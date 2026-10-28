@@ -1,0 +1,354 @@
+{
+  "meta": {
+    "run": "2026-10-28_run3a-before",
+    "started": "2026-10-28T22:32:41+00:00",
+    "finished": "2026-10-28T22:33:10+00:00",
+    "app_url": "http://localhost/www/Ciber/public/",
+    "passed": 5,
+    "total": 8,
+    "python": "3.12.2",
+    "platform": "win32"
+  },
+  "results": [
+    {
+      "id": "ST-01",
+      "suite": "system",
+      "title": "Register a valid application",
+      "verdict": "PASS",
+      "seconds": 0.2,
+      "checks": [
+        [
+          "HTTP status",
+          true,
+          "expected 302, got 302"
+        ],
+        [
+          "redirect target",
+          true,
+          "expected 'index.php', got 'index.php'"
+        ],
+        [
+          "notice shown",
+          true,
+          ""
+        ],
+        [
+          "card shows the name",
+          true,
+          ""
+        ],
+        [
+          "card shows the URL",
+          true,
+          ""
+        ],
+        [
+          "row persisted",
+          true,
+          "33"
+        ],
+        [
+          "authorization_confirmed_at recorded",
+          true,
+          "2026-10-28 22:32:41"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-06",
+      "suite": "system",
+      "title": "Passive analysis of the vulnerable laboratory",
+      "verdict": "PASS",
+      "seconds": 3.0,
+      "checks": [
+        [
+          "redirects to the result",
+          true,
+          "expected 302, got 302"
+        ],
+        [
+          "status",
+          true,
+          "expected 'completed', got 'completed'"
+        ],
+        [
+          "checks run shown",
+          true,
+          "expected '34', got '34'"
+        ],
+        [
+          "baseline GETs to /",
+          true,
+          "expected 2, got 2"
+        ],
+        [
+          "baseline GETs to /search?q=livros",
+          true,
+          "expected 2, got 2"
+        ],
+        [
+          "baseline GETs to /profile?name=ana",
+          true,
+          "expected 2, got 2"
+        ],
+        [
+          "baseline GETs to /about",
+          true,
+          "expected 2, got 2"
+        ],
+        [
+          "requests to logout/destructive links",
+          true,
+          "expected [], got []"
+        ],
+        [
+          "headers.csp_missing reported",
+          true,
+          "['cache.sensitive_no_store_missing', 'cookies.missing_httponly', 'cookies.missing_samesite', 'disclosure.server_header', 'headers.coop_missing', 'headers.corp_missing', 'headers.csp_missing', 'headers.frame_options_missing', 'headers.nosniff_missing', 'headers.permissions_policy_missing', 'headers.referrer_policy_missing', 'transport.https']"
+        ],
+        [
+          "no xss finding in passive mode",
+          true,
+          "['cache.sensitive_no_store_missing', 'cookies.missing_httponly', 'cookies.missing_samesite', 'disclosure.server_header', 'headers.coop_missing', 'headers.corp_missing', 'headers.csp_missing', 'headers.frame_options_missing', 'headers.nosniff_missing', 'headers.permissions_policy_missing', 'headers.referrer_policy_missing', 'transport.https']"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-08",
+      "suite": "system",
+      "title": "Active analysis of the vulnerable laboratory",
+      "verdict": "PASS",
+      "seconds": 15.2,
+      "checks": [
+        [
+          "status",
+          true,
+          "expected 'completed', got 'completed'"
+        ],
+        [
+          "checks run shown",
+          true,
+          "expected '64', got '64'"
+        ],
+        [
+          "XSS on /search, parameter q",
+          true,
+          "[('q', '/search'), ('name', '/profile')]"
+        ],
+        [
+          "XSS on /profile, parameter name",
+          true,
+          "[('q', '/search'), ('name', '/profile')]"
+        ],
+        [
+          "requests to logout/destructive links",
+          true,
+          "expected [], got []"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-25",
+      "suite": "system",
+      "title": "History consulted by period (FR-06, Termo item 6)",
+      "verdict": "FAIL",
+      "seconds": 0.4,
+      "checks": [
+        [
+          "(a) no period: all three",
+          true,
+          "expected [43, 42, 41], got [43, 42, 41]"
+        ],
+        [
+          "(b) February only",
+          false,
+          "expected [42], got [43, 42, 41]"
+        ],
+        [
+          "(b) the form shows the period applied",
+          false,
+          ""
+        ],
+        [
+          "(c) inclusive ends",
+          false,
+          "expected [43, 42], got [43, 42, 41]"
+        ],
+        [
+          "(d) open end",
+          false,
+          "expected [43, 42], got [43, 42, 41]"
+        ],
+        [
+          "(e) reversed period: status",
+          false,
+          "expected 400, got 200"
+        ],
+        [
+          "(e) reversed period: message",
+          false,
+          ""
+        ],
+        [
+          "(f) malformed date: status",
+          false,
+          "expected 400, got 200"
+        ],
+        [
+          "(f) malformed date: message",
+          false,
+          ""
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "ST-26",
+      "suite": "system",
+      "title": "JSON export carries a summary (FR-12, Termo item 8)",
+      "verdict": "FAIL",
+      "seconds": 0.0,
+      "checks": [
+        [
+          "summary.findings",
+          true,
+          "expected 14, got 14"
+        ],
+        [
+          "summary.by_severity",
+          false,
+          "expected {'critical': 0, 'high': 3, 'medium': 5, 'low': 6}, got None"
+        ],
+        [
+          "summary.security_score",
+          false,
+          "expected 8, got None"
+        ],
+        [
+          "summary.manual_review_required",
+          false,
+          "expected 0, got None"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "MT-01",
+      "suite": "browser",
+      "title": "Double click on 'Executar análise' starts one analysis, with progress shown",
+      "verdict": "FAIL",
+      "seconds": 7.8,
+      "checks": [
+        [
+          "button disabled",
+          false,
+          "None"
+        ],
+        [
+          "button says 'Analisando…'",
+          false,
+          "None"
+        ],
+        [
+          "progress message visible",
+          false,
+          "None"
+        ],
+        [
+          "result page reached",
+          true,
+          ""
+        ],
+        [
+          "analyses created by the double click",
+          true,
+          "expected 1, got 1"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "MT-02",
+      "suite": "browser",
+      "title": "Severity chips filter the findings",
+      "verdict": "PASS",
+      "seconds": 0.3,
+      "checks": [
+        [
+          "at least two severities to filter",
+          true,
+          "{'high': 1, 'medium': 5, 'low': 6}"
+        ],
+        [
+          "'high' chip shows only its 1 finding(s)",
+          true,
+          "['high']"
+        ],
+        [
+          "'medium' chip shows only its 5 finding(s)",
+          true,
+          "['medium', 'medium', 'medium', 'medium', 'medium']"
+        ],
+        [
+          "'low' chip shows only its 6 finding(s)",
+          true,
+          "['low', 'low', 'low', 'low', 'low', 'low']"
+        ],
+        [
+          "'Todos' shows every finding again",
+          true,
+          "expected 12, got 12"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "MT-03",
+      "suite": "browser",
+      "title": "Printable report saved as PDF",
+      "verdict": "PASS",
+      "seconds": 2.1,
+      "checks": [
+        [
+          "a PDF was produced",
+          true,
+          "b'%PDF-1.4'"
+        ],
+        [
+          "header: application name",
+          true,
+          ""
+        ],
+        [
+          "header: score",
+          true,
+          ""
+        ],
+        [
+          "metrics",
+          true,
+          ""
+        ],
+        [
+          "every finding title printed",
+          true,
+          "expected [], got []"
+        ],
+        [
+          "navigation not printed",
+          true,
+          ""
+        ],
+        [
+          "buttons not printed",
+          true,
+          ""
+        ]
+      ],
+      "error": null
+    }
+  ]
+}

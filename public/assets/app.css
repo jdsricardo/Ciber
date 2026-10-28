@@ -352,6 +352,45 @@ th {
     gap: 12px
 }
 
+.run-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 12px 0 0;
+    color: var(--muted)
+}
+
+.run-status[hidden] {
+    display: none
+}
+
+.spinner {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--line);
+    border-top-color: var(--cyan);
+    border-radius: 50%;
+    animation: spin .8s linear infinite
+}
+
+button:disabled {
+    opacity: .6;
+    cursor: progress
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg)
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spinner {
+        animation: none
+    }
+}
+
 @media (max-width: 720px) {
     .code-columns {
         grid-template-columns: 1fr
@@ -453,6 +492,16 @@ code {
 
 .compare span {
     color: var(--muted)
+}
+
+.compare {
+    flex-wrap: wrap
+}
+
+.compare small {
+    flex-basis: 100%;
+    color: var(--muted);
+    overflow-wrap: anywhere
 }
 
 .notice,
@@ -569,6 +618,39 @@ footer {
 .auth-details summary {
     cursor: pointer;
     color: var(--muted)
+}
+
+.period-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px
+}
+
+.period-form>span {
+    font-weight: 700
+}
+
+.period-form label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted)
+}
+
+.period-form input {
+    padding: 8px;
+    background: #071421;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--text);
+    font: inherit;
+    color-scheme: dark
+}
+
+.period-form p {
+    flex-basis: 100%;
+    margin: 0
 }
 
 .auth-details label {

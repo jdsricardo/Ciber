@@ -1,0 +1,36 @@
+ST-01  PASS      0.1s  Register a valid application
+ST-02  PASS      0.1s  Registration without authorization is refused
+ST-03  PASS      0.2s  Invalid URLs are refused
+ST-04  PASS      0.1s  Invalid names are refused
+ST-05  PASS      0.2s  POST without a valid CSRF token is refused
+ST-06  PASS      2.2s  Passive analysis of the vulnerable laboratory
+ST-07  PASS      0.1s  Active analysis without the active authorization is refused
+ST-08  PASS     14.8s  Active analysis of the vulnerable laboratory
+ST-09  PASS      0.1s  Every finding carries the minimum information (CA-02)
+ST-10  PASS      0.1s  Score equals the manual 30/15/7/2 calculation (CA-03)
+ST-11  PASS      0.1s  User-supplied and target-supplied content is escaped (NFR-02)
+ST-12  PASS      0.0s  History lists every analysis, most recent first (FR-06)
+ST-19  PASS      2.7s  Authenticated scan reaches the private area; the credential is never kept (FR-11, NFR-07)
+ST-20  PASS      4.8s  Arguments reach the engine intact (contract R1)
+ST-13  PASS     29.5s  Comparison after a partial fix (CA-04)
+ST-14  PASS     14.5s  Comparison after the complete fix (CA-04)
+ST-15  PASS      0.0s  Comparison across applications is refused
+ST-16  PASS      0.1s  JSON export is complete and equal to what is stored and shown (CA-06)
+ST-17  PASS      0.1s  Printable report (FR-08)
+ST-18  PASS      0.0s  Severity filter counts (FR-12)
+ST-21  PASS      0.1s  Unknown identifiers answer 404
+ST-22  PASS      1.6s  1,000 findings presented in under 3 seconds (CA-05, NFR-01)
+ST-23  PASS      0.0s  Loading indicator is present (roadmap step 23)
+ST-24  PASS      2.3s  Analysis timestamps share one clock (FR-06, CA-06)
+FI-01  PASS      0.0s  .env absent
+FI-02  PASS      3.2s  MariaDB stopped
+FI-03  PASS      0.1s  Wrong database password
+FI-04  PASS      2.5s  Target unreachable
+FI-05  PASS      0.9s  Loopback target with private targets denied
+FI-06  PASS      0.6s  Python binary misconfigured
+FI-07  PASS      0.9s  Engine answers a document that breaks the contract
+FI-08  PASS      2.5s  Database refuses the write of findings
+FI-09  PASS    229.2s  Scan outlives PHP's max_execution_time
+FI-10  PASS     20.0s  Value longer than its column, strict SQL mode
+
+34/34 passed — evidence in docs\test-evidence\2026-10-14_run2

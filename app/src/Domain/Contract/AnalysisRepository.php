@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Contract;
 
 use App\Domain\Model\Analysis;
+use App\Domain\Model\Period;
 use App\Domain\Model\SecurityScore;
 
 /** Storage of analyses, declared by the domain and implemented outside it. */
@@ -12,8 +13,13 @@ interface AnalysisRepository
 {
     public function find(int $id): ?Analysis;
 
-    /** @return list<Analysis> history of one application, newest first */
-    public function listByApplication(int $applicationId): array;
+    /**
+     * History of one application, newest first, restricted to the analyses started within
+     * `$period` when one is given (both ends inclusive, whole days, UTC).
+     *
+     * @return list<Analysis>
+     */
+    public function listByApplication(int $applicationId, ?Period $period = null): array;
 
     /** Persists a `running` analysis and returns it with the identifier assigned by storage. */
     public function start(Analysis $analysis): Analysis;

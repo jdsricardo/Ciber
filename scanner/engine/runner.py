@@ -2,6 +2,7 @@
 runs baseline requests, page context, plugin execution, and JSON serialization."""
 from __future__ import annotations
 import importlib
+import time
 from collections import deque
 from dataclasses import replace
 from datetime import datetime, timezone
@@ -78,6 +79,9 @@ class ScanRunner:
         )
         safety = SafetyController(context)
         transport = HttpTransport(safety)
+        # duration_ms is the wall-clock length of the whole scan (contract §3.1): crawling,
+        # baselines and every probe — not the response time of one request.
+        started = time.monotonic()
 
         # Breadth-first crawl of the reachable same-origin surface. Each visited page is fully
         # scanned (baseline requests + every plugin) as it is dequeued; its links are then
@@ -153,7 +157,7 @@ class ScanRunner:
         result = {
             "ok": True,
             "status_code": seed_primary.status,
-            "duration_ms": seed_primary.elapsed_ms,
+            "duration_ms": int((time.monotonic() - started) * 1000),
             "plugins_run": len(self.plugins),
             "checks_run": self.rule_count(),
             "baseline_stability": baseline_stability(seed_summaries),

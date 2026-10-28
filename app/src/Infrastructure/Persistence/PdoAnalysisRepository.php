@@ -6,6 +6,7 @@ namespace App\Infrastructure\Persistence;
 
 use App\Domain\Contract\AnalysisRepository;
 use App\Domain\Model\Analysis;
+use App\Domain\Model\Period;
 use App\Domain\Model\SecurityScore;
 use App\Infrastructure\Database;
 
@@ -23,14 +24,22 @@ final class PdoAnalysisRepository implements AnalysisRepository
         return $row === false ? null : Analysis::fromRow($row);
     }
 
-    public function listByApplication(int $applicationId): array
+    public function listByApplication(int $applicationId, ?Period $period = null): array
     {
         // Served by idx_analysis_application_date (application_id, started_at): the index
-        // covers both the filter and the ordering, so no filesort is needed for the history.
-        $rows = Database::all(
-            'SELECT * FROM analyses WHERE application_id=? ORDER BY started_at DESC',
-            [$applicationId]
-        );
+        // covers the filter, the period's range on started_at and the ordering, so neither a
+        // period nor the history needs a filesort.
+        $sql = 'SELECT * FROM analyses WHERE application_id=?';
+        $params = [$applicationId];
+        if ($period?->startsAt() !== null) {
+            $sql .= ' AND started_at >= ?';
+            $params[] = $period->startsAt()->format('Y-m-d H:i:s');
+        }
+        if ($period?->endsBefore() !== null) {
+            $sql .= ' AND started_at < ?';
+            $params[] = $period->endsBefore()->format('Y-m-d H:i:s');
+        }
+        $rows = Database::all($sql . ' ORDER BY started_at DESC', $params);
         return array_map(Analysis::fromRow(...), $rows);
     }
 

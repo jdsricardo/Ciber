@@ -9,6 +9,7 @@ use App\Domain\Contract\FindingRepository;
 use App\Domain\Exception\NotFound;
 use App\Domain\Model\Analysis;
 use App\Domain\Model\Finding;
+use App\Domain\Model\Severity;
 
 /**
  * Builds the machine-readable (JSON) representation of a completed analysis and its findings,
@@ -51,8 +52,34 @@ final class ExportAnalysis
                 'started_at' => $analysis->startedAt->format('Y-m-d H:i:s'),
                 'completed_at' => $analysis->completedAt?->format('Y-m-d H:i:s'),
             ],
-            'summary' => ['findings' => count($findings)],
+            'summary' => self::summary($analysis, $findings),
             'findings' => array_map([self::class, 'mapFinding'], $findings),
+        ];
+    }
+
+    /**
+     * The overview a pipeline or a ticket needs without walking the findings (Termo de Referência,
+     * item 8): how many, how bad, how many need a human, and the score they produce.
+     *
+     * @param list<Finding> $findings
+     * @return array<string,mixed>
+     */
+    private static function summary(Analysis $analysis, array $findings): array
+    {
+        $bySeverity = [];
+        foreach (Severity::cases() as $severity) {
+            $bySeverity[$severity->value] = 0;
+        }
+        $manualReview = 0;
+        foreach ($findings as $finding) {
+            $bySeverity[$finding->severity->value]++;
+            $manualReview += $finding->manualReviewRequired ? 1 : 0;
+        }
+        return [
+            'findings' => count($findings),
+            'by_severity' => $bySeverity,
+            'manual_review_required' => $manualReview,
+            'security_score' => $analysis->score?->value,
         ];
     }
 

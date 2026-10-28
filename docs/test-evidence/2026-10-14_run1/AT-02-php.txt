@@ -1,0 +1,6 @@
+  FAIL: contract C2: a failure while storing does not leave the analysis running
+  FAIL: contract C2: a failure while storing records a reason
+  FAIL: contract §5: the endpoint that was fixed is reported as fixed
+  FAIL: contract §5: the header and the endpoint still vulnerable are persistent, despite a new probe marker
+PHP tests: 129 passed, 4 failed.
+exit=1

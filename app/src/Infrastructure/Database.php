@@ -25,6 +25,10 @@ final class Database
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
+                // Every timestamp the application stores is UTC, as the interface labels it.
+                // Without this, column defaults (CURRENT_TIMESTAMP) follow the server's local zone
+                // while explicit writes use UTC_TIMESTAMP(), and one analysis mixes both clocks.
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET time_zone = '+00:00'",
             ]);
         }
         return self::$pdo;

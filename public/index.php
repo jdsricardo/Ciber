@@ -12,6 +12,7 @@ require __DIR__ . '/../app/bootstrap.php';
 
 use App\Domain\Exception\DomainError;
 use App\Domain\Exception\NotFound;
+use App\Domain\Model\Period;
 use App\Infrastructure\Database;
 use App\Infrastructure\Persistence\PdoAnalysisRepository;
 use App\Infrastructure\Persistence\PdoApplicationRepository;
@@ -105,12 +106,13 @@ try {
         exit;
     }
 
+    $period = Period::fromStrings((string) ($_GET['from'] ?? ''), (string) ($_GET['to'] ?? ''));
     $registered = $applications->all();
     $history = [];
     foreach ($registered as $application) {
-        $history[$application->requireId()] = $analyses->listByApplication($application->requireId());
+        $history[$application->requireId()] = $analyses->listByApplication($application->requireId(), $period);
     }
-    Layout::render('Painel', Views::dashboard($registered, $history, Csrf::token()));
+    Layout::render('Painel', Views::dashboard($registered, $history, Csrf::token(), $period));
 } catch (DomainError $error) {
     // A rule the request broke: the message is already written for the developer using the app.
     Database::rollBackIfActive();

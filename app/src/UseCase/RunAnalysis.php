@@ -77,17 +77,37 @@ final class RunAnalysis
             return $analysisId;
         }
 
-        $this->transactions->transactional(function () use ($analysisId, $result): void {
-            $this->findings->saveAll($analysisId, $result->findings);
-            $this->analyses->markCompleted(
-                $analysisId,
-                $result->score(),
-                $result->checksRun,
-                $result->durationMs,
-                $result->httpStatus,
-            );
-        });
+        try {
+            $this->transactions->transactional(function () use ($analysisId, $result): void {
+                $this->findings->saveAll($analysisId, $result->findings);
+                $this->analyses->markCompleted(
+                    $analysisId,
+                    $result->score(),
+                    $result->checksRun,
+                    $result->durationMs,
+                    $result->httpStatus,
+                );
+            });
+        } catch (Throwable $error) {
+            // The transaction has rolled back, so no partial findings remain; the analysis row,
+            // written before it, must still be closed (contract C2). The error keeps travelling:
+            // a write the database refused is a defect or an environment failure to be logged.
+            $this->closeAsFailed($analysisId, 'Falha ao gravar o resultado da análise. Consulte o log do servidor.');
+            throw $error;
+        }
 
         return $analysisId;
+    }
+
+    private function closeAsFailed(int $analysisId, string $reason): void
+    {
+        try {
+            $this->analyses->markFailed($analysisId, $reason);
+        } catch (Throwable) {
+            // The database that refused the findings may refuse to record the failure as well (it
+            // may be down).
+            // Nothing more can be recorded then; the original error, which is what explains the
+            // failure, is the one the caller must see, so this one is not allowed to replace it.
+        }
     }
 }

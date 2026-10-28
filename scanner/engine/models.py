@@ -75,6 +75,15 @@ class Evidence:
     differences: dict[str, Any]
     verification_count: int = 1
 
+# Width of the column that stores each text field of a finding (database.sql), declared in
+# docs/INTEGRATION_CONTRACT.md §3.2. Applied once, when the finding leaves the engine.
+FINDING_FIELD_LIMITS = {
+    "fingerprint": 120, "title": 180, "category": 80, "cwe": 120, "owasp": 120, "wstg": 120,
+    "status": 30, "affected_url": 2048, "endpoint": 2048, "method": 10, "parameter": 180,
+    "parameter_location": 40, "evidence_summary": 500, "remediation_example_language": 60,
+    "remediation_example_note": 500,
+}
+
 @dataclass
 class Finding:
     fingerprint: str
@@ -101,10 +110,18 @@ class Finding:
     remediation_example_note: str = ""
     def to_dict(self) -> dict[str, Any]:
         """The JSON shape PHP stores. The two aliases exist because the database and the UI
-        name these fields after what they mean to a developer, not after the engine internals."""
+        name these fields after what they mean to a developer, not after the engine internals.
+
+        Text fields are fitted to the width of the column that stores them (contract §3.2):
+        part of a finding comes from the target — a form field may be named with 300 characters
+        — and a value that does not fit is rejected by a strict database, losing the analysis."""
         data = asdict(self)
         data["affected_url"] = self.endpoint
         data["evidence_summary"] = self.evidence.reason
+        for name, limit in FINDING_FIELD_LIMITS.items():
+            value = data.get(name)
+            if isinstance(value, str) and len(value) > limit:
+                data[name] = value[: limit - 1] + "…"
         return data
 
 @dataclass

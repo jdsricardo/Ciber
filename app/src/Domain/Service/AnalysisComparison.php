@@ -6,9 +6,11 @@ namespace App\Domain\Service;
 
 /**
  * Compares the findings of two analyses of the same application and classifies each finding as
- * new, persistent, or fixed, using the stable per-finding fingerprint as identity.
+ * new, persistent, or fixed. Identity is the row's `identity` key — check, endpoint and input, as
+ * produced by {@see \App\Domain\Model\Finding::identity()} — falling back to the fingerprint for
+ * rows that carry no identity.
  *
- * Both sides are first turned into maps keyed by fingerprint, so each classification is a hash
+ * Both sides are first turned into maps keyed by identity, so each classification is a hash
  * lookup instead of a scan of the other list. The measurement behind that choice is in
  * `evaluation/benchmark_comparison.php` and `docs/ALGORITHM_MEASUREMENTS.md`.
  *
@@ -23,8 +25,8 @@ final class AnalysisComparison
      */
     public static function diff(array $oldFindings, array $newFindings): array
     {
-        $old = self::keyByFingerprint($oldFindings);
-        $new = self::keyByFingerprint($newFindings);
+        $old = self::keyByIdentity($oldFindings);
+        $new = self::keyByIdentity($newFindings);
 
         return [
             'new' => array_diff_key($new, $old),             // present now, absent before
@@ -37,13 +39,13 @@ final class AnalysisComparison
      * @param array<int,array<string,mixed>> $findings
      * @return array<string,array<string,mixed>>
      */
-    private static function keyByFingerprint(array $findings): array
+    private static function keyByIdentity(array $findings): array
     {
         $keyed = [];
         foreach ($findings as $finding) {
-            $fingerprint = (string) ($finding['fingerprint'] ?? '');
-            if ($fingerprint !== '') {
-                $keyed[$fingerprint] = $finding;
+            $identity = (string) ($finding['identity'] ?? $finding['fingerprint'] ?? '');
+            if ($identity !== '') {
+                $keyed[$identity] = $finding;
             }
         }
         return $keyed;

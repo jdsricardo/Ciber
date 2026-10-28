@@ -37,3 +37,12 @@ Mappings use OWASP Top 10:2025. WSTG identifiers should use the stable, versione
 - Bounds and safety: the crawl is capped by `max_pages` and `max_depth` (profiles: passive 30 pages / depth 3, active 20 pages / depth 2; both overridable with `--max-pages`/`--max-depth`, and `max_pages=1` restores single-page scanning). Navigation is read-only — logout/sign-out links and state-changing links (`?action=delete`, `?remove=`, …) are never followed, so an authenticated crawl does not tear down its own session or mutate server state. All requests share one `SafetyController` budget, so crawling plus probing stays inside the same request/time envelope, and every URL is still re-validated against the pinned host/port before it is fetched.
 - Resilience: a per-endpoint budget hit (`EndpointBudgetExceeded`) ends only that endpoint and the crawl moves on; a transient network failure (`OSError`: timeout/reset) while a plugin probes skips just that plugin, and a page that cannot be fetched at all is skipped — so one blip never discards findings already gathered. Only a global request/time budget or a cancellation stops the whole scan, and in every case the findings collected so far are returned.
 - Pages are de-duplicated by signature (path + query-parameter *names*), so a catalog of `/item?id=1..N` is visited once; findings are de-duplicated across pages so a server-wide missing header is reported once, while per-endpoint injection/disclosure findings are kept per URL and parameter. The result JSON gains `pages_scanned` and `crawled_urls`.
+
+## Output contract
+
+The JSON document the engine prints is specified in [INTEGRATION_CONTRACT.md](INTEGRATION_CONTRACT.md)
+and checked by `tests/test_integration_contract.py`. Two rules were made explicit in Fase 5:
+`duration_ms` is the wall-clock duration of the whole scan (it used to carry the response time of
+the seed page), and every text field of a finding is fitted to the width of the column that
+stores it (`FINDING_FIELD_LIMITS` in `engine/models.py`), because part of a finding — a form
+field name, a URL — comes from the target and is unbounded.

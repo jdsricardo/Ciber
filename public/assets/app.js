@@ -51,6 +51,33 @@
         sync();
     });
 
+    // A run takes as long as the crawl and the checks take (minutes in active mode). While the
+    // request is in flight, show that it is progressing and lock the button, so a second click
+    // cannot start a duplicate analysis of the same application.
+    Array.prototype.forEach.call(document.querySelectorAll('form[data-busy]'), function (form) {
+        form.addEventListener('submit', function (event) {
+            if (form.dataset.submitted) {
+                event.preventDefault();
+                return;
+            }
+            form.dataset.submitted = '1';
+            var button = form.querySelector('button');
+            var status = form.querySelector('.run-status');
+            if (button) {
+                // Disabled on the next tick: disabling it synchronously would drop it from the
+                // submission in some browsers.
+                setTimeout(function () {
+                    button.disabled = true;
+                    button.textContent = 'Analisando…';
+                }, 0);
+            }
+            if (status) {
+                status.hidden = false;
+            }
+            form.setAttribute('aria-busy', 'true');
+        });
+    });
+
     // Severity filter chips on the results page.
     var filter = document.querySelector('[data-severity-filter]');
     if (filter) {

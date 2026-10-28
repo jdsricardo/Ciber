@@ -96,6 +96,34 @@ final class Finding
         );
     }
 
+    /**
+     * What makes two findings of different analyses "the same" (docs/INTEGRATION_CONTRACT.md §5):
+     * the check, the endpoint and the input. The fingerprint alone is the check id, so it would
+     * merge the same weakness on two endpoints; the full URL would never match, because an active
+     * finding's URL carries the random marker of the probe that revealed it.
+     */
+    public function identity(): string
+    {
+        return implode('|', [
+            $this->fingerprint,
+            $this->endpoint(),
+            (string) $this->parameterLocation,
+            (string) $this->parameter,
+        ]);
+    }
+
+    /** The affected URL without its query string: where the finding is, not how it was probed. */
+    public function endpoint(): string
+    {
+        $parts = parse_url($this->affectedUrl);
+        if (!is_array($parts) || !isset($parts['host'])) {
+            return (string) strtok($this->affectedUrl, '?');
+        }
+        return ($parts['scheme'] ?? 'http') . '://' . $parts['host']
+            . (isset($parts['port']) ? ':' . $parts['port'] : '')
+            . ($parts['path'] ?? '/');
+    }
+
     /** What the scanner observed, preferring the short summary over the long description. */
     public function observed(): string
     {

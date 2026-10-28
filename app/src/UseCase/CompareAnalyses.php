@@ -50,9 +50,12 @@ final class CompareAnalyses
     {
         return array_map(
             static fn($finding): array => [
+                'identity' => $finding->identity(),
                 'fingerprint' => $finding->fingerprint,
                 'title' => $finding->title,
                 'severity' => $finding->severity->value,
+                'endpoint' => $finding->endpoint(),
+                'parameter' => $finding->parameter,
             ],
             $findings,
         );

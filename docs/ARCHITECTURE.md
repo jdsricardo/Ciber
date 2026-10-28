@@ -49,10 +49,10 @@ user sees a generic message. See [CODING_STANDARD.md](CODING_STANDARD.md) §6.
 ## Main flow
 
 1. The developer registers an authorized target.
-2. PHP creates a `running` analysis and invokes the Python scanner (`scanner/scanner.py`) with escaped arguments.
+2. PHP creates a `running` analysis and starts the Python engine (`scanner/scanner.py`) as a child process, from an argument list and without a shell, under a deadline aligned with the engine's own time budget. Everything that crosses this boundary — arguments, the JSON document, field widths, failure answers, and what the consumer must do with each — is specified in [INTEGRATION_CONTRACT.md](INTEGRATION_CONTRACT.md) and enforced by contract tests on both sides.
 3. The Python engine (`scanner/engine/`) validates the URL and resolved addresses, then crawls the reachable same-origin surface breadth-first (`engine/crawler.py`): starting from the seed URL it follows `<a>` links, GET form actions, and same-origin redirects up to a page and depth budget, so a scan covers pages the user never typed — e.g. an unprotected page reachable one hop past a login screen. For each discovered page it sends two independent baseline requests through a safety-controlled transport, builds a page context, and runs every registered plugin (`scanner/plugins/`) — 34 passive checks across transport security, security headers, cookies, CORS, cache, information disclosure, and secrets exposure, plus the active detectors in `safe_active` mode — emitting structured JSON findings with severity, confidence, status, CWE/OWASP/WSTG references, and sanitized evidence. Crawling is deliberately read-only: logout/sign-out links and state-changing links (`?action=delete`, `?remove=`, …) are never followed, so an authenticated session survives the crawl and the scanner triggers no destructive side effect.
-4. PHP stores the findings in a transaction, calculates the score, and marks the analysis complete.
-5. The UI presents each issue as observation, developer impact, fix, a concrete "vulnerable vs. fixed" code/config example (`scanner/plugins/remediation_examples.py`, keyed by check id and merged into every finding by `build_finding`), a confidence/status badge, and a collapsible technical panel with the raw evidence. Historical fingerprints support comparisons.
+4. PHP validates the document, stores the findings in a transaction, calculates the score, and marks the analysis complete. Every other outcome — engine failure, unreadable or contract-violating document, deadline exceeded, database refusing the write — closes the analysis as `failed` with its reason; no analysis outlives its request in the `running` state.
+5. The UI presents each issue as observation, developer impact, fix, a concrete "vulnerable vs. fixed" code/config example (`scanner/plugins/remediation_examples.py`, keyed by check id and merged into every finding by `build_finding`), a confidence/status badge, and a collapsible technical panel with the raw evidence. Finding identities (check, endpoint, parameter) support comparisons.
 
 ## Scanner engine internals
 
@@ -80,18 +80,22 @@ This structure is what later phases (active SQL injection, XSS, IDOR, etc.) will
 ## Security boundaries
 
 - Private, loopback, link-local, and reserved destinations are blocked by default.
-- The scanner accepts only HTTP(S), rejects URL credentials, follows no redirects, limits response size, and uses a timeout.
+- The scanner accepts only HTTP(S), rejects URL credentials, never follows a redirect automatically (a same-origin redirect target is queued as a page and re-validated against the scope), limits response size, and uses a timeout.
+- The engine is started without a shell, so no user-supplied value can extend the command line; the session cookie lives only in that process's arguments and is never persisted or logged.
+- `display_errors` is forced off by the bootstrap: a fatal error never shows a path or a stack trace to the browser.
 - Mutations require a session-bound CSRF token. Output encoding mitigates stored XSS. PDO native prepared statements prevent SQL injection.
 - The current academic version assumes a trusted single-user local installation. Authentication and role-based access are recommended before shared deployment.
 
 ## Data model
 
-`applications 1—N analyses 1—N findings`. Indexed application/date and analysis/fingerprint paths support history and comparison. Foreign keys preserve consistency, and `findings` cascades on delete so an analysis never leaves orphaned rows.
+`applications 1—N analyses 1—N findings`. Indexed application/date and analysis/fingerprint paths support history and comparison. Foreign keys preserve consistency, and `findings` cascades on delete so an analysis never leaves orphaned rows. Every timestamp is UTC: the connection sets its session time zone to `+00:00`, so column defaults and explicit `UTC_TIMESTAMP()` writes share one clock.
+
+Two analyses are compared by **finding identity** — check id, endpoint without query string, parameter location and name (`Finding::identity()`, contract §5) — not by check id alone, so the same weakness fixed on one endpoint and still open on another is reported as *fixed* and *persistent* respectively.
 
 | Table | Predominant operation | Index that serves it |
 |---|---|---|
 | `applications` | list, and look up by primary key | primary key |
-| `analyses` | insert, then read the history of one application by date | `idx_analysis_application_date (application_id, started_at)` |
+| `analyses` | insert, then read the history of one application by date, optionally within a period | `idx_analysis_application_date (application_id, started_at)` — the period is a range on its second column |
 | `findings` | bulk insert per analysis, then read every finding of one analysis | `idx_finding_analysis (analysis_id)`, `idx_finding_fingerprint (analysis_id, fingerprint)` |
 
 ## Measured decisions
@@ -106,7 +110,7 @@ magnitude beyond.
 | Crawl frontier | list + `pop(0)` (O(n) shift per visit) | `collections.deque` | `scanner/engine/runner.py` |
 | Pages already enqueued | list membership (O(n)) | `set` (O(1) average) | `scanner/engine/runner.py` |
 | Finding de-duplication | pairwise scan (O(n²)) | `set` of keys + ordered list | `ScanRunner._deduplicate()` |
-| Comparison between analyses | pairwise scan (O(n²)) | map keyed by fingerprint | `app/src/Domain/Service/AnalysisComparison.php` |
+| Comparison between analyses | pairwise scan (O(n²)) | map keyed by finding identity | `app/src/Domain/Service/AnalysisComparison.php` |
 
 The comparison decision is the one that matters for NFR-01: at 1,000 findings the pairwise
 version costs 94.8 ms against 0.2 ms for the keyed map, and it degrades to roughly 10 s at
