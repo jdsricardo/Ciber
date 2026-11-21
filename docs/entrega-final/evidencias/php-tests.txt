@@ -1,0 +1,8 @@
+SentinelScope — execução de regressão para o dossiê
+Início UTC: 2026-11-20T22:59:01.121656+00:00
+Comando: C:/xampp/php/php.exe tests/php_test.php
+
+PHP tests: 153 passed, 0 failed.
+
+Duração externa do processo: 1.038 s.
+Fim UTC: 2026-11-20T22:59:02.160048+00:00
