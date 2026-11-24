@@ -24,8 +24,9 @@ Methodology (bounded, and deliberately conservative about which verbs get sent):
      `compare`), suggesting the write path is not actually gated the way GET is.
      One repeat POST is sent to confirm reproducibility before treating it as
      higher-confidence evidence.
-  4. DELETE, PUT, PATCH and TRACE are each sent AT MOST ONCE, ever, for the entire
-     scan, and are never repeated for "confirmation" the way other probes in this
+  4. DELETE, PUT, PATCH and TRACE are each sent AT MOST ONCE per page visited by the
+     crawler (the plugin runs once per page, so a scan of N pages sends each of them up
+     to N times, each to a different URL), and are never repeated for "confirmation" the way other probes in this
      project are — repeating a possibly state-changing request is not safe even
      when the method is nominally idempotent, and this project's architecture
      cannot verify from a single scan pass whether a real state change occurred.
@@ -213,7 +214,7 @@ class HttpVerbTamperingPlugin(ScannerPlugin):
         )
 
     def _test_destructive(self, method: str, request: HttpRequest, transport: HttpTransport) -> Finding | None:
-        # PUT, DELETE, PATCH: exactly one attempt, ever, for the whole scan. No
+        # PUT, DELETE, PATCH: exactly one attempt per page visited. No
         # confirmation request is sent, deliberately, because repeating a
         # possibly state-changing request is not safe even if the method is
         # nominally idempotent.
@@ -249,7 +250,7 @@ class HttpVerbTamperingPlugin(ScannerPlugin):
         )
 
     def _test_trace(self, request: HttpRequest, transport: HttpTransport) -> Finding | None:
-        # TRACE: exactly one attempt, ever, for the whole scan, same safety
+        # TRACE: exactly one attempt per page visited, same safety
         # rationale as the destructive methods above.
         headers = dict(request.headers)
         headers["X-Sentinelscope-Trace-Probe"] = TRACE_MARKER

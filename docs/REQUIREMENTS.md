@@ -1,54 +1,65 @@
-# Software Requirements and Traceability
+# Requisitos de Software e Rastreabilidade
 
-Each requirement carries a priority, the **item of the Termo de Referência (section 3.2) it
-originates from**, the interview answer that produced that item, and the acceptance criterion
-that verifies it. The origin column is the one the E1 checklist requires: no requirement is
-justified by "the team decided", every one points at an item of the Termo.
+Cada requisito traz uma prioridade, o **item do Termo de Referência (seção 3.2) de onde ele se
+origina**, a resposta da entrevista que produziu esse item e o critério de aceite que o verifica. A
+coluna de origem é a que o checklist da E1 exige: nenhum requisito é justificado por "a equipe
+decidiu"; todos apontam para um item do Termo.
 
-Non-functional requirements additionally carry the measurable condition under which they are
-considered met.
+Os requisitos não funcionais trazem, além disso, a condição mensurável sob a qual são considerados
+atendidos.
 
-## Functional requirements
+## Requisitos funcionais
 
-| ID | Requirement | Priority | Origin (TR 3.2) | Interview source | Acceptance criterion |
+| ID | Requisito | Prioridade | Origem (TR 3.2) | Fonte na entrevista | Critério de aceite |
 |---|---|---|---|---|---|
-| FR-01 | Register an application name and HTTP(S) base URL with authorization confirmation. | High | 1 | RF-001 (B1, G1) | CA-01 |
-| FR-02 | Execute the enabled check catalogue on demand: 34 passive check ids across 7 plugin families, plus 30 active check ids across 13 safe-active families (64 in complete mode), each implemented as an independent, object-oriented plugin. | High | 2 | RF-002 (B2, C1, G1) | CA-01 |
-| FR-03 | Store target, category, CWE, OWASP Top 10:2025, WSTG reference, structured evidence, severity, confidence, status, and remediation. | High | 3 | RF-005 (F1, D3) | CA-02 |
-| FR-04 | Calculate a 0–100 score from weighted findings. | Medium | 4 | RF-007 (E2, F3) | CA-03 |
-| FR-05 | Explain developer impact and an actionable fix for every finding, including a concrete "vulnerable vs. fixed" code (or server-config) example. | High | 5 | RF-006 (D1, F1, F2) | CA-02 |
-| FR-06 | Display the analysis history of each application, optionally restricted to a period (start and end dates, both inclusive). | High | 6 | RF-008 (E2, F3) | CA-05 |
-| FR-07 | Compare two analyses as new, persistent, and fixed. | High | 7 | RF-008 (E2, F3) | CA-04 |
-| FR-08 | Generate a complete printable report of one analysis. | Medium | 12 | RF-009 (F3, H1) | CA-06 |
-| FR-09 | Report a confidence score separate from severity for every finding, and flag findings that require manual review. | High | 4 | RF-005 (F1, D3) | CA-02 |
-| FR-10 | Test discovered form fields via POST (not only query-string parameters) in the value-injection active detectors (SQLi, XSS, path traversal, open redirect, command injection, SSTI, SSRF). | High | 2 | RF-003 (H1) | CA-01 |
-| FR-11 | Optionally attach a session credential (cookie/bearer header) to every request to assess authenticated areas, sent only to the authorized target and never persisted. | Medium | 10 | RF-004 (G2, H1) | CA-01 |
-| FR-12 | Export a completed analysis as machine-readable JSON — summary (findings per severity, findings needing manual review, score), analysis metadata and every finding — and let the developer filter findings by severity on the results page. | Medium | 8, 11 | RF-009 (F3, H1) | CA-06 |
-| FR-13 | Expand the submitted URL into the reachable same-origin surface and scan each discovered page, following read-only navigation only: logout and state-changing links are never followed. | High | 9 | RF-010 (C1, G1) | CA-01 |
+| FR-01 | Registrar o nome de uma aplicação e sua URL base HTTP(S), com confirmação de autorização. | Alta | 1 | RF-001 (B1, G1) | CA-01 |
+| FR-02 | Executar sob demanda o catálogo de verificações habilitado: 34 ids de verificação passivos em 7 famílias de plugins, mais 30 ids de verificação ativos em 13 famílias ativas seguras (64 no modo completo), cada um implementado como um plugin independente e orientado a objetos. | Alta | 2 | RF-002 (B2, C1, G1) | CA-01 |
+| FR-03 | Armazenar alvo, categoria, CWE, OWASP Top 10:2025, referência WSTG, evidência estruturada, severidade, confiança, status e remediação. | Alta | 3 | RF-005 (F1, D3) | CA-02 |
+| FR-04 | Calcular uma pontuação de 0 a 100 a partir dos achados ponderados. | Média | 4 | RF-007 (E2, F3) | CA-03 |
+| FR-05 | Explicar o impacto para o desenvolvedor e uma correção acionável para cada achado, incluindo um exemplo concreto de código (ou de configuração do servidor) "vulnerável × corrigido". | Alta | 5 | RF-006 (D1, F1, F2) | CA-02 |
+| FR-06 | Exibir o histórico de análises de cada aplicação, opcionalmente restrito a um período (datas inicial e final, ambas inclusivas). | Alta | 6 | RF-008 (E2, F3) | CA-05 |
+| FR-07 | Comparar duas análises como novos, persistentes e corrigidos. | Alta | 7 | RF-008 (E2, F3) | CA-04 |
+| FR-08 | Gerar um relatório completo para impressão de uma análise. | Média | 12 | RF-009 (F3, H1) | CA-06 |
+| FR-09 | Informar uma confiança separada da severidade para cada achado e sinalizar os achados que exigem revisão manual. | Alta | 4 | RF-005 (F1, D3) | CA-02 |
+| FR-10 | Testar os campos de formulário descobertos via POST (não apenas parâmetros da query string) nos detectores ativos de injeção de valor (SQLi, XSS, path traversal, open redirect, command injection, SSTI, SSRF). | Alta | 2 | RF-003 (H1) | CA-01 |
+| FR-11 | Opcionalmente anexar uma credencial de sessão (cookie/cabeçalho *bearer*) a toda requisição para avaliar áreas autenticadas, enviada apenas ao alvo autorizado e nunca persistida. | Média | 10 | RF-004 (G2, H1) | CA-01 |
+| FR-12 | Exportar uma análise concluída em JSON legível por máquina — resumo (achados por severidade, achados que exigem revisão manual, pontuação), metadados da análise e todos os achados — e permitir que o desenvolvedor filtre os achados por severidade na página de resultados. | Média | 8, 11 | RF-009 (F3, H1) | CA-06 |
+| FR-13 | Expandir a URL informada para a superfície de mesma origem alcançável e analisar cada página descoberta, seguindo apenas navegação somente leitura: links de logout e links que alteram estado nunca são seguidos. | Alta | 9 | RF-010 (C1, G1) | CA-01 |
 
-## Non-functional requirements
+Observação sobre o FR-10 (conferida no código em 2026-11-24): a sonda de um campo de formulário é
+enviada à URL da página em que o formulário aparece, não ao `action` do formulário; formulários que
+enviam para outro caminho não têm o seu tratador testado.
 
-| ID | Requirement | Measurable condition | Priority | Origin (TR 3.2) | Interview source | Acceptance criterion |
+## Requisitos não funcionais
+
+| ID | Requisito | Condição mensurável | Prioridade | Origem (TR 3.2) | Fonte na entrevista | Critério de aceite |
 |---|---|---|---|---|---|---|
-| NFR-01 | A history of 1,000 findings is presented within three seconds in the defined test environment. | Elapsed time < 3,000 ms for 1,000 findings. | High | 6, 7 | RNF-004 (E2) | CA-05 |
-| NFR-02 | User-supplied content is escaped; writes use prepared SQL statements; POST actions use CSRF tokens. | Zero unescaped outputs, zero concatenated SQL statements, and every POST route rejecting a request without a valid token. | High | 1, 2 | RNF-002 (G1) | CA-02 |
-| NFR-03 | The scanner sends two independent bounded GET baseline requests per page, reads at most 256 KiB per response, times out after ten seconds per request, and does not exploit findings. | `BASELINE_REQUESTS = 2`; `max_response_bytes = 262144`; `request_timeout_seconds = 10.0`. | High | 2 | RNF-001 (G1) | CA-01 |
-| NFR-04 | Private, loopback, link-local and reserved targets are denied by default. | A scan of a non-global address fails with `ScopeViolation` while `ALLOW_PRIVATE_TARGETS=false`. | High | 2 | RNF-001 (G1) | CA-01 |
-| NFR-05 | Installation is reproducible from the supplied manual. | A person outside the team installs and runs the system using only the manual. | Medium | — | — | CA-07 |
-| NFR-06 | User-facing content is authored in Brazilian Portuguese; CWE/OWASP/WSTG identifiers keep their standard English form; source code and engineering documentation are in English. | Inspection of finding texts and of the interface. | Medium | 5 | — | CA-02 |
-| NFR-07 | Sensitive request headers (Cookie, Authorization, API keys) are masked in the execution log and never persisted. | The log contains no complete credential value, and no persisted column stores one. | High | 10 | RNF-005 (G2) | CA-02 |
-| NFR-08 | A new check is added as a plugin implementing `ScannerPlugin`, without changing the orchestrator's logic. | A registered plugin runs with no vulnerability-specific code added to `engine/runner.py`. | Medium | 2 | RNF-003 (G2) | CA-01 |
+| NFR-01 | Um histórico de 1.000 achados é apresentado em até três segundos no ambiente de teste definido. | Tempo decorrido < 3.000 ms para 1.000 achados. | Alta | 6, 7 | RNF-004 (E2) | CA-05 |
+| NFR-02 | Conteúdo fornecido pelo usuário é escapado; gravações usam SQL com *prepared statements*; ações POST usam tokens CSRF. | Zero saídas sem escape, zero comandos SQL concatenados e toda rota POST rejeitando uma requisição sem token válido. | Alta | 1, 2 | RNF-002 (G1) | CA-02 |
+| NFR-03 | O motor envia duas requisições GET de baseline independentes e limitadas por página, lê no máximo 256 KiB por resposta, encerra após dez segundos por requisição e não explora os achados. | `BASELINE_REQUESTS = 2`; `max_response_bytes = 262144`; `request_timeout_seconds = 10.0`. | Alta | 2 | RNF-001 (G1) | CA-01 |
+| NFR-04 | Alvos privados, de loopback, link-local e reservados são negados por padrão. | Uma análise de endereço não global falha com `ScopeViolation` enquanto `ALLOW_PRIVATE_TARGETS=false`. | Alta | 2 | RNF-001 (G1) | CA-01 |
+| NFR-05 | A instalação é reproduzível a partir do manual fornecido. | Uma pessoa de fora da equipe instala e executa o sistema usando apenas o manual. | Média | — | — | CA-07 |
+| NFR-06 | Conteúdo voltado ao usuário e documentação de engenharia são escritos em português do Brasil; identificadores CWE/OWASP/WSTG mantêm a forma padrão em inglês; o código-fonte é escrito em inglês. | Inspeção dos textos dos achados, da interface, das mensagens de erro e dos documentos. | Média | 5 | — | CA-02 |
+| NFR-07 | Cabeçalhos de requisição sensíveis (Cookie, Authorization, chaves de API) são mascarados no log de execução e nunca persistidos. | O log não contém nenhum valor completo de credencial e nenhuma coluna persistida guarda um. | Alta | 10 | RNF-005 (G2) | CA-02 |
+| NFR-08 | Uma nova verificação é adicionada como um plugin que implementa `ScannerPlugin`, sem alterar a lógica do orquestrador. | Um plugin registrado é executado sem nenhum código específico de vulnerabilidade acrescentado a `engine/runner.py`. | Média | 2 | RNF-003 (G2) | CA-01 |
 
-Requirement count: 13 functional and 8 non-functional, above the minimum of 12 and 5 set for
-the E1 delivery.
+Contagem de requisitos: 13 funcionais e 8 não funcionais, acima do mínimo de 12 e 5 definido para a
+entrega E1.
 
-## Architecture traceability
+Histórico do NFR-06: até 2026-11-24 ele declarava a documentação de engenharia em inglês. A pedido
+da equipe, a documentação foi traduzida e o requisito passou a declará-la em português; o
+código-fonte continua em inglês.
 
-Every high-priority requirement is mapped to the component that realises it in
-[ARCHITECTURE.md](ARCHITECTURE.md) and in section 6.1 of the Fase 3 document. The measured
-basis for the data-structure decisions behind NFR-01 is in
+## Rastreabilidade com a arquitetura
+
+Todo requisito de alta prioridade está mapeado para o componente que o realiza em
+[ARCHITECTURE.md](ARCHITECTURE.md) e na seção 6.1 do documento da Fase 3. A base medida das
+decisões de estrutura de dados por trás do NFR-01 está em
 [ALGORITHM_MEASUREMENTS.md](ALGORITHM_MEASUREMENTS.md).
 
-## Score rule
+## Regra da pontuação
 
-The score begins at 100. Each critical, high, medium, or low finding deducts 30, 15, 7, or 2 points respectively. The result is clamped to 0–100. This intentionally simple, deterministic rule is appropriate for comparison; it is not a universal measure of application security.
+A pontuação começa em 100. Cada achado crítico, alto, médio ou baixo desconta 30, 15, 7 ou 2
+pontos, respectivamente. O resultado é limitado ao intervalo 0–100. Essa regra, intencionalmente
+simples e determinística, é adequada para comparação; não é uma medida universal da segurança de uma
+aplicação.

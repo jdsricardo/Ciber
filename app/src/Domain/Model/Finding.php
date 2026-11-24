@@ -9,8 +9,9 @@ use App\Domain\Exception\InvalidInput;
 /**
  * One security issue observed during an analysis.
  *
- * Identity is the `fingerprint`: a stable key derived from the check and the affected place,
- * which is what makes two analyses of the same application comparable. Severity says how bad
+ * The `fingerprint` is the check id; the finding's identity across analyses is `identity()` —
+ * check, endpoint and input — which is what makes two analyses of the same application
+ * comparable. Severity says how bad
  * the issue would be; `confidence` says how sure the detector is. They are deliberately kept
  * apart — weak evidence lowers confidence, never severity.
  *

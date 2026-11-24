@@ -1,127 +1,153 @@
-# Algorithm and Data-Structure Measurements
+# Medições de Algoritmos e Estruturas de Dados
 
-Every structural choice below was made because it was measured, not because it was expected to
-be faster. Each decision names the alternative that was rejected and the input sizes at which
-the two were compared.
+Cada escolha estrutural abaixo foi feita porque foi medida, não porque se esperava que fosse mais
+rápida. Cada decisão indica a alternativa rejeitada e os tamanhos de entrada em que as duas foram
+comparadas.
 
-## Measurement environment
+## Ambiente de medição
 
-| Item | Value |
+| Item | Valor |
 |---|---|
-| CPU | Intel64 Family 6 Model 140 (11th gen mobile), AMD64 |
-| OS | Windows 11 Pro 10.0.26200 |
-| Python | 3.12.2 (CPython, 64-bit) |
-| PHP | 8.2.12, ZTS, 64-bit |
-| Method | Median of 5 runs per case, wall clock, same process |
-| Date | 2026-09-16 |
+| CPU | Intel64 Family 6 Model 140 (11ª geração, mobile), AMD64 |
+| SO | Windows 11 Pro 10.0.26200 |
+| Python | 3.12.2 (CPython, 64 bits) |
+| PHP | 8.2.12, ZTS, 64 bits |
+| Método | Mediana de 5 execuções por caso, tempo de relógio, no mesmo processo |
+| Data | 2026-09-16 |
 
-The median — not the mean — is reported, so a single scheduling hiccup on the measuring machine
-cannot move a result. Absolute times depend on the machine; the ratio between the two
-implementations does not, and the ratio is what the decision rests on.
+Reporta-se a mediana — não a média —, para que um único soluço de escalonamento na máquina de
+medição não possa mover um resultado. Os tempos absolutos dependem da máquina; a razão entre as
+duas implementações não, e é na razão que a decisão se apoia.
 
-## How to reproduce
+## Como reproduzir
 
 ```
-python evaluation/benchmark_structures.py     # scanner engine (Python)
-php   evaluation/benchmark_comparison.php     # analysis comparison (PHP)
+python evaluation/benchmark_structures.py     # motor do scanner (Python)
+php   evaluation/benchmark_comparison.php     # comparação de análises (PHP)
 ```
 
-Both accept `--json` for a machine-readable result.
+Ambos aceitam `--json` para um resultado legível por máquina.
 
-## Decision 1 — Crawl frontier: `deque`, not a list
+## Decisão 1 — Fronteira do rastreamento: `deque`, não lista
 
-`ScanRunner.run` walks the reachable same-origin surface breadth-first, taking the next page
-from the front of the frontier. Removing from the front of a Python list shifts every remaining
-element; `collections.deque.popleft()` is constant time.
+`ScanRunner.run` percorre a superfície de mesma origem alcançável em largura, retirando a próxima
+página do início da fronteira. Remover do início de uma lista Python desloca todos os elementos
+restantes; `collections.deque.popleft()` tem tempo constante.
 
-| n (pages in the frontier) | list + `pop(0)` | deque + `popleft()` | Gain |
+| n (páginas na fronteira) | lista + `pop(0)` | deque + `popleft()` | Ganho |
 |---|---|---|---|
 | 30 | 0.0102 ms | 0.0107 ms | 1.0× |
 | 1 000 | 0.4311 ms | 0.3390 ms | 1.3× |
 | 10 000 | 228.0680 ms | 4.0594 ms | 56.2× |
 
-**Decision: `deque`.** At the size a scan really reaches — `max_pages` is 30 (passive) and 20
-(active) — the two are indistinguishable, and the honest reading of the measurement is that
-this change buys nothing today. It was adopted anyway because it costs one import and removes
-the only quadratic term in the crawl loop, so raising `max_pages` later is a configuration
-change rather than a performance investigation. Implemented in `scanner/engine/runner.py`.
+**Decisão: `deque`.** No tamanho que uma varredura realmente atinge — `max_pages` é 30 (passivo)
+e 20 (ativo) — as duas são indistinguíveis, e a leitura honesta da medição é que esta mudança não
+traz ganho hoje. Ela foi adotada mesmo assim porque custa um import e remove o único termo
+quadrático do laço de rastreamento, de modo que aumentar `max_pages` no futuro seja uma mudança
+de configuração e não uma investigação de desempenho. Implementada em `scanner/engine/runner.py`.
 
-## Decision 2 — Pages already enqueued: hash set, not a list
+## Decisão 2 — Páginas já enfileiradas: conjunto hash, não lista
 
-Before enqueueing a link, the crawler asks whether that page signature has been seen. The
-question is asked once per discovered link, so its cost multiplies by the number of links on
-the site, not by the number of pages scanned.
+Antes de enfileirar um link, o rastreador pergunta se aquela assinatura de página já foi vista. A
+pergunta é feita uma vez por link descoberto, então seu custo se multiplica pelo número de links
+do site, não pelo número de páginas varridas.
 
-| n (distinct signatures) | list + `in` | set + `in` | Gain |
+| n (assinaturas distintas) | lista + `in` | set + `in` | Ganho |
 |---|---|---|---|
 | 30 | 0.0194 ms | 0.0114 ms | 1.7× |
 | 1 000 | 13.5200 ms | 0.3538 ms | 38.2× |
 | 10 000 | 618.4438 ms | 2.1607 ms | 286.2× |
 
-**Decision: `set`.** Membership is the only operation performed on this collection and it is
-performed for every link on every page, so average O(1) is the property that matters; order is
-irrelevant because the frontier already preserves visit order. Implemented as `enqueued` in
+**Decisão: `set`.** Pertinência é a única operação feita nessa coleção, e ela é feita para cada
+link de cada página, então o O(1) médio é a propriedade que importa; a ordem é irrelevante porque
+a fronteira já preserva a ordem de visita. Implementado como `enqueued` em
 `scanner/engine/runner.py`.
 
-## Decision 3 — De-duplicating findings: set of keys, not a pairwise scan
+## Decisão 3 — Deduplicação de achados: conjunto de chaves, não varredura par a par
 
-A crawl of many pages reports the same site-wide condition (a missing header, an insecure
-cookie) once per page. `ScanRunner._deduplicate` collapses them, keeping first-seen order.
+Um rastreamento de muitas páginas relata a mesma condição de nível de site (um cabeçalho ausente,
+um cookie inseguro) uma vez por página. `ScanRunner._deduplicate` os consolida, mantendo a ordem
+em que foram vistos pela primeira vez.
 
-| n (findings before de-duplication) | pairwise scan | set of keys | Gain |
+| n (achados antes da deduplicação) | varredura par a par | conjunto de chaves | Ganho |
 |---|---|---|---|
 | 30 | 0.0151 ms | 0.0114 ms | 1.3× |
 | 1 000 | 3.4437 ms | 0.4951 ms | 7.0× |
 | 10 000 | 474.9044 ms | 6.3865 ms | 74.4× |
 
-**Decision: set of keys.** An active scan over 20 pages with 64 checks produces findings in the
-hundreds before de-duplication, where the pairwise scan is already measurably worse and gets
-worse quadratically. The list of unique findings is kept alongside the set, because report order
-is part of the output and a set has none.
+**Decisão: conjunto de chaves.** Uma varredura ativa de 20 páginas com 64 verificações produz
+achados na casa das centenas antes da deduplicação, onde a varredura par a par já é mensuravelmente
+pior e piora quadraticamente. A lista de achados únicos é mantida ao lado do conjunto, porque a
+ordem do relatório faz parte da saída e um conjunto não tem ordem.
 
-## Decision 4 — Comparing two analyses: map keyed by fingerprint, not a pairwise scan
+## Decisão 4 — Comparação de duas análises: mapa indexado por fingerprint, não varredura par a par
 
-`AnalysisComparison::diff` classifies every finding of two analyses as new, persistent or fixed.
-The natural phrasing — "for each finding, look for it in the other analysis" — is O(n²). Keying
-both sides by fingerprint first makes each classification a hash lookup, and lets PHP's
-`array_diff_key` / `array_intersect_key` do the work in C.
+`AnalysisComparison::diff` classifica cada achado de duas análises como novo, persistente ou
+corrigido. A formulação natural — "para cada achado, procure-o na outra análise" — é O(n²).
+Indexar os dois lados por fingerprint primeiro transforma cada classificação em uma consulta hash,
+e deixa `array_diff_key` / `array_intersect_key` do PHP fazerem o trabalho em C.
 
-| n (findings per analysis) | pairwise scan | keyed by fingerprint | Gain |
+| n (achados por análise) | varredura par a par | indexado por fingerprint | Ganho |
 |---|---|---|---|
 | 100 | 0.4590 ms | 0.0141 ms | 32.6× |
 | 1 000 | 94.8329 ms | 0.2000 ms | 474.2× |
 | 10 000 | 9 950.7170 ms | 2.8598 ms | 3 479.5× |
 
-**Decision: map keyed by fingerprint.** This is the one case where the measurement changes
-whether an acceptance criterion is met. CA-05 / NFR-01 requires a history of 1 000 findings to
-be usable within three seconds; the pairwise version spends 95 ms of that budget on the
-comparison alone and degrades to roughly 10 s at 10 000 findings, while the keyed version stays
-under 3 ms. Implemented in `app/src/Domain/Service/AnalysisComparison.php`.
+**Decisão: mapa indexado por fingerprint.** Este é o único caso em que a medição muda o
+atendimento de um critério de aceite. CA-05 / NFR-01 exige que um histórico de 1 000 achados seja
+utilizável em até três segundos; a versão par a par gasta 95 ms desse orçamento só na comparação
+e degrada para cerca de 10 s com 10 000 achados, enquanto a versão indexada fica abaixo de 3 ms.
+Implementado em `app/src/Domain/Service/AnalysisComparison.php`.
 
-*Update 2026-10-14 (defect D-01, Fase 5).* The key of the map changed from the bare fingerprint
-to the finding identity (`Finding::identity()`: check id, endpoint without query string,
-parameter location and name), because the fingerprint alone merged the same check on two
-endpoints. The structure — one hash map per side, one lookup per finding — is unchanged, so the
-measurement above still applies; the end-to-end check at 1 000 findings is ST-22 in
+*Atualização de 2026-10-14 (defeito D-01, Fase 5).* A chave do mapa mudou do fingerprint puro
+para a identidade do achado (`Finding::identity()`: id da verificação, endpoint sem query string,
+localização e nome do parâmetro), porque o fingerprint sozinho fundia a mesma verificação em dois
+endpoints. A estrutura — um mapa hash por lado, uma consulta por achado — não mudou, então a
+medição acima continua válida; a verificação de ponta a ponta com 1 000 achados é o ST-22 em
 [TEST_REPORT.md](TEST_REPORT.md).
 
-## Decision 5 — Persistence: B-tree indexes, not in-memory structures
+## Decisão 5 — Persistência: índices B-tree, não estruturas em memória
 
-The three collections that grow — `applications`, `analyses`, `findings` — are not held in
-memory between requests, so the structure that decides their access cost is the index InnoDB
-builds, not a PHP array. The indexes exist for the two access paths the application actually
-uses:
+As três coleções que crescem — `applications`, `analyses`, `findings` — não ficam em memória entre
+requisições, então a estrutura que decide seu custo de acesso é o índice que o InnoDB constrói,
+não um array PHP. Os índices existem para os dois caminhos de acesso que a aplicação realmente
+usa:
 
-| Index | Serves |
+| Índice | Atende |
 |---|---|
-| `idx_analysis_application_date (application_id, started_at)` | the history of one application, already ordered, with no filesort |
-| `idx_finding_analysis (analysis_id)` | loading the findings of one analysis |
-| `idx_finding_fingerprint (analysis_id, fingerprint)` | locating one finding by identity when comparing analyses |
+| `idx_analysis_application_date (application_id, started_at)` | o histórico de uma aplicação, já ordenado, sem filesort |
+| `idx_finding_analysis (analysis_id)` | carregar os achados de uma análise |
+| `idx_finding_fingerprint (analysis_id, fingerprint)` | localizar um achado por identidade ao comparar análises |
 
-A B-tree, not a hash index: the history query is a range scan ordered by date, which a hash
-index cannot serve. Each lookup is O(log n) rather than the O(1) average of an in-memory hash
-map, and that is the correct trade — durability and ordered access are requirements here, speed
-of a single lookup is not the binding constraint.
+B-tree, não índice hash: a consulta de histórico é uma varredura de intervalo ordenada por data,
+que um índice hash não consegue atender. Cada consulta é O(log n) em vez do O(1) médio de um mapa
+hash em memória, e essa é a troca correta — durabilidade e acesso ordenado são requisitos aqui; a
+velocidade de uma consulta isolada não é a restrição determinante.
 
-Loading 1 000 findings and rendering them is measured directly by the PHP suite
-(`tests/php_test.php`, CA-05): rendering completes in well under the three-second budget.
+O carregamento e a renderização de 1 000 achados são medidos diretamente pela suíte PHP
+(`tests/php_test.php`, CA-05): a renderização termina bem abaixo do orçamento de três segundos.
+
+## Reexecução de 2026-11-24
+
+Os dois benchmarks foram executados novamente para confirmar que continuam funcionando e que as
+conclusões se mantêm. Ambiente: Windows 11 Pro 10.0.26300, Python 3.12.10, PHP 8.2.12 (mesma
+família de máquina; não é uma remedição controlada).
+
+| Decisão | n | Alternativa | Estrutura adotada | Ganho |
+|---|---|---|---|---|
+| 1 — Fronteira do rastreamento | 10 000 | lista: 92.66 ms | deque: 1.86 ms | 49.8× |
+| 2 — Páginas já enfileiradas | 10 000 | lista: 451.71 ms | set: 2.15 ms | 209.7× |
+| 3 — Deduplicação de achados | 10 000 | par a par: 352.84 ms | conjunto de chaves: 4.37 ms | 80.8× |
+| 4 — Comparação de análises | 1 000 | par a par: 70.57 ms | mapa: 0.31 ms | 228.4× |
+| 4 — Comparação de análises | 10 000 | par a par: 8 248.0 ms | mapa: 4.09 ms | 2 018.1× |
+
+Os tempos absolutos diferem da medição original, mas as razões mantêm a mesma ordem de grandeza;
+todas as decisões continuam válidas.
+
+Observações:
+
+- O benchmark PHP ainda rotula a estrutura adotada como "mapa por fingerprint", enquanto a
+  produção indexa o mapa por `Finding::identity()` — a estrutura é a mesma (ver a atualização da
+  Decisão 4).
+- `benchmark_structures.py` imprime os rótulos acentuados de forma corrompida em um console do
+  Windows que não esteja configurado para UTF-8. É apenas cosmético e não afeta os números.

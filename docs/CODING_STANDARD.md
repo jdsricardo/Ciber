@@ -1,26 +1,30 @@
-# Coding Standard
+# Padrão de Codificação
 
-The rules this codebase follows. Each one is written so a reviewer can decide, without
-discussion, whether a change complies — and the rules marked **verificada** are checked
-automatically by the test suite, so they cannot silently rot.
+As regras que este código segue. Cada uma está escrita para que um revisor possa decidir, sem
+discussão, se uma mudança está em conformidade — e as regras marcadas como **verificada** são
+checadas automaticamente pela suíte de testes, para que não se deteriorem em silêncio. Quando a
+verificação automática cobre só parte da regra, isso está dito ao lado.
 
-Etapa 9 of the project roadmap asks for a repository with history and a coding-standard
-document. This is that document; it describes the code as it is, not as it might be.
+A Etapa 9 do roteiro do projeto pede um repositório com histórico e um documento de padrão de
+codificação. Este é esse documento; ele descreve o código como ele é, não como poderia ser.
 
-## 1. Language and audience
+## 1. Idioma e público
 
-| Artifact | Language | Reason |
+| Artefato | Idioma | Motivo |
 |---|---|---|
-| Source code, identifiers, comments, docstrings | English | The code is read by engineers and by tooling; one language avoids mixed identifiers. |
-| Finding titles, descriptions, developer impact, remediation, example notes | Brazilian Portuguese | The audience is a Brazilian development team (NFR-06). |
-| Interface text and error messages shown in the browser | Brazilian Portuguese | Same audience. |
-| CWE / OWASP / WSTG identifiers | Standard English form | They are external identifiers, not prose. |
-| Engineering documentation under `docs/` | English | The coursework documents under `docs/docsAula/` are in Portuguese. |
+| Código-fonte, identificadores, comentários, docstrings | Inglês | O código é lido por engenheiros e por ferramentas; um único idioma evita identificadores misturados. |
+| Títulos, descrições, impacto para o desenvolvedor, remediação e notas dos exemplos dos achados | Português do Brasil | O público é uma equipe de desenvolvimento brasileira (NFR-06). |
+| Textos da interface e mensagens de erro exibidas no navegador, inclusive as mensagens de falha geradas pelo motor | Português do Brasil | Mesmo público. |
+| Identificadores CWE / OWASP / WSTG | Forma padrão em inglês | São identificadores externos, não prosa. |
+| Documentação de engenharia (`README.md`, `CHANGELOG.md`, `docs/`, `evaluation/`) | Português do Brasil | Mesmo público; traduzida em 2026-11-24. Os nomes dos arquivos continuam em inglês porque são referenciados pelo código e pelos testes. Os documentos da disciplina em `docs/docsAula/` também estão em português. |
 
-## 2. Comments
+Exceção conhecida: a evidência bruta gerada pelo driver de testes (`docs/test-evidence/*/results.md`)
+continua em inglês, pois é saída de ferramenta preservada como registro.
 
-A comment explains **why**, never **what**. A comment that restates the line below it means the
-line is the problem.
+## 2. Comentários
+
+Um comentário explica o **porquê**, nunca o **o quê**. Um comentário que repete a linha abaixo
+indica que o problema é a linha.
 
 ```python
 # Bad — restates the code
@@ -33,45 +37,56 @@ self.total += 1
 if self._resolve(parsed.hostname) != self.pinned_addresses:
 ```
 
-Every module, class and non-obvious function carries a docstring or docblock stating its
-responsibility in one sentence. A swallowed exception is never written without a comment naming
-which failure is being tolerated and why continuing is safe.
+Todo módulo, classe e função não óbvia traz uma docstring ou docblock declarando sua
+responsabilidade em uma frase. Uma exceção engolida nunca é escrita sem um comentário dizendo qual
+falha está sendo tolerada e por que continuar é seguro.
+
+Exceção conhecida: `scanner/engine/matchers.py` está escrito em estilo compacto (várias instruções
+por linha, sem docstrings) e não segue esta seção nem o §4.
 
 ## 3. PHP
 
-- `declare(strict_types=1);` as the first statement after `<?php`. **Verificada.**
-- One class, interface or enum per file, in a namespace mirroring its directory under
-  `app/src/`, loaded by `app/autoload.php`. **Verificada.**
-- Classes are `final` unless something extends them. The only non-final type is the abstract
+- `declare(strict_types=1);` como primeira instrução depois de `<?php`. **Verificada.**
+- Uma classe, interface ou enum por arquivo, em um namespace que espelha seu diretório dentro de
+  `app/src/`, carregada por `app/autoload.php`. **Verificada** a regra de um tipo por arquivo; o
+  espelhamento do namespace é garantido na prática pelo autoloader (um tipo fora do lugar não
+  carrega).
+- Classes são `final`, a menos que algo as estenda. O único tipo não final é a abstrata
   `DomainError`. **Verificada.**
-- Every method declares a return type, and every parameter and property declares its type.
-  `mixed` is used only where the value genuinely is unconstrained (`Html::escape`,
-  `TransactionManager::transactional`). **Verificada.**
-- Properties are `readonly` when the value does not change after construction.
-- 4 spaces, braces on their own line for classes and methods, `UpperCamelCase` types,
-  `lowerCamelCase` methods and variables, `UPPER_SNAKE` constants.
-- SQL exists only inside `app/src/Infrastructure/Persistence/`, always through PDO prepared
-  statements with bound parameters — never string concatenation. **Verificada.**
-- `public/index.php` wires adapters, dispatches one request and maps errors to responses. It
-  holds no business rule.
-- All output reaching the browser passes through `App\Presentation\Html::escape` (or `e()`).
+- Todo método declara tipo de retorno, e todo parâmetro e propriedade declara seu tipo. `mixed` é
+  usado apenas onde o valor é de fato irrestrito (`Html::escape`, `Config::get`,
+  `Finding::nullableString`, `TransactionManager::transactional` e suas implementações).
+  **Verificada** para o tipo de retorno; os tipos de parâmetros e propriedades são conferidos na
+  revisão.
+- Propriedades são `readonly` quando o valor não muda depois da construção.
+- 4 espaços, chaves em linha própria para classes e métodos, tipos em `UpperCamelCase`, métodos e
+  variáveis em `lowerCamelCase`, constantes em `UPPER_SNAKE`.
+- SQL existe apenas dentro de `app/src/Infrastructure/Persistence/`, sempre por *prepared
+  statements* do PDO com parâmetros vinculados — nunca concatenação de strings. **Verificada.**
+  (O único SQL fora dali é o comando de inicialização da conexão, `SET time_zone = '+00:00'`, em
+  `Infrastructure\Database`.)
+- `public/index.php` conecta os adaptadores, despacha uma requisição e converte erros em
+  respostas. Não contém regra de negócio.
+- Toda saída que chega ao navegador passa por `App\Presentation\Html::escape` (ou `e()`).
 
 ## 4. Python
 
-- The scanner depends only on the Python standard library. No third-party package is imported
-  at runtime. **Verificada.**
-- `from __future__ import annotations` first, then standard-library imports, then local
-  imports.
-- Type hints on every public function signature and on every dataclass field.
-- Data crossing a module boundary is a dataclass from `engine/models.py`, never a loose dict.
-- `snake_case` functions, `UpperCamelCase` classes, 4 spaces.
-- A line is broken when it stops being readable, not at a fixed column. Two things are
-  deliberately left on one line even when long: the Portuguese finding texts
-  (`description`, `developer_impact`, `remediation`), because they are reviewed as prose and a
-  concatenated literal makes their diff unreadable; and regex signature tables, because
-  breaking a pattern hides what it matches.
+- O motor depende apenas da biblioteca padrão do Python. Nenhum pacote de terceiros é importado
+  em tempo de execução. **Verificada.**
+- `from __future__ import annotations` primeiro, depois as importações da biblioteca padrão e, por
+  fim, as importações locais.
+- Anotações de tipo em toda assinatura de função pública e em todo campo de dataclass.
+- Dados que atravessam a fronteira entre módulos são dataclasses de `engine/models.py`, nunca um
+  dicionário solto. (O documento de resultado da varredura é um dicionário por definição: é o JSON
+  do contrato.)
+- Funções em `snake_case`, classes em `UpperCamelCase`, 4 espaços.
+- Uma linha é quebrada quando deixa de ser legível, não em uma coluna fixa. Duas coisas ficam
+  deliberadamente em uma linha mesmo quando longas: os textos dos achados em português
+  (`description`, `developer_impact`, `remediation`), porque são revisados como prosa e um literal
+  concatenado torna o diff ilegível; e as tabelas de assinaturas regex, porque quebrar um padrão
+  esconde o que ele reconhece.
 
-## 5. Structure and dependency direction
+## 5. Estrutura e direção das dependências
 
 ```
 Presentation ─┐
@@ -79,58 +94,63 @@ Presentation ─┐
               └──────────────────┘
 ```
 
-- `app/src/Domain/` depends on nothing outside itself. **Verificada:** a test in
-  `tests/php_test.php` strips comments with `token_get_all` and fails if any domain file
-  references `App\Infrastructure`, `App\Presentation`, `App\UseCase` or `PDO` in code.
-- Interfaces between layers live in `app/src/Domain/Contract/`, declared by the domain and
-  implemented outside it, so the dependency arrow always points inwards.
-- A class has one responsibility. When a request handler starts making decisions, the decision
-  moves to a use case or to the domain.
-- In the scanner, a new check is a new `ScannerPlugin` subclass. The orchestrator holds no
-  vulnerability-specific logic.
+- `app/src/Domain/` não depende de nada fora de si. **Verificada:** um teste em
+  `tests/php_test.php` remove os comentários com `token_get_all` e falha se algum arquivo do
+  domínio referenciar, em código, `App\Infrastructure`, `App\Presentation`, `App\UseCase` ou `PDO`.
+- As interfaces entre camadas ficam em `app/src/Domain/Contract/`, declaradas pelo domínio e
+  implementadas fora dele, de modo que a seta de dependência sempre aponta para dentro.
+  **Verificada** (todo arquivo de `Domain/Contract` é uma interface).
+- Uma classe tem uma responsabilidade. Quando um tratador de requisição começa a tomar decisões, a
+  decisão vai para um caso de uso ou para o domínio.
+- No motor, uma nova verificação é uma nova subclasse de `ScannerPlugin`. O orquestrador não
+  contém lógica específica de vulnerabilidade. **Verificada** (todo plugin registrado é um
+  `ScannerPlugin` com metadados e ids únicos).
 
-## 6. Errors
+## 6. Erros
 
-- The domain throws only `App\Domain\Exception\DomainError` subclasses — `InvalidInput` (400),
-  `NotFound` (404), `ScannerUnavailable` (502). It never returns `null` or `false` to signal a
-  broken rule. **Verificada.**
-- The message is written for the developer using the application: Portuguese, no stack trace,
-  no SQL, no internal identifier.
-- Infrastructure failures are wrapped by the adapter that produced them into the matching
-  `DomainError`. Anything reaching the front controller as a plain `Throwable` is a defect: it
-  is logged in full and the user gets a generic message.
-- A use case that has already created a record closes it before giving up, so a failure never
-  leaves a row stuck in an intermediate state. **Verificada** for `RunAnalysis`.
-- In Python, `engine/safety.py` defines the engine's failure vocabulary (`Cancelled`,
-  `BudgetExceeded`, `EndpointBudgetExceeded`, `ScopeViolation`). A detector never invents a new
-  exception type for a situation the runner already handles.
-- A network failure is an expected operational condition, not a crash: `run_scan` reports it as
+- O domínio lança apenas subclasses de `App\Domain\Exception\DomainError` — `InvalidInput` (400),
+  `NotFound` (404), `ScannerUnavailable` (502). Nunca devolve `null` ou `false` para sinalizar uma
+  regra violada. **Verificada** em parte: a suíte confere a hierarquia e o status HTTP de
+  `InvalidInput` e `NotFound`; a ausência de retornos `null`/`false` é conferida na revisão.
+- A mensagem é escrita para o desenvolvedor que usa a aplicação: em português, sem *stack trace*,
+  sem SQL, sem identificador interno.
+- Falhas de infraestrutura são encapsuladas, pelo adaptador que as produziu, no `DomainError`
+  correspondente. Qualquer coisa que chegue ao *front controller* como um `Throwable` comum é um
+  defeito: é registrada por completo no log e o usuário recebe uma mensagem genérica.
+- Um caso de uso que já criou um registro o encerra antes de desistir, para que uma falha nunca
+  deixe uma linha presa em um estado intermediário. **Verificada** para `RunAnalysis`.
+- No Python, `engine/safety.py` define o vocabulário de falhas do motor (`Cancelled`,
+  `BudgetExceeded`, `EndpointBudgetExceeded`, `ScopeViolation`). Um detector nunca inventa um novo
+  tipo de exceção para uma situação que o runner já trata. As mensagens dessas exceções chegam ao
+  usuário e por isso são escritas em português.
+- Uma falha de rede é uma condição operacional esperada, não uma quebra: `run_scan` a reporta como
   `{"ok": false, "error": ...}`.
 
-## 7. Tests
+## 7. Testes
 
-- Every behaviour change ships with a test. Python: `tests/test_*.py`, standard `unittest`.
-  PHP: `tests/php_test.php`, a dependency-free harness.
-- PHP tests load `app/autoload.php`, never `app/bootstrap.php`, so the suite needs no `.env`
-  and no database; persistence and the scanner are replaced by the in-memory implementations in
-  `tests/php/`. **Verificada** — the suite runs on a machine with no MariaDB.
-- Tests assert on behaviour, not on internal structure.
-- The full suite passes before a commit: `python -m unittest discover -s tests` and
+- Toda mudança de comportamento vem com um teste. Python: `tests/test_*.py`, `unittest` padrão.
+  PHP: `tests/php_test.php`, um harness sem dependências.
+- Os testes PHP carregam `app/autoload.php`, nunca `app/bootstrap.php`, então a suíte não precisa
+  de `.env` nem de banco; a persistência e o motor são substituídos pelas implementações em memória
+  de `tests/php/`. **Verificada** — a suíte roda em uma máquina sem MariaDB.
+- Os testes verificam comportamento, não estrutura interna.
+- A suíte completa passa antes de um commit: `python -m unittest discover -s tests` e
   `php tests/php_test.php`.
 
-## 8. Commits and repository
+## 8. Commits e repositório
 
-- One commit per coherent change; a commit mixing a refactor with a behaviour change is split.
-- Message: a short imperative subject describing the effect, then the reason when it is not
-  obvious from the diff.
-- `master` always has a passing suite.
-- Secrets never enter the repository: `.env` is ignored, `.env.example` carries placeholders,
-  and `ALLOW_PRIVATE_TARGETS` defaults to `false`. **Verificada.**
+- Um commit por mudança coerente; um commit que mistura refatoração com mudança de comportamento é
+  dividido.
+- Mensagem: um assunto curto, no imperativo, descrevendo o efeito, e depois o motivo quando ele não
+  é óbvio pelo diff.
+- `master` sempre tem a suíte passando.
+- Segredos nunca entram no repositório: `.env` é ignorado, `.env.example` traz valores
+  substitutos e `ALLOW_PRIVATE_TARGETS` vem como `false`. **Verificada.**
 
-## 9. Performance decisions
+## 9. Decisões de desempenho
 
-A data-structure or algorithm choice made for performance is measured, not asserted. The
-harnesses are `evaluation/benchmark_structures.py` and `evaluation/benchmark_comparison.php`;
-the results and the decisions they support are in
-[ALGORITHM_MEASUREMENTS.md](ALGORITHM_MEASUREMENTS.md). A measurement that does not confirm the
-expectation is recorded as such.
+Uma escolha de estrutura de dados ou de algoritmo feita por desempenho é medida, não afirmada. Os
+harnesses são `evaluation/benchmark_structures.py` e `evaluation/benchmark_comparison.php`; os
+resultados e as decisões que eles sustentam estão em
+[ALGORITHM_MEASUREMENTS.md](ALGORITHM_MEASUREMENTS.md). Uma medição que não confirma a expectativa
+é registrada como tal.

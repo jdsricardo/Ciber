@@ -1,48 +1,163 @@
-# Scanner Engine — Phase 1 Foundation (complete)
+# Motor de Varredura
 
-## Implemented foundation
+Este documento descreve o motor Python (`scanner/`) como ele está hoje. Ele nasceu como a
+"fundação da Fase 1" (apenas verificações passivas, uma página por varredura) e foi ampliado com
+sondas ativas, teste de formulários, varredura autenticada e rastreamento; as seções abaixo
+registram cada incremento. A visão geral das camadas está em [ARCHITECTURE.md](ARCHITECTURE.md) e o
+formato da saída em [INTEGRATION_CONTRACT.md](INTEGRATION_CONTRACT.md).
 
-- Typed common models for requests, responses, input points, summaries, differences, evidence, findings, scan modes, page context, and limits (`engine/models.py`).
-- Stable input identifiers by location and name; query-string and HTML-form discovery (`engine/discovery.py`).
-- Central normalization for timestamps, UUIDs, long random values, nonce, CSRF, and token fields, plus page-context inference (forms, password fields, session cookies) (`engine/normalization.py`).
-- Central response summaries and comparison across status, length, normalized content, HTML structure, headers, and timing.
-- Composable positive/negative matchers with AND, OR, and NOT plus status, header, text/regex, length, similarity, timing, and redirect primitives (`engine/matchers.py`).
-- Reusable regex and JSON-path extractors.
-- Same-host-and-port scope enforcement, dangerous-scheme rejection, URL credential rejection, private-network denial, DNS pinning, request budgets, endpoint budgets, rate limiting, request/global timeouts, cancellation file, response-size limits, and JSONL request logging with secret headers redacted (`engine/safety.py`).
-- A central confidence-scoring model, kept independent from severity (`engine/confidence.py`): `confidence = 0.35*evidence_strength + 0.25*reproducibility + 0.2*differential_quality + 0.2*independent_confirmation - 0.3*instability - 0.2*ambiguity`, mapped to `confirmed / high_confidence / probable / possible / informational / manual_review_required`.
-- A plugin interface declaring category, CWE, OWASP, WSTG, kind, operational risk, and the set of check ids it owns (`plugins/base.py`).
-- Seven object-oriented passive plugins (`plugins/transport.py`, `headers.py`, `cookies.py`, `cors.py`, `cache.py`, `disclosure.py`, `secrets.py`) covering 34 individual checks, including a new Secrets Exposure detector (high-signature credential formats plus an entropy-based heuristic that ignores per-request/rotating tokens).
-- `engine/runner.py` orchestrates two independent baseline requests through `HttpTransport`/`SafetyController`, builds page context, runs every registered plugin, and serializes results to the JSON shape consumed by `app/bootstrap.php`.
+## Fundação
 
-## Migration status
+- Modelos comuns tipados para requisições, respostas, pontos de entrada, resumos, diferenças,
+  evidências, achados, modos de varredura, contexto da página e limites (`engine/models.py`).
+- Identificadores estáveis de entrada por canal e nome; descoberta na query string e em
+  formulários HTML (`engine/discovery.py`).
+- Normalização central de horários, UUIDs, valores aleatórios longos, nonce, CSRF e campos de
+  token, além da inferência do contexto da página (formulários, campos de senha, cookies de sessão)
+  (`engine/normalization.py`).
+- Resumos de resposta centralizados e comparação de status, tamanho, conteúdo normalizado,
+  estrutura HTML, cabeçalhos e tempo.
+- *Matchers* positivos/negativos combináveis com E, OU e NÃO, além de primitivas de status,
+  cabeçalho, texto/regex, tamanho, similaridade, tempo e redirecionamento, e extratores reutilizáveis
+  por regex e por caminho JSON (`engine/matchers.py`). Hoje são exercitados pelos testes do motor;
+  nenhum plugin os usa.
+- Controle de escopo por host e porta, rejeição de esquemas perigosos, rejeição de credenciais na
+  URL, bloqueio de redes privadas, fixação de DNS, orçamentos de requisições globais e por
+  endpoint, limitação de taxa, tempos limite por requisição e global, arquivo de cancelamento,
+  limite de tamanho das respostas e log de requisições em JSONL com cabeçalhos secretos mascarados
+  (`engine/safety.py`).
+- Um modelo central de pontuação de confiança, independente da severidade
+  (`engine/confidence.py`): `confidence = 0.35*evidence_strength + 0.25*reproducibility +
+  0.2*differential_quality + 0.2*independent_confirmation - 0.3*instability - 0.2*ambiguity`,
+  mapeado para `confirmed / high_confidence / probable / possible / informational /
+  manual_review_required`.
+- Uma interface de plugin que declara categoria, CWE, OWASP, WSTG, tipo, risco operacional e o
+  conjunto de ids de verificação que possui (`plugins/base.py`).
+- Sete plugins passivos orientados a objetos (`plugins/transport.py`, `headers.py`, `cookies.py`,
+  `cors.py`, `cache.py`, `disclosure.py`, `secrets.py`) cobrindo 34 verificações individuais,
+  incluindo um detector de exposição de segredos (formatos de credencial de alta assinatura mais
+  uma heurística baseada em entropia que ignora tokens por requisição/rotativos).
+- `engine/runner.py` orquestra duas requisições de baseline independentes por meio de
+  `HttpTransport`/`SafetyController`, monta o contexto da página, executa todos os plugins
+  registrados e serializa o resultado no formato JSON consumido por
+  `App\Infrastructure\Scanner\PythonScannerGateway` / `App\Domain\Model\ScanResult`.
 
-Complete. `scanner/scanner.py` is now a thin CLI wrapper around `engine.runner.run_passive_scan`. `database.sql` was extended (additive `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`) with `category, cwe, owasp, wstg, method, parameter, parameter_location, confidence, status, description, evidence_summary, manual_review_required`, and `app/bootstrap.php`/`public/index.php` persist and render them (severity and confidence are shown as separate badges; the full structured evidence is available as JSON in the finding's technical-context panel). Active probes (Phase 2) must not be enabled before their own controlled vulnerable/safe test fixtures pass.
+## Ponto de entrada e persistência
 
-## Confidence vs. severity
+`scanner/scanner.py` é um invólucro fino de linha de comando em torno de `engine.runner.run_scan`
+(`run_passive_scan` continua existindo apenas como atalho para chamadas somente passivas). Do lado
+PHP, os achados são gravados por `Infrastructure\Persistence\PdoFindingRepository` e exibidos por
+`Presentation\Views` / `FindingPresenter` (severidade e confiança como selos separados; a evidência
+estruturada completa aparece em JSON no painel de contexto técnico de cada achado). O
+`database.sql` foi estendido de forma aditiva (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`) com
+`category, cwe, owasp, wstg, method, parameter, parameter_location, confidence, status,
+description, evidence_summary, manual_review_required`, depois com `analyses.mode` e com as quatro
+colunas do exemplo de remediação.
 
-Every finding carries both independently. Severity is the potential impact if the finding is real; confidence is how sure the detector is. A critical finding can have low confidence — it stays `Critical / possible`, never silently downgraded to a lower severity. Purely passive, single-observation checks are capped below `confirmed` by construction (no `differential_quality` or true independent method contributes to their score), which is reserved for future active detectors that reproduce a result via an independent second technique (e.g. an error-based and a boolean-differential SQLi probe agreeing).
+## Detectores ativos (modo `safe_active`)
 
-## Reference baseline
+Treze famílias ativas, 30 verificações, carregadas por `default_active_plugins()` a partir de
+`ACTIVE_PLUGIN_SPECS` em `engine/runner.py`: SQL injection, XSS refletido, path traversal, open
+redirect, command injection, SSTI, XXE, CRLF, injeção no cabeçalho Host, troca de verbo HTTP,
+NoSQL injection, CORS ativo e SSRF. Um arquivo de plugin que existe mas falha ao importar não some em
+silêncio: aparece em `plugin_warnings` no resultado. Cada família tem testes com fixtures
+vulneráveis e seguros (`tests/test_active_*.py`). O orçamento do modo ativo é maior, mas continua
+explícito (`ACTIVE_LIMITS`: 2.500 requisições, 120 por endpoint, 600 s, 20 páginas, profundidade 2).
 
-Mappings use OWASP Top 10:2025. WSTG identifiers should use the stable, versioned v4.2 form in persisted evidence, while development work may consult the latest WSTG 5.0 content. CWE identifiers remain weakness-specific and must not be inferred from a generic anomaly.
+"Seguro" quer dizer que as sondas buscam a evidência mínima e não tentam extrair dados nem
+explorar o achado. Não quer dizer que nenhuma requisição possa alterar estado: a verificação de
+verbos HTTP envia PUT, DELETE e PATCH uma vez a cada página visitada (sem repetição para
+confirmação), e os campos de formulário são submetidos via POST. Por isso o modo completo exige uma
+segunda autorização e deve ser usado apenas em ambientes de teste.
 
-## Coverage increments: form/POST testing and authenticated scanning
+## Confiança × severidade
 
-- Parameter tests are parameter-source-agnostic: `plugins/support.build_probe`/`send_probe` route a probe to the right channel — a query parameter is tested on the URL (GET), a form field is submitted in an `application/x-www-form-urlencoded` body (POST) with sibling fields preserved. Active plugins iterate `testable_inputs` (query + form). Form/POST testing is enabled for every value-injection detector (SQL injection, reflected XSS, path traversal, open redirect, command injection, SSTI, SSRF); CRLF and NoSQL stay query-only because their probe construction is channel-specific. Form probes POST to the scanned page URL; forms whose `action` targets a different path are a known limitation.
-- Authenticated scanning: `ScanContext.auth_headers` is merged into every outgoing request by the transport, covering passive and active checks at once without touching any plugin. Auth headers reach only the pinned host/port (scope enforcement), are redacted in logs (`SENSITIVE_HEADERS`), and are supplied via the CLI (`--cookie`, repeatable `--header`) or transiently by the web app (never persisted).
+Todo achado carrega as duas, de forma independente. Severidade é o impacto potencial se o achado
+for real; confiança é o quanto o detector tem certeza. Um achado crítico pode ter baixa confiança —
+ele continua `Critical / possible`, nunca é rebaixado em silêncio para uma severidade menor.
+Verificações puramente passivas, de observação única, ficam abaixo de `confirmed` por construção
+(nenhum `differential_quality` ou método realmente independente contribui para a sua pontuação);
+`confirmed` fica reservado a detectores ativos que reproduzem um resultado por uma segunda técnica
+independente (por exemplo, uma sonda de SQLi baseada em erro e uma diferencial booleana
+concordando).
 
-## Coverage increment: same-origin crawling
+## Base de referência
 
-- `engine/crawler.py` expands a single seed URL into the reachable same-origin surface. `engine/runner.py` runs a breadth-first walk: it dequeues a page, scans it in full (two baseline requests + every plugin), then enqueues its `<a>` links, GET form actions, and redirect target for later depths. This closes the gap where a scan of a login page (or any landing page) would previously miss an unprotected page sitting one hop away — the scanner now discovers and tests it on its own.
-- Bounds and safety: the crawl is capped by `max_pages` and `max_depth` (profiles: passive 30 pages / depth 3, active 20 pages / depth 2; both overridable with `--max-pages`/`--max-depth`, and `max_pages=1` restores single-page scanning). Navigation is read-only — logout/sign-out links and state-changing links (`?action=delete`, `?remove=`, …) are never followed, so an authenticated crawl does not tear down its own session or mutate server state. All requests share one `SafetyController` budget, so crawling plus probing stays inside the same request/time envelope, and every URL is still re-validated against the pinned host/port before it is fetched.
-- Resilience: a per-endpoint budget hit (`EndpointBudgetExceeded`) ends only that endpoint and the crawl moves on; a transient network failure (`OSError`: timeout/reset) while a plugin probes skips just that plugin, and a page that cannot be fetched at all is skipped — so one blip never discards findings already gathered. Only a global request/time budget or a cancellation stops the whole scan, and in every case the findings collected so far are returned.
-- Pages are de-duplicated by signature (path + query-parameter *names*), so a catalog of `/item?id=1..N` is visited once; findings are de-duplicated across pages so a server-wide missing header is reported once, while per-endpoint injection/disclosure findings are kept per URL and parameter. The result JSON gains `pages_scanned` and `crawled_urls`.
+Os mapeamentos usam o OWASP Top 10:2025. Os identificadores WSTG devem usar a forma estável e
+versionada v4.2 na evidência persistida, enquanto o desenvolvimento pode consultar o conteúdo mais
+recente do WSTG 5.0. Os identificadores CWE permanecem específicos de cada fraqueza e não devem ser
+inferidos a partir de uma anomalia genérica.
 
-## Output contract
+## Incrementos de cobertura: teste de formulários/POST e varredura autenticada
 
-The JSON document the engine prints is specified in [INTEGRATION_CONTRACT.md](INTEGRATION_CONTRACT.md)
-and checked by `tests/test_integration_contract.py`. Two rules were made explicit in Fase 5:
-`duration_ms` is the wall-clock duration of the whole scan (it used to carry the response time of
-the seed page), and every text field of a finding is fitted to the width of the column that
-stores it (`FINDING_FIELD_LIMITS` in `engine/models.py`), because part of a finding — a form
-field name, a URL — comes from the target and is unbounded.
+- Os testes de parâmetros não dependem da origem do parâmetro: `plugins/support.build_probe`/
+  `send_probe` enviam a sonda pelo canal certo — um parâmetro de query é testado na URL (GET), um
+  campo de formulário é enviado em um corpo `application/x-www-form-urlencoded` (POST) com os
+  campos vizinhos preservados. Os plugins ativos percorrem `testable_inputs` (query + formulário).
+  O teste de formulário/POST está habilitado em todos os detectores de injeção de valor (SQL
+  injection, XSS refletido, path traversal, open redirect, command injection, SSTI, SSRF); CRLF e
+  NoSQL ficam apenas na query porque a construção da sonda depende do canal. As sondas de
+  formulário são enviadas à URL da página analisada; formulários cujo `action` aponta para outro
+  caminho são uma limitação conhecida (é a causa do falso negativo de SQLi no login da Altoro
+  Mutual, ver [EVALUATION_RESULTS.md](EVALUATION_RESULTS.md)).
+- Varredura autenticada: `ScanContext.auth_headers` é mesclado a toda requisição de saída pelo
+  transporte, cobrindo verificações passivas e ativas de uma vez sem tocar em nenhum plugin. Os
+  cabeçalhos de autenticação só chegam ao host/porta fixados (controle de escopo), são mascarados
+  nos logs (`SENSITIVE_HEADERS`) e são fornecidos pela linha de comando (`--cookie`, `--header`
+  repetível) ou, apenas durante a análise, pela aplicação web (nunca persistidos). A aplicação web
+  usa somente `--cookie`.
+
+## Incremento de cobertura: rastreamento de mesma origem
+
+- `engine/crawler.py` expande uma única URL-semente para a superfície de mesma origem alcançável.
+  `engine/runner.py` faz uma caminhada em largura: retira uma página da fila, analisa-a por completo
+  (duas requisições de baseline + todos os plugins) e então enfileira seus links `<a>`, *actions*
+  de formulários GET e o destino de redirecionamento para as profundidades seguintes. Isso fecha a
+  lacuna em que a análise de uma página de login (ou de qualquer página de entrada) deixava de ver
+  uma página desprotegida a um clique dali — o motor agora a descobre e a testa sozinho.
+- Limites e segurança: o rastreamento é limitado por `max_pages` e `max_depth` (perfis: passivo
+  30 páginas / profundidade 3, ativo 20 páginas / profundidade 2; ambos ajustáveis com
+  `--max-pages`/`--max-depth`, e `max_pages=1` restaura a análise de página única). A navegação é
+  somente leitura — links de logout/sair e links que alteram estado (`?action=delete`,
+  `?remove=`, …) nunca são seguidos, então um rastreamento autenticado não derruba a própria sessão
+  nem altera o estado do servidor ao navegar. Todas as requisições compartilham um único orçamento
+  do `SafetyController`, então rastreamento e sondagem ficam dentro do mesmo envelope de
+  requisições/tempo, e toda URL é revalidada contra o host/porta fixados antes de ser buscada.
+- Resiliência: estourar o orçamento de um endpoint (`EndpointBudgetExceeded`) encerra apenas aquele
+  endpoint e o rastreamento segue; uma falha de rede transitória (`OSError`: tempo esgotado/reset)
+  enquanto um plugin sonda pula apenas aquele plugin, e uma página que não pode ser obtida é pulada
+  — assim, uma oscilação nunca descarta os achados já coletados. Só um orçamento global de
+  requisições/tempo, uma violação de escopo durante a sondagem ou um cancelamento interrompem a
+  varredura inteira (`stopped_early`), e em todos os casos os achados coletados até ali são
+  devolvidos. Se nem a página-semente responde, o resultado é `ok:false` com uma mensagem em
+  português.
+- As páginas são agrupadas por assinatura (caminho + *nomes* dos parâmetros da query), então um
+  catálogo `/item?id=1..N` é visitado uma vez; os achados são consolidados entre páginas, de modo
+  que um cabeçalho ausente no servidor inteiro é relatado uma vez, enquanto achados de
+  injeção/exposição por endpoint são mantidos por URL e parâmetro. O JSON de resultado ganha
+  `pages_scanned` e `crawled_urls`.
+
+## Limitações conhecidas (conferidas no código em 2026-11-24)
+
+- **TLS:** o transporte usa `ssl.create_default_context()`, que valida o certificado e exige TLS
+  1.2+. Um alvo HTTPS com certificado inválido, expirado ou autoassinado, ou que só aceite TLS
+  1.0/1.1, não pode ser analisado ("Nenhuma página pôde ser acessada no alvo."). Consequentemente,
+  `tls.legacy_protocol` não tem como disparar e `tls.certificate_expiry` só aparece para
+  certificados ainda válidos que expiram em menos de 30 dias.
+- **JavaScript:** o rastreador não executa JavaScript; links montados por scripts (SPAs) não são
+  descobertos.
+- **NoSQL:** uma página que devolve sempre o mesmo 404 pode gerar o falso positivo
+  `nosql_injection.operator_bypass_confirmed`, porque `_looks_rejected` trata 404 como rejeição
+  (ver [EVALUATION_RESULTS.md](EVALUATION_RESULTS.md)).
+- **Verbos HTTP:** PUT, DELETE, PATCH e TRACE são enviados uma vez por página visitada, e não uma
+  vez por varredura.
+
+## Contrato de saída
+
+O documento JSON que o motor imprime está especificado em
+[INTEGRATION_CONTRACT.md](INTEGRATION_CONTRACT.md) e é verificado por
+`tests/test_integration_contract.py`. Duas regras foram explicitadas na Fase 5: `duration_ms` é a
+duração de relógio da varredura inteira (antes trazia o tempo de resposta da página-semente), e todo
+campo de texto de um achado é ajustado à largura da coluna que o armazena (`FINDING_FIELD_LIMITS`
+em `engine/models.py`), porque parte de um achado — um nome de campo de formulário, uma URL — vem
+do alvo e não tem limite.

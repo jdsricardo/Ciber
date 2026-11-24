@@ -1,171 +1,181 @@
-# Integration Contract — Web Application ⇄ Scanner Engine
+# Contrato de Integração — Aplicação Web ⇄ Motor do Scanner
 
 | | |
 |---|---|
-| Contract version | **1.1** |
-| Status | Normative. A change to any rule below requires a new version and an entry in the change log at the end of this document. |
-| Producer | Scanner engine — `scanner/scanner.py` (Python 3.10+, standard library only) |
-| Consumer | `App\Infrastructure\Scanner\PythonScannerGateway` → `App\Domain\Model\ScanResult` (PHP 8.2+) |
-| Conformance tests | `tests/test_integration_contract.py` (producer side) and the *Integration contract* group in `tests/php_test.php` (consumer side). Both read the same captured payload, `tests/fixtures/scan_result.sample.json`. |
+| Versão do contrato | **1.2** |
+| Situação | Normativo. Uma mudança em qualquer regra abaixo exige uma nova versão e uma entrada no histórico de alterações no fim deste documento. |
+| Produtor | Motor do scanner — `scanner/scanner.py` (Python 3.10+, somente biblioteca padrão) |
+| Consumidor | `App\Infrastructure\Scanner\PythonScannerGateway` → `App\Domain\Model\ScanResult` (PHP 8.2+) |
+| Testes de conformidade | `tests/test_integration_contract.py` (lado do produtor) e o grupo *Integration contract* em `tests/php_test.php` (lado do consumidor). Ambos leem o mesmo payload capturado, `tests/fixtures/scan_result.sample.json`. |
 
-This document is the single agreement between the two halves of SentinelScope. The PHP
-application never imports Python code and the engine never reads the database; everything that
-crosses the boundary is described here: how the engine is started, what it receives, what it
-prints, and what the consumer must do with each possible answer.
+Este documento é o acordo único entre as duas metades do SentinelScope. A aplicação PHP nunca
+importa código Python e o motor nunca lê o banco de dados; tudo o que cruza a fronteira está
+descrito aqui: como o motor é iniciado, o que recebe, o que imprime e o que o consumidor deve
+fazer com cada resposta possível.
 
 ---
 
-## 1. Transport
+## 1. Transporte
 
-| Aspect | Rule |
+| Aspecto | Regra |
 |---|---|
-| Mechanism | One child process per analysis. The consumer starts it, waits for it to exit, and reads its standard output. There is no socket, queue or shared file. |
-| Direction | Request: command-line arguments. Response: **one JSON document** on standard output. |
-| Encoding | Standard output is UTF-8, regardless of platform or console code page. The engine forces this with `stream.reconfigure(encoding="utf-8")`. |
-| Framing | The whole standard output is the document. The consumer trims surrounding whitespace and decodes it with `json_decode`. There is no delimiter or length prefix: **anything else printed on standard output — a warning, a debug line, a traceback — is a contract violation**. |
-| Standard error | Not part of the response. The consumer must not mix it into the document it decodes. |
-| Exit code | `0` when the document has `"ok": true`; `1` when it has `"ok": false`. Any other code, or no document at all, means the engine did not run to completion. |
+| Mecanismo | Um processo filho por análise. O consumidor o inicia, espera que termine e lê sua saída padrão. Não há socket, fila nem arquivo compartilhado. |
+| Direção | Requisição: argumentos de linha de comando. Resposta: **um documento JSON** na saída padrão. |
+| Codificação | A saída padrão é UTF-8, independentemente da plataforma ou da página de código do console. O motor garante isso com `stream.reconfigure(encoding="utf-8")`. |
+| Delimitação | Toda a saída padrão é o documento. O consumidor remove espaços em branco nas extremidades e o decodifica com `json_decode`. Não há delimitador nem prefixo de tamanho: **qualquer outra coisa impressa na saída padrão — um aviso, uma linha de depuração, um traceback — é uma violação do contrato**. |
+| Saída de erro | Não faz parte da resposta. O consumidor não deve misturá-la ao documento que decodifica. |
+| Código de saída | `0` quando o documento tem `"ok": true`; `1` quando tem `"ok": false`. Qualquer outro código, ou nenhum documento, significa que o motor não chegou ao fim. |
 
-## 2. Request
+## 2. Requisição
 
-### 2.1 Command line
+### 2.1 Linha de comando
 
 ```
 <PYTHON_BINARY> <ROOT>/scanner/scanner.py <target-url> --mode=<mode> [--allow-private] [--cookie=<value>]
 ```
 
-| Argument | Type | Required | Rule |
+| Argumento | Tipo | Obrigatório | Regra |
 |---|---|---|---|
-| `<target-url>` | string | yes | The application's base URL, already validated by `Domain\Model\TargetUrl` (HTTP/HTTPS, ≤ 2,048 characters, no embedded credentials). |
-| `--mode` | `passive` \| `safe_active` | yes | `safe_active` is sent only when the user requested the full analysis **and** confirmed the separate active authorization (`RunAnalysis`). |
-| `--allow-private` | flag | no | Sent only when `ALLOW_PRIVATE_TARGETS=true` in `.env`. Without it the engine refuses private, loopback, link-local and reserved destinations. |
-| `--cookie` | string | no | Session credential for authenticated areas (FR-11). Sent only when the user supplied one for this analysis. |
+| `<target-url>` | string | sim | A URL base da aplicação, já validada por `Domain\Model\TargetUrl` (HTTP/HTTPS, ≤ 2.048 caracteres, sem credenciais embutidas). |
+| `--mode` | `passive` \| `safe_active` | sim | `safe_active` só é enviado quando o usuário pediu a análise completa **e** confirmou a autorização ativa separada (`RunAnalysis`). |
+| `--allow-private` | flag | não | Enviado somente quando `ALLOW_PRIVATE_TARGETS=true` no `.env`. Sem ela o motor recusa destinos privados, de loopback, link-local e reservados. |
+| `--cookie` | string | não | Credencial de sessão para áreas autenticadas (FR-11). Enviada somente quando o usuário informou uma para esta análise. |
 
-Other options the engine accepts (`--header`, `--max-pages`, `--max-depth`, `--log-file`,
-`--cancel-file`) are for command-line and evaluation use and are not sent by the web application.
+Outras opções que o motor aceita (`--header`, `--max-pages`, `--max-depth`, `--log-file`,
+`--cancel-file`) servem ao uso pela linha de comando e à avaliação, e não são enviadas pela
+aplicação web.
 
-### 2.2 Rules on the request
+### 2.2 Regras sobre a requisição
 
-- **R1 — Arguments arrive intact.** The target URL and the session cookie must reach the engine
-  byte-for-byte as the user entered them. Characters such as `%`, `!`, `"`, `&` and spaces are
-  legitimate in both (percent-encoded URLs; cookie values) and must not be altered, dropped or
-  interpreted by a shell.
-- **R2 — No shell injection.** No user-supplied value may extend the command line.
-- **R3 — The credential is transient.** The session cookie exists only in the child process's
-  arguments for the duration of that analysis. It is never written to the database, to a file or
-  to a log (NFR-07). The engine redacts `Cookie`, `Authorization` and API-key headers in its own
-  request log (`SENSITIVE_HEADERS` in `scanner/engine/safety.py`).
+- **R1 — Os argumentos chegam intactos.** A URL do alvo e o cookie de sessão devem chegar ao
+  motor byte a byte como o usuário os digitou. Caracteres como `%`, `!`, `"`, `&` e espaços são
+  legítimos em ambos (URLs codificadas com porcentagem; valores de cookie) e não podem ser
+  alterados, descartados nem interpretados por um shell.
+- **R2 — Sem injeção de shell.** Nenhum valor fornecido pelo usuário pode estender a linha de
+  comando.
+- **R3 — A credencial é transitória.** O cookie de sessão existe apenas nos argumentos do
+  processo filho, durante aquela análise. Ele nunca é gravado no banco de dados, em arquivo ou em
+  log (NFR-07). O motor mascara os cabeçalhos `Cookie`, `Authorization` e de chave de API em seu
+  próprio log de requisições (`SENSITIVE_HEADERS` em `scanner/engine/safety.py`).
 
-## 3. Response
+## 3. Resposta
 
-### 3.1 Success document (`"ok": true`)
+### 3.1 Documento de sucesso (`"ok": true`)
 
-| Field | Type | Meaning |
+| Campo | Tipo | Significado |
 |---|---|---|
-| `ok` | `true` | The scan ran and the findings below are its complete result. |
-| `status_code` | int | HTTP status of the seed page's first baseline response. |
-| `duration_ms` | int ≥ 0 | **Wall-clock duration of the whole scan**, from the first request to the last, in milliseconds. Shown to the user as the analysis duration. |
-| `plugins_run` | int | Number of plugin families executed (7 passive; 20 in `safe_active`). |
-| `checks_run` | int | Number of check identifiers declared by those plugins (34 passive; 64 in `safe_active`). |
-| `baseline_stability` | float 0–1 | Similarity of the two baseline responses of the seed page. |
-| `requests_made` | int | Requests sent, crawling and probing together. |
-| `pages_scanned` | int | Distinct pages visited by the crawler. |
-| `crawled_urls` | list of string | Those pages, in visiting order. |
-| `findings` | list of *Finding* | Every finding, already de-duplicated across pages. May be empty. |
-| `scanned_at` | string | ISO-8601 UTC timestamp. |
-| `stopped_early` | string, optional | `budget_exceeded` or `cancelled` when the scan ended before exhausting the crawl. The findings gathered up to that point are still valid. |
-| `plugin_warnings` | list of string, optional | Plugins that could not be loaded. |
+| `ok` | `true` | A varredura foi executada e os achados abaixo são seu resultado completo. |
+| `status_code` | int | Status HTTP da primeira resposta de baseline da página-semente. |
+| `duration_ms` | int ≥ 0 | **Duração real (relógio de parede) de toda a varredura**, da primeira à última requisição, em milissegundos. Exibida ao usuário como a duração da análise. |
+| `plugins_run` | int | Número de famílias de plugins executadas (7 no modo passivo; 20 em `safe_active`). |
+| `checks_run` | int | Número de identificadores de verificação declarados por esses plugins (34 no modo passivo; 64 em `safe_active`). |
+| `baseline_stability` | float 0–1 | Similaridade entre as duas respostas de baseline da página-semente. |
+| `requests_made` | int | Requisições enviadas, somando rastreamento e sondagem. |
+| `pages_scanned` | int | Páginas distintas visitadas pelo rastreador. |
+| `crawled_urls` | lista de string | Essas páginas, na ordem de visita. |
+| `findings` | lista de *Finding* | Todos os achados, já deduplicados entre páginas. Pode estar vazia. |
+| `scanned_at` | string | Data e hora ISO-8601 em UTC. |
+| `stopped_early` | string, opcional | `budget_exceeded`, `cancelled` ou `scope_violation` quando a varredura terminou antes de esgotar o rastreamento. Os achados reunidos até ali continuam válidos. |
+| `plugin_warnings` | lista de string, opcional | Plugins que não puderam ser carregados. |
 
-The consumer currently reads `ok`, `findings`, `checks_run`, `duration_ms` and `status_code`;
-the remaining fields are informational and may be ignored.
+Atualmente o consumidor lê `ok`, `findings`, `checks_run`, `duration_ms` e `status_code`; os
+demais campos são informativos e podem ser ignorados.
 
-### 3.2 Finding
+### 3.2 Achado (*Finding*)
 
-Every element of `findings` has the fields below. The **limit** column is the width of the
-column that stores the field (`database.sql`); the producer must not exceed it, because a value
-that does not fit is either rejected (strict SQL mode) or silently truncated (permissive mode),
-and neither is acceptable.
+Todo elemento de `findings` tem os campos abaixo. A coluna **limite** é a largura da coluna que
+armazena o campo (`database.sql`); o produtor não pode excedê-la, porque um valor que não cabe é
+rejeitado (modo SQL estrito) ou truncado silenciosamente (modo permissivo), e nenhuma das duas
+coisas é aceitável.
 
-| Field | Type | Required | Limit | Rule |
+| Campo | Tipo | Obrigatório | Limite | Regra |
 |---|---|---|---|---|
-| `fingerprint` | string | yes | 120 | Check identifier, `<family>.<check>` (e.g. `xss.reflected_html_text`). Its prefix before the first dot is the vulnerability family. |
-| `title` | string | yes | 180 | Short Portuguese title, from `plugins/catalog.py`. |
-| `category` | string | yes | 80 | Category name. |
-| `cwe` / `owasp` / `wstg` | string | yes | 120 each | Taxonomy identifiers in their standard English form (NFR-06). |
-| `severity` | string | yes | enum | One of `critical`, `high`, `medium`, `low`. **No other value is valid.** |
-| `confidence` | int | yes | 0–100 | Independent from severity (FR-09). |
-| `status` | string | yes | 30 | One of `confirmed`, `high_confidence`, `probable`, `possible`, `informational`, `manual_review_required`. |
-| `affected_url` | string | yes | 2,048 | URL where the finding was observed. For an active finding it is the probe URL and therefore includes the probe value. |
-| `endpoint` | string | yes | — | Same value as `affected_url` (engine-internal name, not stored). |
-| `method` | string | yes | 10 | HTTP method used to reach the finding (`POST` for form fields). |
-| `parameter` | string \| null | yes | 180 | Name of the tested input, or `null` for page-level findings. |
-| `parameter_location` | string \| null | yes | 40 | `query`, `form`, `cookie` (a finding about a cookie the page sets), or `null`. |
-| `description` | string | yes | text | What the check looks for. |
-| `evidence_summary` | string | yes | 500 | One-sentence statement of what was observed. |
-| `evidence` | object | yes | 64 KiB serialized | Structured evidence: `reason`, `baseline`, `probe_request`, `probe_response`, `differences`, `verification_count`. Secrets are already redacted. |
-| `developer_impact` | string | yes | text | Why it matters to the developer. |
-| `remediation` | string | yes | text | How to fix it. |
-| `manual_review_required` | bool | yes | — | The detector asks for human confirmation. |
-| `remediation_example_vulnerable` / `_fixed` | string | yes (may be empty) | text | The "vulnerable vs. fixed" example (FR-05). |
-| `remediation_example_language` | string | yes (may be empty) | 60 | Language of the example. |
-| `remediation_example_note` | string | yes (may be empty) | 500 | Short note on the example. |
+| `fingerprint` | string | sim | 120 | Identificador da verificação, `<família>.<verificação>` (por exemplo `xss.reflected_html_text`). O prefixo antes do primeiro ponto é a família de vulnerabilidade. |
+| `title` | string | sim | 180 | Título curto em português, de `plugins/catalog.py`. |
+| `category` | string | sim | 80 | Nome da categoria. |
+| `cwe` / `owasp` / `wstg` | string | sim | 120 cada | Identificadores de taxonomia na forma padrão em inglês (NFR-06). |
+| `severity` | string | sim | enum | Um de `critical`, `high`, `medium`, `low`. **Nenhum outro valor é válido.** |
+| `confidence` | int | sim | 0–100 | Independente da severidade (FR-09). |
+| `status` | string | sim | 30 | Um de `confirmed`, `high_confidence`, `probable`, `possible`, `informational`, `manual_review_required`. |
+| `affected_url` | string | sim | 2.048 | URL onde o achado foi observado. Para um achado ativo é a URL da sonda e, portanto, inclui o valor da sonda. |
+| `endpoint` | string | sim | — | Mesmo valor de `affected_url` (nome interno do motor, não armazenado). |
+| `method` | string | sim | 10 | Método HTTP usado para chegar ao achado (`POST` para campos de formulário). |
+| `parameter` | string \| null | sim | 180 | Nome da entrada testada, ou `null` para achados de nível de página. |
+| `parameter_location` | string \| null | sim | 40 | `query`, `form`, `cookie` (achado sobre um cookie que a página define) ou `null`. |
+| `description` | string | sim | text | O que a verificação procura. |
+| `evidence_summary` | string | sim | 500 | Uma frase descrevendo o que foi observado. |
+| `evidence` | object | sim | 64 KiB serializado | Evidência estruturada: `reason`, `baseline`, `probe_request`, `probe_response`, `differences`, `verification_count`. Segredos já vêm mascarados. |
+| `developer_impact` | string | sim | text | Por que isso importa para o desenvolvedor. |
+| `remediation` | string | sim | text | Como corrigir. |
+| `manual_review_required` | bool | sim | — | O detector pede confirmação humana. |
+| `remediation_example_vulnerable` / `_fixed` | string | sim (pode ser vazio) | text | O exemplo "vulnerável vs. corrigido" (FR-05). |
+| `remediation_example_language` | string | sim (pode ser vazio) | 60 | Linguagem do exemplo. |
+| `remediation_example_note` | string | sim (pode ser vazio) | 500 | Nota curta sobre o exemplo. |
 
-### 3.3 Failure document (`"ok": false`)
+### 3.3 Documento de falha (`"ok": false`)
 
 ```json
-{"ok": false, "error": "Falha de rede ao acessar o alvo: [WinError 10061] ..."}
+{"ok": false, "error": "Nenhuma página pôde ser acessada no alvo."}
 ```
 
-| Field | Type | Rule |
+| Campo | Tipo | Regra |
 |---|---|---|
-| `ok` | `false` | The scan did not produce a usable result. |
-| `error` | string, non-empty | Human-readable reason in Portuguese, shown to the user as the reason the analysis failed. |
+| `ok` | `false` | A varredura não produziu um resultado utilizável. |
+| `error` | string, não vazia | Motivo legível em português, exibido ao usuário como a razão da falha da análise. |
 
-Typical causes: target unreachable, scope violation (private destination without
-`--allow-private`), no page could be fetched, global budget or time exhausted before the seed
-page answered.
+Causas típicas e a mensagem que cada uma produz:
 
-## 4. Consumer obligations
-
-| Rule | Obligation |
+| Causa | `error` |
 |---|---|
-| **C1 — Record before calling.** | The analysis row exists with status `running` before the engine is started, so an interrupted run leaves a trace. |
-| **C2 — Every analysis is closed.** | Whatever happens after C1 — success, `ok:false`, unreadable output, engine crash, time limit, or a failure while storing the result — the analysis ends as `completed` or `failed` with a reason. **An analysis must never remain `running` after the request that started it has ended.** |
-| **C3 — All or nothing.** | Findings and the `completed` status are written in one transaction. A failure while writing them leaves no partial findings. |
-| **C4 — Validate, don't trust.** | The document is validated on reading (`ScanResult::fromEnginePayload`, `Finding::fromRow`, `Severity::fromString`). An invalid document — not JSON, unknown severity, missing fingerprint/title/URL, confidence outside 0–100 — fails the analysis with a clear reason; it is never stored partially and never reported as an empty scan. |
-| **C5 — Deadline.** | The consumer allows the engine its full time budget (180 s passive, 600 s safe-active, `global_timeout_seconds` in `scanner/engine/runner.py`) plus a margin, and must still satisfy C2 if that deadline is exceeded. |
-| **C6 — Escaping is the consumer's job.** | Every string in the document — including evidence copied from the target, which is attacker-controllable — is escaped on output (`Presentation\Html::escape`). |
+| O endereço não responde, ou a conexão (inclusive TLS) falha na página-semente | "Nenhuma página pôde ser acessada no alvo." |
+| O nome do alvo não é resolvido (DNS) | "Falha de rede ao acessar o alvo: <detalhe do sistema operacional>" — o detalhe vem do sistema operacional e pode não estar em português. |
+| Violação de escopo (por exemplo, destino privado sem `--allow-private`) | por exemplo "Alvos em rede privada, loopback, link-local ou endereços reservados são bloqueados por padrão." |
+| Orçamento global de requisições ou de tempo esgotado antes de a página-semente responder | "O limite de requisições ou de tempo foi atingido antes de a primeira página responder." |
+| Cancelamento antes de a página-semente responder | "A análise foi cancelada antes de a primeira página responder." |
 
-## 5. Finding identity across analyses
+## 4. Obrigações do consumidor
 
-Comparing two analyses (FR-07, CA-04) requires knowing when a finding of the older analysis is
-"the same" as one of the newer analysis. The identity of a finding is the tuple:
+| Regra | Obrigação |
+|---|---|
+| **C1 — Registrar antes de chamar.** | A linha da análise existe com status `running` antes de o motor ser iniciado, para que uma execução interrompida deixe rastro. |
+| **C2 — Toda análise é encerrada.** | Aconteça o que acontecer depois de C1 — sucesso, `ok:false`, saída ilegível, queda do motor, limite de tempo ou falha ao gravar o resultado — a análise termina como `completed` ou `failed`, com um motivo. **Uma análise nunca pode permanecer `running` depois que a requisição que a iniciou terminou.** |
+| **C3 — Tudo ou nada.** | Os achados e o status `completed` são gravados em uma única transação. Uma falha ao gravá-los não deixa achados parciais. |
+| **C4 — Validar, não confiar.** | O documento é validado na leitura (`ScanResult::fromEnginePayload`, `Finding::fromRow`, `Severity::fromString`). Um documento inválido — não JSON, severidade desconhecida, fingerprint/título/URL ausentes, confiança fora de 0–100 — faz a análise falhar com um motivo claro; nunca é armazenado parcialmente nem relatado como uma varredura vazia. |
+| **C5 — Prazo-limite.** | O consumidor concede ao motor todo o seu orçamento de tempo (180 s no modo passivo, 600 s em safe-active, `global_timeout_seconds` em `scanner/engine/runner.py`) mais uma margem, e ainda deve cumprir C2 se esse prazo-limite for excedido. |
+| **C6 — Escapar é tarefa do consumidor.** | Toda string do documento — inclusive a evidência copiada do alvo, que é controlável por um atacante — é escapada na saída (`Presentation\Html::escape`). |
+
+## 5. Identidade de um achado entre análises
+
+Comparar duas análises (FR-07, CA-04) exige saber quando um achado da análise mais antiga é "o
+mesmo" que um achado da análise mais nova. A identidade de um achado é a tupla:
 
 ```
-( fingerprint,  scheme://host:port/path of affected_url (query string removed),  parameter_location,  parameter )
+( fingerprint,  scheme://host:port/path de affected_url (sem a query string),  parameter_location,  parameter )
 ```
 
-- The **query string is removed** because, for active findings, `affected_url` contains the
-  random marker of the probe that revealed the issue, which differs on every run.
-- The **path and parameter are kept** because the same check can fail independently on two
-  endpoints or two parameters, and fixing one of them must show as *fixed* while the other
-  stays *persistent*.
-- Site-wide findings (headers, transport, cookies, cache, CORS) are reported once by the engine,
-  at the first page where they were observed, which is the seed page whenever the condition holds
-  there; their identity is therefore stable between runs of the same application.
+- A **query string é removida** porque, nos achados ativos, `affected_url` contém o marcador
+  aleatório da sonda que revelou o problema, diferente a cada execução.
+- O **caminho e o parâmetro são mantidos** porque a mesma verificação pode falhar de forma
+  independente em dois endpoints ou dois parâmetros, e corrigir um deles deve aparecer como
+  *corrigido* enquanto o outro continua *persistente*.
+- Achados de nível de site (cabeçalhos, transporte, cookies, cache, CORS) são relatados uma única
+  vez pelo motor, na primeira página onde foram observados, que é a página-semente sempre que a
+  condição vale ali; sua identidade é, portanto, estável entre execuções da mesma aplicação.
 
-## 6. Versioning policy
+## 6. Política de versionamento
 
-- Adding an optional response field is a **minor** change (1.x): consumers ignore fields they do
-  not read.
-- Removing or renaming a field, changing a type, adding a severity, or changing the meaning of a
-  field is a **major** change (2.0) and requires the consumer to be changed in the same commit.
-- Every change is recorded below, and the shared sample payload is regenerated with
+- Acrescentar um campo opcional à resposta é uma mudança **minor** (1.x): consumidores ignoram
+  campos que não leem.
+- Remover ou renomear um campo, mudar um tipo, acrescentar uma severidade ou mudar o significado
+  de um campo é uma mudança **major** (2.0) e exige que o consumidor seja alterado no mesmo
+  commit.
+- Toda mudança é registrada abaixo, e o payload de exemplo compartilhado é regenerado com
   `python tests/test_integration_contract.py --regenerate-fixture`.
 
-## 7. Change log
+## 7. Histórico de alterações
 
-| Version | Date | Change |
+| Versão | Data | Alteração |
 |---|---|---|
-| 1.1 | 2026-10-14 | `parameter_location` also takes `cookie`, which the cookie plugin has always emitted (`cookies.missing_httponly`, `cookies.missing_samesite`, …). Version 1.0 omitted it; the producer conformance test revealed the omission (defect D-08). Documentation correction — no code changed on either side. |
-| 1.0 | 2026-10-14 | First written version of the contract that had been implicit in `ScanResult::fromEnginePayload` and `ScanRunner.run()` since Phase 1. Adds the explicit rules R1–R3, C1–C6, the column limits of §3.2, the meaning of `duration_ms` and the identity rule of §5. |
+| 1.2 | 2026-11-24 | Documento traduzido para o português. `stopped_early` também assume `scope_violation`, que o produtor sempre emitiu (omissão de documentação). Exemplo e causas do §3.3 corrigidos para as mensagens reais. As mensagens de escopo, orçamento e cancelamento do motor, que eram em inglês contrariando o §3.3, passaram a ser em português (`scanner/engine/safety.py`, `scanner/engine/runner.py`). Nenhum campo mudou: alteração *minor*. |
+| 1.1 | 2026-10-14 | `parameter_location` também assume `cookie`, que o plugin de cookies sempre emitiu (`cookies.missing_httponly`, `cookies.missing_samesite`, …). A versão 1.0 o omitia; o teste de conformidade do produtor revelou a omissão (defeito D-08). Correção de documentação — nenhum código mudou em nenhum dos lados. |
+| 1.0 | 2026-10-14 | Primeira versão escrita do contrato que estava implícito em `ScanResult::fromEnginePayload` e `ScanRunner.run()` desde a Fase 1. Acrescenta as regras explícitas R1–R3, C1–C6, os limites de coluna do §3.2, o significado de `duration_ms` e a regra de identidade do §5. |

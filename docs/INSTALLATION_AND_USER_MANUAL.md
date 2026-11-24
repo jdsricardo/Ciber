@@ -1,53 +1,53 @@
-# Installation and User Manual
+# Manual de Instalação e do Usuário
 
-SentinelScope 1.0 · for the person installing the system and for the developer using it.
-Follow the steps in order; each one ends with a check that tells you it worked.
+SentinelScope 1.0 · para quem instala o sistema e para o desenvolvedor que o utiliza.
+Siga os passos na ordem; cada um termina com uma verificação que indica que deu certo.
 
-> **Authorization.** SentinelScope sends HTTP requests to the address you register — in the
-> complete mode, requests carrying test payloads. Only analyse applications you own or are
-> explicitly authorized in writing to assess.
+> **Autorização.** O SentinelScope envia requisições HTTP ao endereço que você registra — no
+> modo completo, requisições contendo payloads de teste. Analise apenas aplicações que são suas
+> ou que você está explicitamente autorizado, por escrito, a avaliar.
 
 ---
 
-## Part A — Installation
+## Parte A — Instalação
 
-### A.1 Requirements
+### A.1 Requisitos
 
-| Component | Version | Notes |
+| Componente | Versão | Observações |
 |---|---|---|
-| Operating system | Windows 10/11 (tested on Windows 11 Pro) | Linux works with the same steps and the equivalent paths. |
-| XAMPP | 8.2.x | Provides Apache 2.4, PHP 8.2 and MariaDB 10.4. Download from apachefriends.org. |
-| PHP extensions | `pdo_mysql`, `mbstring` | Enabled by default in XAMPP. Check with `php -m`. `proc_open` must not be listed in `disable_functions`. |
-| Python | 3.10 or newer | Standard library only — no `pip install` is needed. During installation tick **Add python.exe to PATH**. |
-| Browser | any current browser | |
+| Sistema operacional | Windows 10/11 (testado no Windows 11 Pro) | Linux funciona com os mesmos passos e os caminhos equivalentes. |
+| XAMPP | 8.2.x | Fornece Apache 2.4, PHP 8.2 e MariaDB 10.4. Baixe em apachefriends.org. |
+| Extensões PHP | `pdo_mysql`, `mbstring` | Habilitadas por padrão no XAMPP. Confira com `php -m`. `proc_open` não pode constar em `disable_functions`. |
+| Python | 3.10 ou superior | Somente a biblioteca padrão — não é preciso `pip install`. Durante a instalação, marque **Add python.exe to PATH**. |
+| Navegador | qualquer navegador atual | |
 
-**Check:** in a new terminal, `python --version` prints 3.10 or newer and
-`C:\xampp\php\php.exe -m` lists `pdo_mysql` and `mbstring`.
+**Verificação:** em um terminal novo, `python --version` mostra 3.10 ou superior e
+`C:\xampp\php\php.exe -m` lista `pdo_mysql` e `mbstring`.
 
-### A.2 Place the files
+### A.2 Posicione os arquivos
 
-Copy (or `git clone https://github.com/jdsricardo/Ciber.git`) the project into the XAMPP web
-folder. This manual assumes `C:\xampp\htdocs\www\Ciber`; if you choose another folder, adjust the
-URL in A.6 accordingly (the URL is the folder path below `htdocs`, followed by `/public/`).
+Copie (ou `git clone https://github.com/jdsricardo/Ciber.git`) o projeto para a pasta web do
+XAMPP. Este manual assume `C:\xampp\htdocs\www\Ciber`; se escolher outra pasta, ajuste a URL do
+passo A.6 (a URL é o caminho da pasta abaixo de `htdocs`, seguido de `/public/`).
 
-**Check:** `C:\xampp\htdocs\www\Ciber\public\index.php` exists.
+**Verificação:** `C:\xampp\htdocs\www\Ciber\public\index.php` existe.
 
-### A.3 Start Apache and MySQL
+### A.3 Inicie o Apache e o MySQL
 
-Open the **XAMPP Control Panel** and click **Start** next to **Apache** and **MySQL**.
+Abra o **XAMPP Control Panel** e clique em **Start** ao lado de **Apache** e **MySQL**.
 
-**Check:** both modules turn green. If port 80 or 3306 is taken, stop the program using it or
-change the port in XAMPP (`Config` button) and use that port in A.5 and A.6.
+**Verificação:** os dois módulos ficam verdes. Se a porta 80 ou 3306 estiver ocupada, encerre o
+programa que a usa ou altere a porta no XAMPP (botão `Config`) e use essa porta em A.5 e A.6.
 
-### A.4 Create the database and its user
+### A.4 Crie o banco de dados e o seu usuário
 
-1. Open `http://localhost/phpmyadmin/`.
-2. **Import** → choose `database.sql` from the project folder → **Import** (bottom of the page).
-   This creates the `sentinelscope` database with the tables `applications`, `analyses` and
-   `findings`. Importing it again later is safe: it only adds what is missing.
-3. Open the **SQL** tab and run the statements below, replacing `CHOOSE_A_PASSWORD` with a strong
-   password of your own. They create a user that can read and write the application's data and
-   nothing else:
+1. Abra `http://localhost/phpmyadmin/`.
+2. **Importar** → escolha `database.sql` na pasta do projeto → **Importar** (no fim da página).
+   Isso cria o banco `sentinelscope` com as tabelas `applications`, `analyses` e `findings`.
+   Importá-lo de novo mais tarde é seguro: ele só acrescenta o que estiver faltando.
+3. Abra a aba **SQL** e execute os comandos abaixo, trocando `CHOOSE_A_PASSWORD` por uma senha
+   forte de sua escolha. Eles criam um usuário que pode ler e gravar os dados da aplicação e
+   nada mais:
 
 ```sql
 CREATE USER 'sentinelscope_app'@'localhost' IDENTIFIED BY 'CHOOSE_A_PASSWORD';
@@ -57,148 +57,156 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON sentinelscope.* TO 'sentinelscope_app'@'
 FLUSH PRIVILEGES;
 ```
 
-**Check:** the left panel of phpMyAdmin shows `sentinelscope` with three tables.
+**Verificação:** o painel esquerdo do phpMyAdmin mostra `sentinelscope` com três tabelas.
 
-### A.5 Configure `.env`
+### A.5 Configure o `.env`
 
-In the project folder, copy `.env.example` to a new file named `.env` (exactly that name, with the
-leading dot) and edit it:
+Na pasta do projeto, copie `.env.example` para um novo arquivo chamado `.env` (exatamente esse
+nome, com o ponto inicial) e edite-o:
 
-| Key | What to write |
+| Chave | O que escrever |
 |---|---|
 | `DB_HOST` | `127.0.0.1` |
-| `DB_PORT` | `3306` (or the port chosen in A.3) |
+| `DB_PORT` | `3306` (ou a porta escolhida em A.3) |
 | `DB_NAME` | `sentinelscope` |
 | `DB_USER` | `sentinelscope_app` |
-| `DB_PASSWORD` | the password chosen in A.4 |
-| `PYTHON_BINARY` | `python`. If the analysis later fails with *"O scanner retornou uma resposta inválida"*, write the full path instead, e.g. `C:\Users\you\AppData\Local\Programs\Python\Python312\python.exe` (find it with `where python`). |
-| `ALLOW_PRIVATE_TARGETS` | `false`. Write `true` **only** to analyse an application running on your own machine or a laboratory network (A.7). |
+| `DB_PASSWORD` | a senha escolhida em A.4 |
+| `PYTHON_BINARY` | `python`. Se depois a análise falhar com *"O scanner retornou uma resposta inválida"*, escreva o caminho completo, por exemplo `C:\Users\you\AppData\Local\Programs\Python\Python312\python.exe` (descubra-o com `where python`). |
+| `ALLOW_PRIVATE_TARGETS` | `false`. Escreva `true` **somente** para analisar uma aplicação rodando na sua própria máquina ou em uma rede de laboratório (A.7). |
 
-`.env` holds a password: never send it to anyone and never commit it (Git already ignores it).
+O `.env` contém uma senha: nunca o envie a ninguém e nunca o faça commit (o Git já o ignora).
 
-### A.6 First access
+### A.6 Primeiro acesso
 
-Open `http://localhost/www/Ciber/public/`.
+Abra `http://localhost/www/Ciber/public/`.
 
-**Check:** the **Painel** page appears with the heading *"Encontre o risco. Entregue a correção."*
-and the text *"Nenhuma aplicação registrada ainda."*
+**Verificação:** a página **Painel** aparece com o título *"Encontre o risco. Entregue a correção."*
+e o texto *"Nenhuma aplicação registrada ainda."*
 
-| What you see instead | Cause and fix |
+| O que aparece no lugar | Causa e correção |
 |---|---|
-| *"Configuração necessária: copie .env.example para .env…"* | `.env` is missing or has another name (Windows may have saved it as `.env.txt`). Redo A.5. |
-| *"Ocorreu um erro inesperado. Consulte o log do servidor."* | Usually the database: MySQL not started (A.3), `database.sql` not imported (A.4), or wrong user/password in `.env`. The exact reason is in `C:\xampp\apache\logs\error.log`, on the last line starting with `SentinelScope:`. |
-| *Object not found* (404) | The URL does not match the folder of A.2. |
+| *"Configuração necessária: copie .env.example para .env…"* | O `.env` não existe ou tem outro nome (o Windows pode tê-lo salvo como `.env.txt`). Refaça A.5. |
+| *"Ocorreu um erro inesperado. Consulte o log do servidor."* | Normalmente o banco de dados: MySQL não iniciado (A.3), `database.sql` não importado (A.4) ou usuário/senha errados no `.env`. O motivo exato está em `C:\xampp\apache\logs\error.log`, na última linha que começa com `SentinelScope:`. |
+| *Object not found* (404) | A URL não corresponde à pasta de A.2. |
 
-### A.7 Verify the scanner (recommended)
+### A.7 Verifique o scanner (recomendado)
 
-The project ships a deliberately vulnerable laboratory application, so the installation can be
-verified without touching any real system.
+O projeto inclui uma aplicação de laboratório deliberadamente vulnerável, para que a instalação
+possa ser verificada sem tocar em nenhum sistema real.
 
-1. In a terminal, in the project folder: `python tests/e2e/lab_target.py --port 8765`
-   (leave it running).
-2. In `.env`, set `ALLOW_PRIVATE_TARGETS=true`.
-3. In the browser, follow B.1 and B.2 with the URL `http://127.0.0.1:8765/`.
+1. Em um terminal, na pasta do projeto: `python tests/e2e/lab_target.py --port 8765`
+   (deixe-o rodando).
+2. No `.env`, defina `ALLOW_PRIVATE_TARGETS=true`.
+3. No navegador, siga B.1 e B.2 com a URL `http://127.0.0.1:8765/`.
 
-**Check:** the analysis finishes with status *completed*, **34** checks executed and a list of
-findings (missing security headers, cookie without HttpOnly, …). Stop the laboratory with
-`Ctrl+C` and set `ALLOW_PRIVATE_TARGETS=false` again afterwards.
+**Verificação:** a análise termina com status *completed*, **34** verificações executadas e uma
+lista de achados (cabeçalhos de segurança ausentes, cookie sem HttpOnly, …). Encerre o
+laboratório com `Ctrl+C` e volte a definir `ALLOW_PRIVATE_TARGETS=false` depois.
 
-### A.8 Recommendations for a shared or production-like installation
+### A.8 Recomendações para uma instalação compartilhada ou próxima de produção
 
-- Point Apache's `DocumentRoot` at the `public` folder, so no other project file is reachable.
-- Serve over HTTPS and put the application behind authentication: this version assumes a trusted,
-  single-user local installation and has no login of its own.
-- Keep `ALLOW_PRIVATE_TARGETS=false`.
-- Keep `display_errors=Off` in `php.ini` (the application also forces it off).
-- A complete-mode analysis may take up to ~10 minutes on a large target. The application raises
-  PHP's time limit for that request itself; if a proxy sits in front of Apache, give it a read
-  timeout of at least 11 minutes.
+- Aponte o `DocumentRoot` do Apache para a pasta `public`, de modo que nenhum outro arquivo do
+  projeto fique acessível.
+- Sirva por HTTPS e coloque a aplicação atrás de autenticação: esta versão pressupõe uma
+  instalação local, confiável e de usuário único, e não tem login próprio.
+- Mantenha `ALLOW_PRIVATE_TARGETS=false`.
+- Mantenha `display_errors=Off` no `php.ini` (a aplicação também o força desligado).
+- Uma análise no modo completo pode levar até ~10 minutos em um alvo grande. A própria aplicação
+  eleva o limite de tempo do PHP para essa requisição; se houver um proxy na frente do Apache,
+  dê a ele um tempo limite de leitura de pelo menos 11 minutos.
 
 ---
 
-## Part B — Use
+## Parte B — Uso
 
-### B.1 Register an application
+### B.1 Registre uma aplicação
 
-**Adicionar aplicação** → enter a **name** and the **base URL** of a test or staging environment
-(`https://staging.example.com/`) → tick the authorization statement → **Registrar aplicação**.
+**Adicionar aplicação** → informe um **nome** e a **URL base** de um ambiente de teste ou
+homologação (`https://staging.example.com/`) → marque a declaração de autorização →
+**Registrar aplicação**.
 
-The URL must start with `http://` or `https://` and must not contain a user or password. Without
-the authorization tick the application is not registered.
+A URL deve começar com `http://` ou `https://` e não pode conter usuário ou senha. Sem a marcação
+de autorização, a aplicação não é registrada.
 
-### B.2 Run an analysis
+### B.2 Execute uma análise
 
-On the **Painel**, each application has a card with the **Executar análise** button.
+No **Painel**, cada aplicação tem um cartão com o botão **Executar análise**.
 
-| Option | Effect |
+| Opção | Efeito |
 |---|---|
-| *(default)* **Passive** | Observes the responses only: transport, security headers, cookies, CORS, cache, information disclosure, exposed secrets — 34 checks. Sends two ordinary GET requests per page. Usually seconds. |
-| **Análise completa (ativa)** | Also sends safe test payloads to every parameter and form field found (SQL injection, XSS, path traversal, open redirect, command injection, SSTI, XXE, CRLF, Host header, HTTP verbs, NoSQL, CORS, SSRF) — 64 checks. Requires the second authorization tick. Can take several minutes. |
-| **Área autenticada (opcional)** | Paste a session cookie (e.g. `PHPSESSID=…`) of a test user to analyse pages behind login. It is sent only to the registered address, during this analysis, and is never stored. |
+| *(padrão)* **Passiva** | Apenas observa as respostas: transporte, cabeçalhos de segurança, cookies, CORS, cache, divulgação de informações, segredos expostos — 34 verificações. Envia duas requisições GET comuns por página. Normalmente leva segundos. |
+| **Análise completa (ativa)** | Também envia payloads de teste seguros a cada parâmetro e campo de formulário encontrado (SQL injection, XSS, travessia de diretório, redirecionamento aberto, injeção de comandos, SSTI, XXE, CRLF, cabeçalho Host, verbos HTTP, NoSQL, CORS, SSRF) — 64 verificações. Atenção: a verificação de verbos HTTP envia OPTIONS, POST, PUT, DELETE, PATCH e TRACE uma vez a **cada** página visitada (até 20 no modo completo); um alvo vulnerável pode de fato executá-los. Use o modo completo somente em ambientes de teste ou homologação. Exige a segunda marcação de autorização. Pode levar vários minutos. |
+| **Área autenticada (opcional)** | Cole um cookie de sessão (por exemplo `PHPSESSID=…`) de um usuário de teste para analisar páginas atrás do login. Ele é enviado apenas ao endereço registrado, durante esta análise, e nunca é armazenado. |
 
-The scanner starts at the registered URL and follows same-site links (up to 30 pages in passive
-mode, 20 in complete mode). It never follows logout links or links that change data (such as
+O scanner começa pela URL registrada e segue links do mesmo site (até 30 páginas no modo
+passivo, 20 no modo completo). Ele nunca segue links de logout nem links que alteram dados (como
 `?action=delete`).
 
-While the analysis runs, the button shows **Analisando…** and a progress message; do not close
-the page. When it ends, the result page opens.
+Enquanto a análise roda, o botão mostra **Analisando…** e uma mensagem de progresso; não feche a
+página. Quando termina, a página de resultado é aberta.
 
-### B.3 Read the result
+### B.3 Leia o resultado
 
-The header shows the **Pontuação de Segurança** (0–100) and four metrics: checks executed,
-findings, HTTP status of the first page, and duration.
+O cabeçalho mostra a **Pontuação de Segurança** (0–100) e quatro métricas: verificações
+executadas, achados, status HTTP da primeira página e duração.
 
-Each finding reads top-down: **what was observed**, **why it matters**, **how to fix it**, and a
-**vulnerable vs. fixed** code example you can copy with one click. Two badges are independent:
+Cada achado é lido de cima para baixo: **o que foi observado**, **por que importa**, **como
+corrigir** e um exemplo de código **vulnerável vs. corrigido** que você copia com um clique. Dois
+selos são independentes:
 
-- **Severity** — how bad it would be if real (crítico, alto, médio, baixo).
-- **Confidence / status** — how sure the scanner is. *Revisão manual* means a person should
-  confirm the finding before acting.
+- **Severidade** — quão grave seria se for real (crítico, alto, médio, baixo).
+- **Confiança / status** — quão seguro o scanner está. *Revisão manual* significa que uma pessoa
+  deve confirmar o achado antes de agir.
 
-The chips above the list filter the findings by severity. The **technical context** panel of each
-finding shows the raw evidence.
+Os chips acima da lista filtram os achados por severidade. O painel **Contexto técnico** de cada
+achado mostra a evidência bruta.
 
-How the score is calculated: it starts at 100 and loses 30 / 15 / 7 / 2 points per critical / high
-/ medium / low finding, never going below 0. It is meant to compare successive analyses of the
-same application, not to certify security.
+Como a pontuação é calculada: começa em 100 e perde 30 / 15 / 7 / 2 pontos por achado crítico /
+alto / médio / baixo, nunca ficando abaixo de 0. Ela serve para comparar análises sucessivas da
+mesma aplicação, não para certificar segurança.
 
-If the analysis could not be completed, the page says why — for example, the address did not
-answer, or it points to a private network while that is not allowed.
+Se a análise não pôde ser concluída, a página diz o porquê — por exemplo, o endereço não
+respondeu, ou aponta para uma rede privada enquanto isso não é permitido.
 
-### B.4 Compare before and after a fix
+### B.4 Compare antes e depois de uma correção
 
-After deploying fixes, run a new analysis. On the application's card, choose the older and the
-newer analysis and click **Comparar**. The page lists **Novos problemas**, **Ainda presentes** and
-**Corrigidos**, each with the page and parameter where the finding is, plus the score change.
+Depois de implantar as correções, execute uma nova análise. No cartão da aplicação, escolha a
+análise mais antiga e a mais nova e clique em **Comparar**. A página lista **Novos problemas**,
+**Ainda presentes** e **Corrigidos**, cada um com a página e o parâmetro onde o achado está, além
+da variação da pontuação.
 
-### B.5 Report and export
+### B.5 Relatório e exportação
 
-- **Relatório para impressão** → **Imprimir / Salvar como PDF** produces a PDF with the header,
-  the metrics and every finding with its explanation and fix.
-- **Exportar JSON** downloads the analysis for CI pipelines or issue trackers: the application and
-  date, a summary (findings per severity, findings needing manual review, score) and every finding
-  with its taxonomy, evidence and fix example.
+- **Relatório para impressão** → **Imprimir / Salvar como PDF** gera um PDF com o cabeçalho, as
+  métricas e todos os achados com sua explicação e correção.
+- **Exportar JSON** baixa a análise para pipelines de CI ou ferramentas de chamados: a aplicação
+  e a data, um resumo (achados por severidade, achados que precisam de revisão manual, pontuação)
+  e todos os achados com sua taxonomia, evidência e exemplo de correção.
 
-### B.6 History
+### B.6 Histórico
 
-Each card lists every analysis of that application, most recent first, with date (UTC), mode,
-status, score and number of checks. Click an analysis number to open it.
+Cada cartão lista todas as análises daquela aplicação, da mais recente para a mais antiga, com
+data (UTC), modo, status, pontuação e número de verificações. Clique no número de uma análise para
+abri-la.
 
-To consult a period, fill **De** and/or **Até** in *Histórico por período* above the cards and
-click **Filtrar**: every card then lists only the analyses started in that period (both days
-included; leave one field empty for an open end). **Limpar** shows the whole history again.
+Para consultar um período, preencha **De** e/ou **Até** em *Histórico por período*, acima dos
+cartões, e clique em **Filtrar**: cada cartão passa a listar apenas as análises iniciadas naquele
+período (os dois dias incluídos; deixe um campo vazio para um extremo aberto). **Limpar** volta a
+mostrar o histórico completo.
 
 ---
 
-## Part C — Troubleshooting
+## Parte C — Solução de problemas
 
-| Problem | What to do |
+| Problema | O que fazer |
 |---|---|
-| *"O scanner retornou uma resposta inválida. Verifique a configuração do Python."* | Python is not found by Apache. Put the full path to `python.exe` in `PYTHON_BINARY` (A.5). Test it: `"<that path>" scanner\scanner.py https://example.com` must print one line of JSON. |
-| *"Private, loopback, link-local, and reserved targets are blocked"* | Expected protection: the address is on your machine or a private network. Set `ALLOW_PRIVATE_TARGETS=true` only for an authorized laboratory. |
-| *"Falha de rede ao acessar o alvo"* / *"Nenhuma página pôde ser acessada no alvo"* | The address did not answer: check it in the browser, the VPN, or a firewall. |
-| *"A análise excedeu o tempo máximo de … segundos e foi interrompida."* | The target is too slow or too large for one analysis. Run the passive mode, or analyse a more specific URL. |
-| *"Falha ao gravar o resultado da análise."* | The database refused the write (disk full, permissions). See the last `SentinelScope:` line of `C:\xampp\apache\logs\error.log`. |
-| *"Seu token de sessão expirou."* | The page was open for too long or cookies are blocked; reload it and repeat. |
-| *"Informe as datas no formato AAAA-MM-DD."* / *"A data inicial deve ser anterior ou igual à data final."* | Correct the period in *Histórico por período*, or click **Limpar**. |
-| An analysis listed as *running* | Only while it is in progress. An analysis is always closed as *completed* or *failed* when its request ends. |
+| *"O scanner retornou uma resposta inválida. Verifique a configuração do Python."* | O Apache não encontra o Python. Coloque o caminho completo do `python.exe` em `PYTHON_BINARY` (A.5). Teste: `"<esse caminho>" scanner\scanner.py https://example.com` deve imprimir uma linha de JSON. |
+| *"Alvos em rede privada, loopback, link-local ou endereços reservados são bloqueados por padrão."* | Proteção esperada: o endereço está na sua máquina ou em uma rede privada. Defina `ALLOW_PRIVATE_TARGETS=true` somente para um laboratório autorizado. |
+| *"Falha de rede ao acessar o alvo"* | O nome do alvo não pôde ser resolvido (DNS): confira a grafia da URL, a VPN ou o DNS da rede. |
+| *"Nenhuma página pôde ser acessada no alvo"* | O endereço não respondeu ou a conexão HTTPS falhou: confira-o no navegador, a VPN ou um firewall. |
+| Alvo HTTPS com certificado inválido, expirado ou autoassinado, ou que só aceita TLS anterior ao 1.2 | O motor valida o certificado e exige TLS 1.2 ou superior, então a análise falha com *"Nenhuma página pôde ser acessada no alvo."*. Analise um ambiente com certificado válido. |
+| *"A análise excedeu o tempo máximo de … segundos e foi interrompida."* | O alvo é lento ou grande demais para uma análise. Execute o modo passivo ou analise uma URL mais específica. |
+| *"Falha ao gravar o resultado da análise."* | O banco de dados recusou a gravação (disco cheio, permissões). Veja a última linha `SentinelScope:` de `C:\xampp\apache\logs\error.log`. |
+| *"Seu token de sessão expirou."* | A página ficou aberta por tempo demais ou os cookies estão bloqueados; recarregue-a e repita. |
+| *"Informe as datas no formato AAAA-MM-DD."* / *"A data inicial deve ser anterior ou igual à data final."* | Corrija o período em *Histórico por período* ou clique em **Limpar**. |
+| Uma análise listada como *running* | Somente enquanto está em andamento. Uma análise é sempre encerrada como *completed* ou *failed* quando sua requisição termina. |

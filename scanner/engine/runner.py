@@ -28,6 +28,12 @@ SITE_WIDE_PREFIXES = ("transport.", "headers.", "cookies.", "cache.", "cors.")
 # (the rest — directory listing, stack traces, mixed content, source maps — are page-specific).
 SITE_WIDE_FINGERPRINTS = frozenset({"disclosure.server_header", "disclosure.powered_by_header"})
 
+# Why a scan ended before the seed page answered, as shown to the user (contract §3.3).
+SEED_FAILURE_REASONS = {
+    "cancelled": "A análise foi cancelada antes de a primeira página responder.",
+    "budget_exceeded": "O limite de requisições ou de tempo foi atingido antes de a primeira página responder.",
+}
+
 # Passive checks read one baseline per page; active checks also send per-parameter probe
 # requests, so they need a larger — but still explicitly bounded — request and time budget. Both
 # profiles crawl: they expand the seed URL into the reachable same-origin surface (max_pages) up
@@ -150,9 +156,11 @@ class ScanRunner:
                         enqueued.add(signature)
                         queue.append((link, depth + 1))
 
-        # A total failure to fetch even the seed page is an error, not an empty scan.
+        # A total failure to fetch even the seed page is an error, not an empty scan. The reason
+        # is shown to the user, so the internal stop code is translated rather than passed on.
         if seed_primary is None:
-            return {"ok": False, "error": stopped_early or "Nenhuma página pôde ser acessada no alvo."}
+            return {"ok": False, "error": SEED_FAILURE_REASONS.get(
+                stopped_early, "Nenhuma página pôde ser acessada no alvo.")}
 
         result = {
             "ok": True,

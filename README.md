@@ -1,66 +1,77 @@
 # SentinelScope
 
-SentinelScope is a developer-first web application security assessment platform created as a Software Engineering capstone project. It crawls an authorized target, runs a fixed catalogue of 34 passive checks — plus 30 safe-active, non-destructive probes in the complete mode — and turns the observations into understandable impact and remediation guidance.
+O SentinelScope é uma plataforma de avaliação de segurança de aplicações web feita para
+desenvolvedores, criada como projeto de conclusão de curso de Engenharia de Software. Ele rastreia
+um alvo autorizado, executa um catálogo fixo de 34 verificações passivas — mais 30 sondas ativas
+seguras no modo completo — e transforma o que observou em impacto compreensível e orientação de
+correção.
 
-## Technology
+## Tecnologia
 
-- PHP 8.2+ without a framework
-- Python 3.10+ without external packages
+- PHP 8.2+ sem framework
+- Python 3.10+ sem pacotes externos (apenas a biblioteca padrão)
 - MariaDB 10.4+
-- HTML and CSS without a frontend framework
+- HTML e CSS sem framework de frontend
 
-## Quick start with XAMPP
+## Início rápido com XAMPP
 
-1. Start Apache and MySQL in XAMPP.
-2. Import `database.sql` using phpMyAdmin and create the application's database user
-   (statements in the manual, step A.4).
-3. Copy `.env.example` to `.env` and enter that user's credentials. `.env` is ignored by Git.
-4. Open `http://localhost/<folder under htdocs>/public/` — for this repository checked out at
-   `C:\xampp\htdocs\www\Ciber`, that is `http://localhost/www/Ciber/public/`.
-5. For an isolated local laboratory target, set `ALLOW_PRIVATE_TARGETS=true`. Keep it `false` for normal use.
+1. Inicie o Apache e o MySQL no XAMPP.
+2. Importe `database.sql` pelo phpMyAdmin e crie o usuário de banco da aplicação
+   (comandos no manual, passo A.4).
+3. Copie `.env.example` para `.env` e informe as credenciais desse usuário. O `.env` é ignorado pelo Git.
+4. Abra `http://localhost/<pasta dentro de htdocs>/public/` — para este repositório em
+   `C:\xampp\htdocs\www\Ciber`, o endereço é `http://localhost/www/Ciber/public/`.
+5. Para um alvo de laboratório local e isolado, defina `ALLOW_PRIVATE_TARGETS=true`. Mantenha `false` no uso normal.
 
-The web-server account must be allowed to execute the configured Python binary. Never submit a target without explicit authorization.
-The complete, step-by-step procedure is the [installation and user manual](docs/INSTALLATION_AND_USER_MANUAL.md).
+A conta do servidor web precisa ter permissão para executar o binário Python configurado. Nunca
+envie um alvo sem autorização explícita. O modo completo envia payloads de teste e também os
+métodos PUT, DELETE e PATCH a cada página visitada: use-o apenas em ambientes de teste.
+O procedimento completo, passo a passo, está no [manual de instalação e de uso](docs/INSTALLATION_AND_USER_MANUAL.md).
 
-## Tests
+## Testes
 
-| Suite | Command | Needs |
+| Suíte | Comando | Requer |
 |---|---|---|
-| Python (engine, plugins, producer side of the contract) | `python -m unittest discover -s tests -v` | Python only |
-| PHP (domain, use cases, presentation, consumer side of the contract) | `php tests/php_test.php` | PHP only — in-memory repositories, no `.env` |
-| System and failure injection (end to end: Apache + MariaDB + engine) | `python tests/e2e/run_system_tests.py` | the running installation, `ALLOW_PRIVATE_TARGETS=true` |
+| Python (motor, plugins, lado produtor do contrato) | `python -m unittest discover -s tests -v` | Apenas Python (~4–5 min: usa sockets reais) |
+| PHP (domínio, casos de uso, apresentação, lado consumidor do contrato) | `php tests/php_test.php` | Apenas PHP — repositórios em memória, sem `.env` |
+| Sistema e injeção de falhas (ponta a ponta: Apache + MariaDB + motor) | `python tests/e2e/run_system_tests.py` | A instalação em funcionamento, `ALLOW_PRIVATE_TARGETS=true` |
 
-The plan is [docs/TEST_PLAN.md](docs/TEST_PLAN.md); the results, the defects and their
-verification are in [docs/TEST_REPORT.md](docs/TEST_REPORT.md); raw evidence is under
-`docs/test-evidence/`.
+O plano está em [docs/TEST_PLAN.md](docs/TEST_PLAN.md); os resultados, os defeitos e a
+verificação de cada um estão em [docs/TEST_REPORT.md](docs/TEST_REPORT.md); as evidências brutas
+ficam em `docs/test-evidence/`.
 
-## Engineering documents
+## Documentos de engenharia
 
-- [Coding standard](docs/CODING_STANDARD.md) — the rules this codebase follows.
-- [Developer guide](docs/DEVELOPER_GUIDE.md) — layout, request lifecycle, module reference, how to add a check.
-- [Architecture](docs/ARCHITECTURE.md) — layers, contracts, the scanner engine and the data model.
-- [Integration contract](docs/INTEGRATION_CONTRACT.md) — the versioned agreement between the PHP
-  application and the Python engine.
-- [Algorithm measurements](docs/ALGORITHM_MEASUREMENTS.md) — the measured basis for each
-  data-structure decision, reproducible with `evaluation/benchmark_structures.py` and
+- [Padrão de codificação](docs/CODING_STANDARD.md) — as regras que este código segue.
+- [Guia do desenvolvedor](docs/DEVELOPER_GUIDE.md) — estrutura, ciclo de uma requisição, referência dos módulos, como adicionar uma verificação.
+- [Arquitetura](docs/ARCHITECTURE.md) — camadas, contratos, o motor de varredura e o modelo de dados.
+- [Contrato de integração](docs/INTEGRATION_CONTRACT.md) — o acordo versionado entre a aplicação
+  PHP e o motor Python.
+- [Medições de algoritmos](docs/ALGORITHM_MEASUREMENTS.md) — a base medida de cada decisão de
+  estrutura de dados, reproduzível com `evaluation/benchmark_structures.py` e
   `evaluation/benchmark_comparison.php`.
-- [Requirements](docs/REQUIREMENTS.md), [test plan](docs/TEST_PLAN.md),
-  [test report](docs/TEST_REPORT.md), [scanner engine](docs/SCANNER_ENGINE.md).
-- [Roadmap compliance](docs/ROADMAP_COMPLIANCE.md) — status of every step of Fases 4 and 5, the
-  precedence rules and the pre-delivery checklists, each with its evidence.
+- [Requisitos](docs/REQUIREMENTS.md), [plano de testes](docs/TEST_PLAN.md),
+  [relatório de testes](docs/TEST_REPORT.md), [motor de varredura](docs/SCANNER_ENGINE.md).
+- [Conformidade com o roteiro](docs/ROADMAP_COMPLIANCE.md) — situação de cada passo das Fases 4 e 5,
+  as regras de precedência e os checklists pré-entrega, cada um com sua evidência.
 - [Changelog](CHANGELOG.md).
 
-## Empirical evaluation
+Os nomes dos arquivos foram mantidos em inglês porque são referenciados pelo código, pelos testes
+e pelos documentos de entrega; o conteúdo está em português.
 
-`evaluation/` contains a reproducible harness that measures detection precision/recall/F1
-against deliberately vulnerable targets (DVWA, OWASP Juice Shop, WebGoat) in an authorized
-laboratory. See [evaluation/README.md](evaluation/README.md).
+## Avaliação empírica
 
-## Coursework documents
+`evaluation/` contém um arcabouço reproduzível que mede precisão, recall e F1 de detecção contra
+alvos deliberadamente vulneráveis (DVWA, OWASP Juice Shop, WebGoat) em um laboratório autorizado.
+Veja [evaluation/README.md](evaluation/README.md) e os resultados já obtidos em
+[docs/EVALUATION_RESULTS.md](docs/EVALUATION_RESULTS.md).
 
-`docs/docsAula/` holds the documents delivered for the course: the roadmap being followed
-(`Roteiro_de_Execucao_do_Projeto.pdf`), the terms of reference, the requirements interview, the
-data-structure activity, and the Fase 2 and Fase 3 documents that consolidate the technical
-decisions and the architecture.
+## Documentos da disciplina
 
-See [the installation and user manual](docs/INSTALLATION_AND_USER_MANUAL.md) for complete instructions.
+`docs/docsAula/` reúne os documentos entregues na disciplina: o roteiro seguido
+(`Roteiro_de_Execucao_do_Projeto.pdf`), o Termo de Referência, a entrevista de requisitos, a
+atividade de estruturas de dados e os documentos das Fases 2 e 3, que consolidam as decisões
+técnicas e a arquitetura. `docs/entrega-final/` contém o documento da entrega final e suas
+evidências, e `docs/apresentacao/` a apresentação da defesa.
+
+Consulte o [manual de instalação e de uso](docs/INSTALLATION_AND_USER_MANUAL.md) para as instruções completas.

@@ -141,7 +141,7 @@ python evaluation/evaluate.py evaluation/ground_truth.altoro.json --out evaluati
 
 **Verificação manual das duas falhas:**
 
-- **FN — SQLi no login:** `uid=' OR '1'='1` → HTTP 500 (a injeção alcança o banco), mas o form tem `action="doLogin"` (caminho ≠ página) e o *probe* de formulário é enviado à própria URL da página → nunca atinge o handler vulnerável. Limitação conhecida (Seção 4.3 do artigo).
-- **FP — NoSQL em `default.jsp`:** a página devolve HTTP 404 estável e idêntico para `[$ne]`, `[$eq]` e baseline; o detector leu a estabilidade do 404 como "contorno de operador". Correção: exigir que a resposta de controle seja distinta de uma página de erro genérica antes de confirmar.
+- **FN — SQLi no login:** `uid=' OR '1'='1` → HTTP 500 (a injeção alcança o banco), mas o form tem `action="doLogin"` (caminho ≠ página) e o *probe* de formulário é enviado à própria URL da página → nunca atinge o handler vulnerável. Limitação conhecida (Seção 4.3 do artigo), ainda presente em 2026-11-24 (`build_probe` em `scanner/plugins/support.py`).
+- **FP — NoSQL em `default.jsp`:** a página devolve HTTP 404 estável e idêntico para `[$ne]`, `[$eq]` e baseline; o detector leu a estabilidade do 404 como "contorno de operador". Correção proposta: exigir que a resposta de controle seja distinta de uma página de erro genérica antes de confirmar. *Situação em 2026-11-24: ainda não implementada* — `_looks_rejected` em `scanner/plugins/active/nosql_injection.py` continua tratando 404 como rejeição, então o falso positivo se repete em páginas que devolvem sempre o mesmo 404.
 
 > Escopo restrito às famílias com ground-truth verificável na superfície não autenticada. A avaliação comparativa completa (DVWA/Juice Shop/WebGoat + baseline ZAP) permanece como trabalho de continuidade — bloqueada nesta máquina por ausência de Docker, Node, Java 11+ e ZAP.

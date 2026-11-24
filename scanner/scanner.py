@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI entry point invoked by PHP. Thin wrapper around the plugin-based passive engine."""
+"""CLI entry point invoked by PHP. Thin wrapper around the plugin-based engine (passive and safe_active modes)."""
 import argparse
 import json
 import sys

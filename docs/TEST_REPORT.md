@@ -1,188 +1,245 @@
-# Test Report
+# Relatório de Testes
 
 | | |
 |---|---|
-| Product | SentinelScope 1.0.1 — the code after the fixes of D-01…D-10 (run 3) |
-| Plan | [TEST_PLAN.md](TEST_PLAN.md) 2.0, written **before** the first execution; 2.1 adds the dated revisions of its §8 |
-| Executed | 2026-10-14 (runs 1, 1b, 2) and 2026-10-28 (runs 3a, 3), with the automated driver; MT-04 pending (§6) |
-| Environment | As in plan §2: Windows 11 Pro 10.0.26200, XAMPP Apache 2.4 + PHP 8.2.12, MariaDB 10.4.32, Python 3.12.2 |
-| Raw evidence | `docs/test-evidence/2026-10-14_run1`, `…_run1-failure`, `…_run1b-confirm`, `…_run2`, `2026-10-28_run3a-before`, `…_run3` (per-case `results.md`/`results.json`, laboratory request logs, JSON exports, HTML responses, suite outputs) |
+| Produto | SentinelScope 1.0.1 — o código após as correções de D-01…D-10 (execução 3) |
+| Plano | [TEST_PLAN.md](TEST_PLAN.md) 2.0, redigido **antes** da primeira execução; a 2.1 acrescenta as revisões datadas do seu §8 |
+| Executado | 2026-10-14 (execuções 1, 1b, 2) e 2026-10-28 (execuções 3a, 3), com o driver de teste automatizado; MT-04 pendente (§6). Reverificação parcial em 2026-11-24 (§8). |
+| Ambiente | Conforme o §2 do plano: Windows 11 Pro 10.0.26200, XAMPP Apache 2.4 + PHP 8.2.12, MariaDB 10.4.32, Python 3.12.2 |
+| Evidência bruta | `docs/test-evidence/2026-10-14_run1`, `…_run1-failure`, `…_run1b-confirm`, `…_run2`, `2026-10-28_run3a-before`, `…_run3` (`results.md`/`results.json` por caso, logs de requisições do laboratório, exportações JSON, respostas HTML, saídas das suítes) |
 
-## 1. Summary
+## 1. Resumo
 
-| Run | Code · started (UTC) | AT-01 Python | AT-02 PHP | System (ST) | Failure injection (FI) |
+| Execução | Código · início (UTC) | AT-01 Python | AT-02 PHP | Sistema (ST) | Injeção de falhas (FI) |
 |---|---|---|---|---|---|
-| 1 | before fixes · 2026-10-14 23:00 | 108 / 113 | 129 / 133 | 20 / 23 | 6 / 10 ¹ |
-| 1b — confirmation | before fixes · 2026-10-14 23:05 | — | — | ST-24: 0 / 1 | FI-02, 03: pass; FI-08, 09: fail |
-| 2 — re-execution | after fixes D-01…D-08 · 2026-10-14 23:13 | 113 / 113 | 140 / 140 | 24 / 24 | 10 / 10 |
-| 3a — new cases, before D-09/D-10 | before D-09/D-10 · 2026-10-28 22:32 | — | — | ST-25, ST-26: 0 / 2; browser 2 / 3 ² | — |
-| **3 — final re-execution** | **final code · 2026-10-28 22:36** | **113 / 113** | **153 / 153** | **26 / 26 + browser 3 / 3** | **10 / 10** |
+| 1 | antes das correções · 2026-10-14 23:00 | 108 / 113 | 129 / 133 | 20 / 23 | 6 / 10 ¹ |
+| 1b — confirmação | antes das correções · 2026-10-14 23:05 | — | — | ST-24: 0 / 1 | FI-02, 03: aprovados; FI-08, 09: reprovados |
+| 2 — reexecução | após as correções D-01…D-08 · 2026-10-14 23:13 | 113 / 113 | 140 / 140 | 24 / 24 | 10 / 10 |
+| 3a — novos casos, antes de D-09/D-10 | antes de D-09/D-10 · 2026-10-28 22:32 | — | — | ST-25, ST-26: 0 / 2; navegador 2 / 3 ² | — |
+| **3 — reexecução final** | **código final · 2026-10-28 22:36** | **113 / 113** | **153 / 153** | **26 / 26 + navegador 3 / 3** | **10 / 10** |
 
-¹ Of the four run-1 failures, two (FI-02, FI-03) were false positives of the driver and one
-(FI-09) did not provoke the failure it was meant to provoke; see §4. They were re-run in 1b
-before any product code changed.
+¹ Das quatro reprovações da execução 1, duas (FI-02, FI-03) foram falsos positivos do driver de
+teste e uma (FI-09) não provocou a falha que deveria provocar; ver §4. Elas foram reexecutadas na
+1b antes de qualquer mudança no código do produto.
 
-² MT-01 failed in run 3a because of the driver, not the product (TW-04, §4).
+² O MT-01 reprovou na execução 3a por causa do driver de teste, não do produto (TW-04, §4).
 
-**Outcome:** 10 defects found (1 blocker, 6 high, 2 medium, 1 low); **all 10 fixed and verified by
-re-executing the cases that revealed them** (§3). No defect remains open. Every planned case was
-executed except **MT-04** — installation by a person outside the team — on which CA-07 depends.
+**Resultado:** 10 defeitos encontrados (1 bloqueante, 6 altos, 2 médios, 1 baixo); **todos os 10
+corrigidos e verificados pela reexecução dos casos que os revelaram** (§3). Nenhum defeito
+permanece aberto. Todos os casos planejados foram executados, exceto o **MT-04** — instalação por
+uma pessoa de fora da equipe —, do qual depende o CA-07.
 
-Run 3 is the reference result: the whole battery executed on the final code on 2026-10-28.
+A execução 3 é o resultado de referência: a bateria inteira executada sobre o código final em
+2026-10-28.
 
-### 1.1 Acceptance criteria
+### 1.1 Critérios de aceite
 
-| Criterion | Verdict | Evidence (run 2) |
+| Critério | Veredito | Evidência (execução 2) |
 |---|---|---|
-| CA-01 — the catalogue runs and completion is recorded | **Met** | ST-06 (34 checks, passive), ST-08 (64 checks, complete mode), AT-01 |
-| CA-02 — every finding has severity, confidence, status, taxonomy, evidence and fix | **Met** | ST-09 (all 14 findings of ST-08 complete), ST-11, ST-19 |
-| CA-03 — score 0–100 by the 30/15/7/2 rule | **Met** | ST-10: page and export equal the manual calculation for both analyses |
-| CA-04 — comparison shows new, persistent and fixed | **Met after D-01** | ST-13, ST-14 (failed in run 1) |
-| CA-05 — 1,000 findings in under 3 s | **Met** | ST-22: worst of 20 timed responses 129.1 ms in run 3 (89.5 ms in run 2; limit 3,000 ms) |
-| CA-06 — JSON export complete and equal to storage and screen | **Met after D-10** | ST-16, ST-24, ST-26 |
-| CA-07 — installation by an outsider using only the manual | **Not yet verified** | MT-04 pending (§6) |
-| CA-08 — high-priority requirements traced to the Termo | **Met** | Inspection TR-01 (§5) |
+| CA-01 — o catálogo é executado e a conclusão é registrada | **Atendido** | ST-06 (34 verificações, passivo), ST-08 (64 verificações, modo completo), AT-01 |
+| CA-02 — todo achado tem severidade, confiança, status, taxonomia, evidência e correção | **Atendido** | ST-09 (todos os 14 achados do ST-08 completos), ST-11, ST-19 |
+| CA-03 — pontuação 0–100 pela regra 30/15/7/2 | **Atendido** | ST-10: página e exportação iguais ao cálculo manual nas duas análises |
+| CA-04 — a comparação mostra novos, persistentes e corrigidos | **Atendido após D-01** | ST-13, ST-14 (reprovados na execução 1) |
+| CA-05 — 1.000 achados em menos de 3 s | **Atendido** | ST-22: pior das 20 respostas cronometradas 129,1 ms na execução 3 (89,5 ms na execução 2; limite 3.000 ms) |
+| CA-06 — exportação JSON completa e igual ao gravado e ao exibido | **Atendido após D-10** | ST-16, ST-24, ST-26 |
+| CA-07 — instalação por alguém de fora usando apenas o manual | **Ainda não verificado** | MT-04 pendente (§6) |
+| CA-08 — requisitos de alta prioridade rastreados até o Termo | **Atendido** | Inspeção TR-01 (§5) |
 
-## 2. Results by case (run 2)
+## 2. Resultados por caso (execução 2)
 
-### 2.1 System tests
+### 2.1 Testes de sistema
 
-Observed values are those of run 2; run 3 repeated every case with the same verdict and adds ST-25 and ST-26.
+Os valores observados são os da execução 2; a execução 3 repetiu todos os casos com o mesmo
+veredito e acrescentou ST-25 e ST-26.
 
-| Case | Covers | Verdict | Observed |
+| Caso | Cobre | Veredito | Observado |
 |---|---|---|---|
-| ST-01 | FR-01 | PASS | 302 → dashboard, notice shown, row with `authorization_confirmed_at`. |
-| ST-02 | FR-01 *(inv)* | PASS | 400, authorization message, no row. |
-| ST-03 | FR-01 *(inv)* | PASS | 400 with the specific message for each of the 5 invalid URLs; no row. |
-| ST-04 | FR-01 *(inv)* | PASS | 400 for empty, blank and 121-character names; no row. |
-| ST-05 | NFR-02 *(inv)* | PASS | 400 "token de sessão expirou" for missing and wrong token, on create and run; nothing created. |
-| ST-06 | FR-02, FR-13, NFR-03 | PASS | Completed, 34 checks; `/`, `/search`, `/profile`, `/about` each received exactly 2 GET; **0 requests to `/logout` and `/item`**; no XSS in passive mode. |
-| ST-07 | FR-02 *(inv)* | PASS | 400, no analysis created. |
-| ST-08 | FR-02, FR-10 | PASS | Completed in 14.8 s, 64 checks; XSS on `/search` (q) and `/profile` (name). |
-| ST-09 | FR-03/05/09 | PASS | All 14 findings complete and shown. |
-| ST-10 | FR-04 | PASS | Scores equal to the manual calculation. |
-| ST-11 | NFR-02 *(inv)* | PASS | `<script>` name escaped on the dashboard; no raw probe tag on the result page. |
-| ST-12 | FR-06 | PASS | Both analyses listed, newest first, with mode, status and score. |
-| ST-13 | FR-07, CA-04 | PASS | *Corrigidos*: XSS at `/search · parâmetro q`; *Ainda presentes*: XSS at `/profile · parâmetro name`; no new finding. |
-| ST-14 | FR-07, CA-04 | PASS | Both XSS and the four header findings in *Corrigidos*; no new finding; score improved. |
-| ST-15 | FR-07 *(inv)* | PASS | 400 "Escolha duas análises da mesma aplicação." |
-| ST-16 | FR-12, CA-06 | PASS | JSON attachment; counts and fingerprints equal in export, database and page. |
-| ST-17 | FR-08 | PASS | Report with name, score, metrics, every title and remediation, print button, no export link. |
-| ST-18 | FR-12 | PASS | Chip counts equal to the export per severity. |
-| ST-19 | FR-11, NFR-07 | PASS | `/account/notes` reached with the cookie; the secret is absent from a full database dump, the Apache access log and the error log. |
-| ST-20 | Contract R1 | PASS | Cookie `lab_session=s3cr%3D!x` received byte for byte; first request `GET /search?q=a%20b`. |
-| ST-21 | errors *(inv)* | PASS | 404 with the right message on all four routes. |
-| ST-22 | NFR-01, CA-05 | PASS | Result page 60–76 ms, report 46–90 ms, export 41–85 ms, comparison of 1,000 × 1,000 59–80 ms; 1,000 findings rendered. |
-| ST-23 | step 23 | PASS | `data-busy`, `role="status"` and the submit handler present. |
-| ST-24 | FR-06, CA-06 | PASS | History date within the run's UTC window; `started_at ≤ completed_at`, 2 s apart. |
-| ST-25 | FR-06, Termo item 6 | PASS (run 3; failed in 3a — D-09) | No period: 3 analyses; February: 1; 15/02–20/03: 2 (both ends inclusive); open end: 2; reversed range and `31/02/2026`: 400 with their messages; the form shows the period applied. |
-| ST-26 | FR-12, Termo item 8 | PASS (run 3; failed in 3a — D-10) | `summary` = 14 findings, `by_severity` {critical 0, high 3, medium 5, low 6}, `manual_review_required` 0, `security_score` 8 — each equal to the findings and the analysis. |
+| ST-01 | FR-01 | APROVADO | 302 → painel, aviso exibido, linha com `authorization_confirmed_at`. |
+| ST-02 | FR-01 *(inv)* | APROVADO | 400, mensagem de autorização, nenhuma linha. |
+| ST-03 | FR-01 *(inv)* | APROVADO | 400 com a mensagem específica para cada uma das 5 URLs inválidas; nenhuma linha. |
+| ST-04 | FR-01 *(inv)* | APROVADO | 400 para nomes vazio, em branco e com 121 caracteres; nenhuma linha. |
+| ST-05 | NFR-02 *(inv)* | APROVADO | 400 "token de sessão expirou" para token ausente e errado, em create e run; nada criado. |
+| ST-06 | FR-02, FR-13, NFR-03 | APROVADO | Concluída, 34 verificações; `/`, `/search`, `/profile`, `/about` receberam exatamente 2 GET cada; **0 requisições a `/logout` e `/item`**; nenhum XSS no modo passivo. |
+| ST-07 | FR-02 *(inv)* | APROVADO | 400, nenhuma análise criada. |
+| ST-08 | FR-02, FR-10 | APROVADO | Concluída em 14,8 s, 64 verificações; XSS em `/search` (q) e `/profile` (name). |
+| ST-09 | FR-03/05/09 | APROVADO | Todos os 14 achados completos e exibidos. |
+| ST-10 | FR-04 | APROVADO | Pontuações iguais ao cálculo manual. |
+| ST-11 | NFR-02 *(inv)* | APROVADO | Nome `<script>` escapado no painel; nenhuma tag crua de sonda na página de resultado. |
+| ST-12 | FR-06 | APROVADO | As duas análises listadas, a mais nova primeiro, com modo, status e pontuação. |
+| ST-13 | FR-07, CA-04 | APROVADO | *Corrigidos*: XSS em `/search · parâmetro q`; *Ainda presentes*: XSS em `/profile · parâmetro name`; nenhum achado novo. |
+| ST-14 | FR-07, CA-04 | APROVADO | Os dois XSS e os quatro achados de cabeçalho em *Corrigidos*; nenhum achado novo; pontuação melhorou. |
+| ST-15 | FR-07 *(inv)* | APROVADO | 400 "Escolha duas análises da mesma aplicação." |
+| ST-16 | FR-12, CA-06 | APROVADO | Anexo JSON; contagens e fingerprints iguais na exportação, no banco e na página. |
+| ST-17 | FR-08 | APROVADO | Relatório com nome, pontuação, métricas, todos os títulos e remediações, botão de impressão, sem link de exportação. |
+| ST-18 | FR-12 | APROVADO | Contagens dos chips iguais às da exportação por severidade. |
+| ST-19 | FR-11, NFR-07 | APROVADO | `/account/notes` alcançado com o cookie; o segredo não está num dump completo do banco, no log de acesso do Apache nem no log de erros. |
+| ST-20 | Contrato R1 | APROVADO | Cookie `lab_session=s3cr%3D!x` recebido byte a byte; primeira requisição `GET /search?q=a%20b`. |
+| ST-21 | erros *(inv)* | APROVADO | 404 com a mensagem correta nas quatro rotas. |
+| ST-22 | NFR-01, CA-05 | APROVADO | Página de resultado 60–76 ms, relatório 46–90 ms, exportação 41–85 ms, comparação de 1.000 × 1.000 59–80 ms; 1.000 achados renderizados. |
+| ST-23 | passo 23 | APROVADO | `data-busy`, `role="status"` e o handler de submit presentes. |
+| ST-24 | FR-06, CA-06 | APROVADO | Data do histórico dentro da janela UTC da execução; `started_at ≤ completed_at`, 2 s de diferença. |
+| ST-25 | FR-06, Termo item 6 | APROVADO (execução 3; reprovado na 3a — D-09) | Sem período: 3 análises; fevereiro: 1; 15/02–20/03: 2 (extremos inclusivos); extremo aberto: 2; intervalo invertido e `31/02/2026`: 400 com suas mensagens; o formulário mostra o período aplicado. |
+| ST-26 | FR-12, Termo item 8 | APROVADO (execução 3; reprovado na 3a — D-10) | `summary` = 14 achados, `by_severity` {critical 0, high 3, medium 5, low 6}, `manual_review_required` 0, `security_score` 8 — cada um igual aos achados e à análise. |
 
-### 2.2 Failure injection (roadmap step 28) — observed behaviour
+### 2.2 Injeção de falhas (passo 28 do roteiro) — comportamento observado
 
-| Case | Failure provoked | Observed behaviour (run 2) | Verdict |
+| Caso | Falha provocada | Comportamento observado (execução 2) | Veredito |
 |---|---|---|---|
-| FI-01 | `.env` absent | 503 with the configuration guidance. | PASS |
-| FI-02 | MariaDB stopped | 500 with the generic message; no SQLSTATE, path or stack trace in the response; full exception in Apache's `error.log`; the password appears nowhere (PHP 8.2 logs it as `Object(SensitiveParameterValue)`). | PASS |
-| FI-03 | Wrong DB password | Same as FI-02; the wrong password is neither shown nor logged. | PASS |
-| FI-04 | Target unreachable | `failed` with "Falha de rede ao acessar o alvo…", reason shown, no findings. | PASS |
-| FI-05 | Loopback with private targets denied | `failed` with "Private, loopback, link-local, and reserved targets are blocked"; **0 requests** reached the target. | PASS |
-| FI-06 | Python binary absent | `failed` with "O scanner retornou uma resposta inválida…"; not left running. | PASS |
-| FI-07 | Engine answers `severity: "info"` | `failed` with "Severidade desconhecida: info."; no findings stored. | PASS |
-| FI-08 | `INSERT` on `findings` revoked | 500 generic page; analysis `failed` with "Falha ao gravar o resultado da análise…"; no partial findings. | PASS (failed in run 1 — D-02) |
-| FI-09 | Scan longer than PHP's 120 s | Complete-mode scan of 228.6 s finished; 302 to the result; analysis `completed`, score 8, 64 checks. | PASS (failed in run 1b — D-04) |
-| FI-10 | 300-char field name, strict SQL mode | `completed`; the form finding stored with a 180-character parameter. | PASS (failed in run 1 — D-06, D-02) |
+| FI-01 | `.env` ausente | 503 com a orientação de configuração. | APROVADO |
+| FI-02 | MariaDB parado | 500 com a mensagem genérica; nenhum SQLSTATE, caminho ou stack trace na resposta; exceção completa no `error.log` do Apache; a senha não aparece em lugar nenhum (o PHP 8.2 a registra como `Object(SensitiveParameterValue)`). | APROVADO |
+| FI-03 | Senha do banco errada | Igual ao FI-02; a senha errada não é exibida nem registrada. | APROVADO |
+| FI-04 | Alvo inacessível | `failed` com o motivo "Nenhuma página pôde ser acessada no alvo." exibido; nenhum achado. ³ | APROVADO |
+| FI-05 | Loopback com alvos privados negados | `failed` com "Private, loopback, link-local, and reserved targets are blocked"; **0 requisições** chegaram ao alvo. ⁴ | APROVADO |
+| FI-06 | Binário Python ausente | `failed` com "O scanner retornou uma resposta inválida…"; não deixada em running. | APROVADO |
+| FI-07 | Motor responde `severity: "info"` | `failed` com "Severidade desconhecida: info."; nenhum achado gravado. | APROVADO |
+| FI-08 | `INSERT` em `findings` revogado | Página genérica 500; análise `failed` com "Falha ao gravar o resultado da análise…"; nenhum achado parcial. | APROVADO (reprovado na execução 1 — D-02) |
+| FI-09 | Varredura mais longa que os 120 s do PHP | Varredura em modo completo de 228,6 s concluída; 302 para o resultado; análise `completed`, pontuação 8, 64 verificações. | APROVADO (reprovado na execução 1b — D-04) |
+| FI-10 | Nome de campo de 300 caracteres, modo SQL estrito | `completed`; o achado do formulário gravado com um parâmetro de 180 caracteres. | APROVADO (reprovado na execução 1 — D-06, D-02) |
 
-### 2.3 Automated suites
+³ *Correção de 2026-11-24.* A versão anterior deste relatório citava, para o FI-04, a mensagem
+"Falha de rede ao acessar o alvo…". A evidência da execução (`results.md`) registra apenas que um
+motivo foi gravado e exibido, não o seu texto; e o código (`scanner/engine/runner.py`) produz
+"Nenhuma página pôde ser acessada no alvo." quando a conexão é recusada (conferido em 2026-11-24
+executando a CLI contra uma porta fechada). "Falha de rede ao acessar o alvo: …" só aparece quando a
+resolução DNS do alvo falha. O veredito não muda.
 
-| Suite | Run 2 | Duration |
+⁴ Mensagem observada na época, em inglês. Desde 2026-11-24 a mensagem do motor está em
+português: "Alvos em rede privada, loopback, link-local ou endereços reservados são bloqueados por
+padrão."
+
+### 2.3 Suítes automatizadas
+
+| Suíte | Execução 2 | Duração |
 |---|---|---|
-| AT-01 `python -m unittest discover -s tests -v` | 113 tests, OK (runs 2 and 3) | 266.3 s |
-| AT-02 `php tests/php_test.php` | 140 checks (run 2); 153 checks, 0 failed (run 3: + period and export summary) | < 2 s |
+| AT-01 `python -m unittest discover -s tests -v` | 113 testes, OK (execuções 2 e 3) | 266,3 s |
+| AT-02 `php tests/php_test.php` | 140 verificações (execução 2); 153 verificações, 0 falhas (execução 3: + período e resumo da exportação) | < 2 s |
 
-## 3. Defect register
+## 3. Registro de defeitos
 
-Severity per plan §3.1. "Verified" means the case that revealed the defect was re-executed on
-the fixed code and passed (run 2) — not merely that the code was changed.
+Severidade conforme o §3.1 do plano. "Verificado" significa que o caso que revelou o defeito foi
+reexecutado sobre o código corrigido e passou (execução 2) — não apenas que o código foi alterado.
 
-| ID | Severity | Title | Found by | Root cause | Fix | Verified |
+| ID | Severidade | Título | Encontrado por | Causa raiz | Correção | Verificado |
 |---|---|---|---|---|---|---|
-| D-01 | High | Comparison merges the same check found on two endpoints; fixing one endpoint is not shown | ST-13, ST-14, AT-02 (§5 identity) | The engine's `fingerprint` is the check id; `AnalysisComparison` keyed by it. The full URL cannot be used either: it carries the random probe marker. | `Finding::identity()` = check + endpoint without query + parameter location + name; comparison keyed by identity; comparison page shows page and parameter. Contract §5. | ST-13, ST-14, AT-02 ✔ |
-| D-02 | **Blocker** | A failure while storing the result leaves the analysis `running` forever | FI-08, FI-10, AT-02 (C2) | `RunAnalysis` closed the analysis on scanner failures but not when the findings transaction threw. | Catch around the transaction: close as `failed` with a reason, rethrow for logging. | FI-08, FI-10, AT-02 ✔ |
-| D-03 | High | `%`, `!` and `"` in the target URL or session cookie become spaces before reaching the engine (Windows) | ST-20 | `escapeshellarg()` on Windows replaces those characters; a percent-encoded URL failed, a cookie arrived altered. | Engine started with `proc_open` from an argument list, no shell (contract R1/R2). Unit checks of the argument list added to AT-02. | ST-20, AT-02 ✔ |
-| D-04 | High | A scan longer than 120 s dies with *Fatal error: Maximum execution time … in C:\xampp\…\PythonScannerGateway.php*, HTTP 200, analysis left `running` | FI-09 (run 1b) | On Windows `max_execution_time` counts wall-clock time, including the wait for the engine; `display_errors=On` in XAMPP showed the path. | Gateway raises the request's limit to its own deadline (210 s / 630 s, aligned with the engine budget), terminates the engine at the deadline with a reason, ignores client aborts; bootstrap forces `display_errors=0`. | FI-09 ✔ |
-| D-05 | Medium | Analysis *Duração* shows ~0 ms for a 14 s scan | AT-01 (contract) | `duration_ms` carried the seed page's response time. | Wall-clock duration of the whole scan. | AT-01 ✔ |
-| D-06 | High | A value longer than its column (300-char form field name) is rejected by a strict database, losing the analysis; silently truncated by a permissive one | AT-01 (contract), FI-10 | The engine copies target-controlled names and URLs into findings without bounds. | `FINDING_FIELD_LIMITS` applied in `Finding.to_dict()` (contract §3.2). | AT-01, FI-10 ✔ |
-| D-07 | Medium | History labelled "UTC" shows server-local time; an analysis appears to last 3 h | Observed in run 1 (database), then ST-24 written before the fix | `started_at` from a column default in the session's local zone (America/Sao_Paulo), `completed_at` from `UTC_TIMESTAMP()`. | Connection sets `time_zone = '+00:00'`. | ST-24 ✔ |
-| D-09 | High | The history cannot be consulted by period, as Termo item 6 requires ("consultar o histórico … por período") | Cross-check of the Termo against the product; ST-25 (run 3a) | Not implemented: the dashboard always listed the whole history. | `Domain\Model\Period`; `AnalysisRepository::listByApplication()` takes an optional period, a range on the `(application_id, started_at)` index; *Histórico por período* form on the dashboard. | ST-25, AT-02 ✔ |
-| D-10 | High | The JSON export has no real summary, as Termo item 8 requires ("resumo, Pontuação de Segurança, metadados e relação dos achados") | Cross-check of the Termo against the product; ST-26 (run 3a) | `summary` carried only the number of findings. | `summary` with `by_severity`, `manual_review_required` and `security_score`. | ST-26, AT-02 ✔ |
-| D-08 | Low | Contract v1.0 did not list `cookie` as a `parameter_location` | AT-01 (contract) | Documentation omission; the producer always emitted it. | Contract v1.1; producer test updated. | AT-01 ✔ |
+| D-01 | Alta | A comparação funde a mesma verificação encontrada em dois endpoints; corrigir um endpoint não aparece | ST-13, ST-14, AT-02 (§5 identidade) | O `fingerprint` do motor é o id da verificação; `AnalysisComparison` usava-o como chave. A URL completa também não serve: carrega o marcador aleatório da sonda. | `Finding::identity()` = verificação + endpoint sem query + localização e nome do parâmetro; comparação indexada pela identidade; a página de comparação mostra página e parâmetro. Contrato §5. | ST-13, ST-14, AT-02 ✔ |
+| D-02 | **Bloqueante** | Uma falha ao gravar o resultado deixa a análise em `running` para sempre | FI-08, FI-10, AT-02 (C2) | `RunAnalysis` fechava a análise em falhas do scanner, mas não quando a transação dos achados lançava exceção. | Captura em volta da transação: fecha como `failed` com um motivo e relança para o log. | FI-08, FI-10, AT-02 ✔ |
+| D-03 | Alta | `%`, `!` e `"` na URL do alvo ou no cookie de sessão viram espaços antes de chegar ao motor (Windows) | ST-20 | `escapeshellarg()` no Windows substitui esses caracteres; uma URL com percent-encoding falhava e um cookie chegava alterado. | Motor iniciado com `proc_open` a partir de uma lista de argumentos, sem shell (contrato R1/R2). Verificações unitárias da lista de argumentos adicionadas ao AT-02. | ST-20, AT-02 ✔ |
+| D-04 | Alta | Uma varredura com mais de 120 s morre com *Fatal error: Maximum execution time … in C:\xampp\…\PythonScannerGateway.php*, HTTP 200, análise deixada em `running` | FI-09 (execução 1b) | No Windows o `max_execution_time` conta tempo de relógio, incluindo a espera pelo motor; `display_errors=On` no XAMPP exibia o caminho. | O gateway eleva o limite da requisição ao seu próprio prazo-limite (210 s / 630 s, alinhados ao orçamento do motor), encerra o motor no prazo-limite com um motivo, ignora a desconexão do cliente; o bootstrap força `display_errors=0`. | FI-09 ✔ |
+| D-05 | Média | A *Duração* da análise mostra ~0 ms para uma varredura de 14 s | AT-01 (contrato) | `duration_ms` carregava o tempo de resposta da página-semente. | Duração de relógio da varredura inteira. | AT-01 ✔ |
+| D-06 | Alta | Um valor maior que sua coluna (nome de campo de formulário com 300 caracteres) é rejeitado por um banco em modo estrito, perdendo a análise; truncado silenciosamente por um permissivo | AT-01 (contrato), FI-10 | O motor copia nomes e URLs controlados pelo alvo para os achados sem limite. | `FINDING_FIELD_LIMITS` aplicado em `Finding.to_dict()` (contrato §3.2). | AT-01, FI-10 ✔ |
+| D-07 | Média | O histórico rotulado "UTC" mostra o horário local do servidor; uma análise parece durar 3 h | Observado na execução 1 (banco), depois ST-24 escrito antes da correção | `started_at` vindo de um default de coluna no fuso local da sessão (America/Sao_Paulo), `completed_at` de `UTC_TIMESTAMP()`. | A conexão define `time_zone = '+00:00'`. | ST-24 ✔ |
+| D-09 | Alta | O histórico não pode ser consultado por período, como exige o item 6 do Termo ("consultar o histórico … por período") | Conferência cruzada do Termo com o produto; ST-25 (execução 3a) | Não implementado: o painel sempre listava o histórico inteiro. | `Domain\Model\Period`; `AnalysisRepository::listByApplication()` recebe um período opcional, um intervalo sobre o índice `(application_id, started_at)`; formulário *Histórico por período* no painel. | ST-25, AT-02 ✔ |
+| D-10 | Alta | A exportação JSON não tem um resumo de fato, como exige o item 8 do Termo ("resumo, Pontuação de Segurança, metadados e relação dos achados") | Conferência cruzada do Termo com o produto; ST-26 (execução 3a) | `summary` trazia apenas o número de achados. | `summary` com `by_severity`, `manual_review_required` e `security_score`. | ST-26, AT-02 ✔ |
+| D-08 | Baixa | A versão 1.0 do contrato não listava `cookie` como `parameter_location` | AT-01 (contrato) | Omissão de documentação; o produtor sempre o emitiu. | Contrato v1.1; teste do produtor atualizado. | AT-01 ✔ |
 
-### 3.1 Reproduction steps (on the code before the fixes)
+### 3.1 Passos de reprodução (no código anterior às correções)
 
-- **D-01** Register `http://127.0.0.1:8765/`; run a complete analysis with `lab_target.py --variant vulnerable`; restart the lab with `--variant partial`; run again; compare. *Corrigidos* is empty although `/search` was fixed.
-- **D-02** `REVOKE` `INSERT` on `sentinelscope.findings` from the application user; run any analysis. HTTP 500, and the dashboard shows the analysis `running` indefinitely.
-- **D-03** Run with the cookie `lab_session=s3cr%3D!x`; the lab log shows `Cookie: lab_session=s3cr 3D x`. Register `http://127.0.0.1:8765/search?q=a%20b`; the analysis fails.
-- **D-04** Start the lab with `--delay 2`; run a complete analysis. After 120 s the browser shows the fatal error with the server path; the analysis stays `running`.
-- **D-05** `python scanner/scanner.py http://127.0.0.1:8765/ --mode=safe_active --allow-private` → `"duration_ms": 0` after ~14 s.
-- **D-06** `SET GLOBAL sql_mode='STRICT_TRANS_TABLES'`; complete analysis of `lab_target.py --variant edge`. Apache log: `Data too long for column 'parameter'`; analysis `running`.
-- **D-07** Run any analysis on a server whose time zone is not UTC; `SELECT TIMESTAMPDIFF(SECOND, started_at, completed_at)` returns 10,800 for a 2-second run.
-- **D-09** Open the dashboard: nothing restricts the history to a period; `index.php?from=2026-02-01&to=2026-02-28` lists every analysis.
-- **D-10** Export any analysis: `"summary": {"findings": N}` and nothing else.
-- **D-08** Run `tests/test_integration_contract.py` with contract v1.0: `cookies.missing_httponly.parameter_location must be query, form or null`.
+- **D-01** Registrar `http://127.0.0.1:8765/`; executar uma análise completa com `lab_target.py --variant vulnerable`; reiniciar o laboratório com `--variant partial`; executar de novo; comparar. *Corrigidos* fica vazio embora `/search` tenha sido corrigido.
+- **D-02** `REVOKE` de `INSERT` em `sentinelscope.findings` para o usuário da aplicação; executar qualquer análise. HTTP 500, e o painel mostra a análise em `running` indefinidamente.
+- **D-03** Executar com o cookie `lab_session=s3cr%3D!x`; o log do laboratório mostra `Cookie: lab_session=s3cr 3D x`. Registrar `http://127.0.0.1:8765/search?q=a%20b`; a análise falha.
+- **D-04** Iniciar o laboratório com `--delay 2`; executar uma análise completa. Após 120 s o navegador mostra o erro fatal com o caminho do servidor; a análise fica em `running`.
+- **D-05** `python scanner/scanner.py http://127.0.0.1:8765/ --mode=safe_active --allow-private` → `"duration_ms": 0` após ~14 s.
+- **D-06** `SET GLOBAL sql_mode='STRICT_TRANS_TABLES'`; análise completa de `lab_target.py --variant edge`. Log do Apache: `Data too long for column 'parameter'`; análise em `running`.
+- **D-07** Executar qualquer análise num servidor cujo fuso horário não seja UTC; `SELECT TIMESTAMPDIFF(SECOND, started_at, completed_at)` retorna 10.800 para uma execução de 2 segundos.
+- **D-09** Abrir o painel: nada restringe o histórico a um período; `index.php?from=2026-02-01&to=2026-02-28` lista todas as análises.
+- **D-10** Exportar qualquer análise: `"summary": {"findings": N}` e nada mais.
+- **D-08** Executar `tests/test_integration_contract.py` com o contrato v1.0: `cookies.missing_httponly.parameter_location must be query, form or null`.
 
-### 3.2 Residual observations (not defects)
+### 3.2 Observações residuais (não são defeitos)
 
-- **Rows left by the old code.** Analyses 15, 17, 19 and 20 of the test database were left
-  `running` by runs 1 and 1b, before D-02/D-04 were fixed. The fix prevents new occurrences; it
-  does not rewrite history. An installation that ran the old version can close such rows with
+- **Linhas deixadas pelo código antigo.** As análises 15, 17, 19 e 20 do banco de teste ficaram
+  em `running` nas execuções 1 e 1b, antes da correção de D-02/D-04. A correção impede novas
+  ocorrências; não reescreve o histórico. Uma instalação que rodou a versão antiga pode fechar
+  essas linhas com
   `UPDATE analyses SET status='failed', error_message='Interrompida antes da correção D-02/D-04', completed_at=UTC_TIMESTAMP() WHERE status='running';`
-  while no analysis is in progress.
-- **Deadline termination not exercised end to end.** FI-09 proves that a scan longer than PHP's
-  120 s now completes. The branch that terminates the engine at the gateway's own deadline (630 s
-  in complete mode) was not provoked, because the engine's own 600 s budget ends the scan first;
-  that branch is verified by code review only.
-- **Pre-existing timestamps.** Rows written before D-07 keep their local-time `started_at`.
+  enquanto nenhuma análise estiver em andamento.
+- **Encerramento por prazo-limite não exercitado de ponta a ponta.** O FI-09 prova que uma
+  varredura mais longa que os 120 s do PHP agora termina. O ramo que encerra o motor no
+  prazo-limite do próprio gateway (630 s no modo completo) não foi provocado, porque o orçamento
+  de 600 s do próprio motor encerra a varredura antes; esse ramo é verificado apenas por revisão
+  de código.
+- **Timestamps preexistentes.** As linhas gravadas antes de D-07 mantêm seu `started_at` em
+  horário local.
 
-## 4. Test-ware issues
+## 4. Problemas do testware
 
-Problems of the tests themselves, kept apart from product defects so the product's numbers are
-not inflated or hidden.
+Problemas dos próprios testes, mantidos separados dos defeitos do produto para que os números do
+produto não sejam inflados nem escondidos.
 
-| ID | Issue | Effect | Resolution |
+| ID | Problema | Efeito | Resolução |
 |---|---|---|---|
-| TW-01 | The "no technical detail" check treated `.php` as a leak, but every page links to `index.php`. | False FAIL in FI-02, FI-03, FI-08 (run 1). | The responses were inspected by hand (generic message only); marker list corrected; re-run in 1b. |
-| TW-02 | The driver read `php/logs/php_error_log`, which XAMPP does not create; PHP logs to Apache's `error.log`. | False FAIL "detail logged" in FI-02. | Path corrected; the manual and developer guide point to the right log. |
-| TW-03 | FI-09 with 1 s per response finished in 115.8 s, under the 120 s it was meant to exceed. | A **false PASS** in run 1: the failure was not provoked. Recorded as void. | Delay raised to 2 s (plan revision §8); run 1b then reproduced D-04. |
-| TW-04 | MT-01 read the button through DevTools after the click; once a form is submitted the browser answers DevTools only after the next page has loaded. | False FAIL in run 3a: the driver read the result page instead of the button. | Checked by hand with submission blocked (the button is locked and shows "Analisando…"); the state is now recorded inside the page (MutationObserver → `sessionStorage`) and read after the navigation. |
+| TW-01 | A verificação "nenhum detalhe técnico" tratava `.php` como vazamento, mas toda página tem link para `index.php`. | Falsa REPROVAÇÃO em FI-02, FI-03, FI-08 (execução 1). | As respostas foram inspecionadas manualmente (apenas a mensagem genérica); lista de marcadores corrigida; reexecutado na 1b. |
+| TW-02 | O driver de teste lia `php/logs/php_error_log`, que o XAMPP não cria; o PHP grava no `error.log` do Apache. | Falsa REPROVAÇÃO "detalhe registrado" no FI-02. | Caminho corrigido; o manual e o guia do desenvolvedor apontam para o log correto. |
+| TW-03 | O FI-09 com 1 s por resposta terminou em 115,8 s, abaixo dos 120 s que deveria ultrapassar. | Uma **falsa APROVAÇÃO** na execução 1: a falha não foi provocada. Registrada como nula. | Atraso elevado para 2 s (revisão do plano §8); a execução 1b então reproduziu o D-04. |
+| TW-04 | O MT-01 lia o botão pelo DevTools após o clique; depois que um formulário é enviado, o navegador só responde ao DevTools quando a página seguinte termina de carregar. | Falsa REPROVAÇÃO na execução 3a: o driver leu a página de resultado em vez do botão. | Conferido manualmente com o envio bloqueado (o botão é travado e mostra "Analisando…"); o estado agora é registrado dentro da página (MutationObserver → `sessionStorage`) e lido após a navegação. |
 
-The expected results of these cases did not change; plan §8 records each revision and its date.
+Os resultados esperados desses casos não mudaram; o §8 do plano registra cada revisão e sua data.
 
-## 5. Inspection
+## 5. Inspeção
 
-| ID | Item | Result |
+| ID | Item | Resultado |
 |---|---|---|
-| TR-01 | CA-08: every high-priority requirement of [REQUIREMENTS.md](REQUIREMENTS.md) points to an item of the Termo's included scope (§3.2). | 14 of 14 high-priority requirements carry an origin item (1, 2, 3, 4, 5, 6, 7, 9 or 10). Met. |
-| TR-02 | Every high-priority requirement has at least one test case. | Plan §7: all 14 covered. Met. |
-| TR-03 | The battery includes invalid-input cases. | ST-02, 03, 04, 05, 07, 11, 15, 21 and all FI cases. Met. |
+| TR-01 | CA-08: todo requisito de alta prioridade do [REQUIREMENTS.md](REQUIREMENTS.md) aponta para um item do escopo incluído do Termo (§3.2). | 14 de 14 requisitos de alta prioridade têm um item de origem (1, 2, 3, 4, 5, 6, 7, 9 ou 10). Atendido. |
+| TR-02 | Todo requisito de alta prioridade tem pelo menos um caso de teste. | Plano §7: todos os 14 cobertos. Atendido. |
+| TR-03 | A bateria inclui casos de entrada inválida. | ST-02, 03, 04, 05, 07, 11, 15, 21 e todos os casos FI. Atendido. |
 
-## 6. Browser and manual cases
+## 6. Casos de navegador e manuais
 
-MT-01…MT-03 need a real browser engine, not a person: since run 3 they are executed by the
-`browser` suite of the driver, in a headless Chrome driven through the DevTools protocol
-(`tests/e2e/cdp.py`). MT-04 needs a person outside the team and is the only case not executed.
+MT-01…MT-03 precisam de um motor de navegador real, não de uma pessoa: desde a execução 3 eles são
+executados pela suíte `browser` do driver de teste, num Chrome headless conduzido pelo protocolo
+DevTools (`tests/e2e/cdp.py`). O MT-04 precisa de uma pessoa de fora da equipe e é o único caso
+não executado.
 
-| ID | Result (run 3) | Verdict |
+| ID | Resultado (execução 3) | Veredito |
 |---|---|---|
-| MT-01 | After a real double click the button was disabled with the text "Analisando…", `aria-busy=true`, the progress message visible; the result page opened and **exactly one** analysis was created. | PASS |
-| MT-02 | Result with 12 findings (1 high, 5 medium, 6 low): each chip left visible only the findings of its severity, in the right number; *Todos* showed the 12 again. | PASS |
-| MT-03 | Report printed to PDF (`2026-10-28_run3/MT-03-report.pdf`): application name, score, metrics and every finding title present; navigation and buttons absent. | PASS |
-| MT-04 | Outsider installs using only the manual and runs one analysis; record every question. | **Pending — to be executed by the team** |
+| MT-01 | Após um clique duplo real, o botão ficou desabilitado com o texto "Analisando…", `aria-busy=true`, a mensagem de progresso visível; a página de resultado abriu e **exatamente uma** análise foi criada. | APROVADO |
+| MT-02 | Resultado com 12 achados (1 high, 5 medium, 6 low): cada chip deixou visíveis apenas os achados da sua severidade, na quantidade correta; *Todos* mostrou os 12 de novo. | APROVADO |
+| MT-03 | Relatório impresso em PDF (`2026-10-28_run3/MT-03-report.pdf`): nome da aplicação, pontuação, métricas e todos os títulos de achados presentes; navegação e botões ausentes. | APROVADO |
+| MT-04 | Pessoa de fora instala usando apenas o manual e executa uma análise; registrar cada pergunta. | **Pendente — a ser executado pela equipe** |
 
-## 7. How to reproduce
+## 7. Como reproduzir
 
 ```bash
 php tests/php_test.php
 python -m unittest discover -s tests -v
-python tests/e2e/run_system_tests.py --run-name <name>   # Apache + MariaDB running, ALLOW_PRIVATE_TARGETS=true; Chrome or Edge for MT-01…03
+python tests/e2e/run_system_tests.py --run-name <name>   # Apache + MariaDB em execução, ALLOW_PRIVATE_TARGETS=true; Chrome ou Edge para MT-01…03
 ```
+
+## 8. Reverificação de 2026-11-24 (tradução da documentação)
+
+Ao traduzir a documentação para o português, o código foi reverificado nesta máquina. Fatos
+observados:
+
+| Item | Resultado |
+|---|---|
+| AT-01 `python -m unittest discover -s tests` | 113 testes, OK, em 264 s; novamente 113 OK (269 s) depois das alterações de código do item (e) abaixo. |
+| AT-02 `php tests/php_test.php` | 153 verificações, 0 falhas, antes e depois das alterações de código. |
+| `php -l` | Sem erros nos 50 arquivos PHP versionados. |
+| `python -m compileall` | Sem erros nos 67 arquivos Python. |
+| Benchmarks | `evaluation/benchmark_structures.py` e `evaluation/benchmark_comparison.php` reexecutados, com as mesmas conclusões do [ALGORITHM_MEASUREMENTS.md](ALGORITHM_MEASUREMENTS.md). |
+| Varredura via CLI do alvo de laboratório (`lab_target.py --variant vulnerable`) | Modo passivo: 34 verificações, 5 páginas, 12 achados, nenhum `xss.*`. Modo completo: 64 verificações, 137 requisições, 14 achados, incluindo `xss.reflected_html_text` em `/search` (q) e `/profile` (name). |
+| FI-01 | Reproduzido com o servidor embutido do PHP sem `.env`: HTTP 503 com a mensagem de configuração. |
+
+**Não reexecutado:** as suítes de sistema, injeção de falhas e navegador (ST/FI/MT) — Apache e
+MariaDB não estavam em execução e não há `.env` nesta máquina. A execução 3 continua sendo a
+referência.
+
+**Observações sobre o produto encontradas nesta revisão** (não registradas como defeitos D-xx;
+pendentes de decisão da equipe):
+
+- (a) O `HttpVerbTamperingPlugin` envia PUT, DELETE, PATCH e TRACE uma vez **por página
+  visitada** (5 de cada na varredura de 5 páginas do laboratório; até 20 numa varredura em modo
+  completo), enquanto sua docstring prometia uma vez por varredura. Num alvo vulnerável, isso pode
+  alterar estado.
+- (b) O motor valida certificados TLS e o Python 3.12 exige TLS ≥ 1.2; por isso
+  `tls.certificate_expiry` só dispara para certificados ainda válidos que expiram em menos de 30
+  dias, `tls.legacy_protocol` não tem como disparar, e um alvo HTTPS com certificado inválido ou
+  expirado falha com "Nenhuma página pôde ser acessada no alvo."
+- (c) O falso positivo de NoSQL em páginas 404 estáveis, descrito no
+  [EVALUATION_RESULTS.md](EVALUATION_RESULTS.md), continua presente (`_looks_rejected` trata 404
+  como rejeição).
+- (d) As sondas de formulário são enviadas por POST à URL da página, não ao `action` do
+  formulário (limitação conhecida, ainda presente).
+- (e) As mensagens de erro do motor (escopo, orçamento, cancelamento) estavam em inglês e foram
+  traduzidas em 2026-11-24 — alteração de código em `scanner/engine/safety.py` e
+  `scanner/engine/runner.py`.

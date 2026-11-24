@@ -19,6 +19,10 @@ from .models import HttpRequest, ScanContext
 
 SENSITIVE_HEADERS = {"authorization", "cookie", "proxy-authorization", "x-api-key"}
 
+# The messages of the exceptions below reach the user as the reason an analysis failed
+# (docs/INTEGRATION_CONTRACT.md §3.3), so they are written in Portuguese like every other
+# interface text (docs/CODING_STANDARD.md §1).
+
 
 class Cancelled(RuntimeError):
     """The operator asked for the scan to stop."""
@@ -71,43 +75,43 @@ class SafetyController:
         self.host = parsed.hostname
         self.port = parsed.port or (443 if parsed.scheme == "https" else 80)
         if self.scheme not in ("http", "https") or not self.host:
-            raise ScopeViolation("Only absolute HTTP(S) targets are supported")
+            raise ScopeViolation("Apenas alvos HTTP(S) absolutos são suportados.")
         self.pinned_addresses = self._resolve(self.host)
 
     def _resolve(self, host: str) -> set[str]:
         addresses = {item[4][0].split("%")[0] for item in socket.getaddrinfo(host, None)}
         if not addresses:
-            raise ScopeViolation("Target did not resolve")
+            raise ScopeViolation("O endereço do alvo não pôde ser resolvido.")
         if not self.context.allow_private and any(not ip_address(x).is_global for x in addresses):
-            raise ScopeViolation("Private, loopback, link-local, and reserved targets are blocked")
+            raise ScopeViolation("Alvos em rede privada, loopback, link-local ou endereços reservados são bloqueados por padrão.")
         return addresses
 
     def validate_url(self, url: str) -> None:
         parsed = urlparse(url)
         port = parsed.port or (443 if parsed.scheme == "https" else 80)
         if parsed.scheme not in ("http", "https") or parsed.username or parsed.password:
-            raise ScopeViolation("Unsafe URL scheme or embedded credentials")
+            raise ScopeViolation("Esquema de URL inseguro ou credenciais embutidas na URL.")
         if parsed.hostname != self.host or port != self.port:
-            raise ScopeViolation("Request attempted to leave the authorized host and port")
+            raise ScopeViolation("A requisição tentou sair do host e da porta autorizados.")
         # Re-resolving on every request is what closes the DNS-rebinding window: a name that
         # pointed at the authorized address when the scan started must still point there now.
         if self._resolve(parsed.hostname) != self.pinned_addresses:
-            raise ScopeViolation("DNS resolution changed during the scan")
+            raise ScopeViolation("A resolução DNS do alvo mudou durante a análise.")
 
     def before_request(self, request: HttpRequest) -> None:
         """Authorize one request, or raise. Charges the budget and applies the rate limit."""
         with self.lock:
             self.validate_url(request.url)
             if self.context.cancel_file and os.path.exists(self.context.cancel_file):
-                raise Cancelled("Scan cancelled")
+                raise Cancelled("Análise cancelada.")
             if time.monotonic() - self.started > self.context.limits.global_timeout_seconds:
-                raise BudgetExceeded("Global scan timeout reached")
+                raise BudgetExceeded("Tempo máximo global da análise atingido.")
             if self.total >= self.context.limits.max_requests:
-                raise BudgetExceeded("Global request budget reached")
+                raise BudgetExceeded("Limite global de requisições da análise atingido.")
 
             endpoint = f"{request.method}:{urlparse(request.url).path}"
             if self.per_endpoint[endpoint] >= self.context.limits.max_requests_per_endpoint:
-                raise EndpointBudgetExceeded("Endpoint request budget reached")
+                raise EndpointBudgetExceeded("Limite de requisições por endpoint atingido.")
 
             wait = self.context.limits.min_request_interval_seconds - (time.monotonic() - self.last_request)
             if wait > 0:

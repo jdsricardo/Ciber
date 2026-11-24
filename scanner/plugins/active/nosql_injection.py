@@ -3,8 +3,8 @@ injection reachable through bracket-encoded query parameters (`param[$ne]=...`).
 
 Known limitation: real-world NoSQL injection most commonly targets JSON request
 bodies (for example a login POST with a JSON payload), which this project cannot
-yet actively test -- engine/discovery.py only produces InputPoint.location == "query"
-candidates, there is no JSON-body active-testing path in the engine. This detector is
+yet actively test -- this plugin probes only InputPoint.location == "query" candidates
+(form fields are not tested here), and there is no JSON-body active-testing path in the engine. This detector is
 therefore limited to frameworks that also bind query-string arrays/objects into
 database filters (classically Express + the `qs` library + MongoDB): an honest but
 narrower slice of the vulnerability class than NoSQL injection as a whole.
