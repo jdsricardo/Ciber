@@ -255,6 +255,7 @@ campo do achado, acrescente sua largura ao contrato (§3.2) e a `FINDING_FIELD_L
 | Sistema + injeção de falhas | `python tests/e2e/run_system_tests.py [--suite system\|failure] [--only ST-13 …]` | Apache, MariaDB, `.env` com `ALLOW_PRIVATE_TARGETS=true`, porta 8765 livre |
 | Casos de navegador (MT-01…03) | `python tests/e2e/run_system_tests.py --suite browser` | o mesmo que acima, mais Chrome ou Edge (controlado sem interface por `tests/e2e/cdp.py`) |
 | Apenas o alvo de laboratório | `python tests/e2e/lab_target.py --variant vulnerable --log lab.jsonl` | Apenas Python |
+| Preparar a demonstração ao vivo | `python tests/e2e/demo.py --limpar` — cadastra o site de testes e um endereço fora do ar, faz a análise "antes" com o site `vulnerable` e deixa o site no ar como `partial` para a análise "depois" e a comparação | Apache, MariaDB, `.env` com `ALLOW_PRIVATE_TARGETS=true`, portas 8765 e 8799 livres |
 
 O driver de sistema grava `docs/test-evidence/<execução>/results.md` e `results.json`, além das
 evidências brutas (`--run-name` define o nome da pasta). Os casos de injeção de falhas alteram o

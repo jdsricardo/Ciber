@@ -4,6 +4,10 @@ Todas as mudanças relevantes do SentinelScope. Formato baseado em [Keep a Chang
 
 ## [Não lançado] — 2026-11-24 · Documentação em português e revisão contra o código
 
+### Adicionado
+- `tests/e2e/demo.py`: prepara a demonstração ao vivo (cadastros, análise "antes" com o site de
+  testes vulnerável, site no ar parcialmente corrigido para a análise "depois" e a comparação).
+
 ### Alterado
 - Toda a documentação de engenharia (`README.md`, `CHANGELOG.md`, `docs/*.md`) traduzida para o
   português e reconferida contra o código. NFR-06 e o §1 do padrão de codificação passam a
