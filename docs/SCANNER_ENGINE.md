@@ -62,7 +62,7 @@ redirect, command injection, SSTI, XXE, CRLF, injeção no cabeçalho Host, troc
 NoSQL injection, CORS ativo e SSRF. Um arquivo de plugin que existe mas falha ao importar não some em
 silêncio: aparece em `plugin_warnings` no resultado. Cada família tem testes com fixtures
 vulneráveis e seguros (`tests/test_active_*.py`). O orçamento do modo ativo é maior, mas continua
-explícito (`ACTIVE_LIMITS`: 2.500 requisições, 120 por endpoint, 600 s, 20 páginas, profundidade 2).
+explícito (`ACTIVE_LIMITS`: 2.500 requisições, 120 por endpoint, 600 s, 40 páginas, profundidade 2).
 
 "Seguro" quer dizer que as sondas buscam a evidência mínima e não tentam extrair dados nem
 explorar o achado. Não quer dizer que nenhuma requisição possa alterar estado: a verificação de
@@ -116,8 +116,8 @@ inferidos a partir de uma anomalia genérica.
   lacuna em que a análise de uma página de login (ou de qualquer página de entrada) deixava de ver
   uma página desprotegida a um clique dali — o motor agora a descobre e a testa sozinho.
 - Limites e segurança: o rastreamento é limitado por `max_pages` e pelos orçamentos de
-  requisições e de tempo; `max_depth` define a ordem (perfis: passivo 30 páginas / profundidade 3,
-  ativo 20 páginas / profundidade 2; ambos ajustáveis com `--max-pages`/`--max-depth`, e
+  requisições e de tempo; `max_depth` define a ordem (perfis: passivo 50 páginas / profundidade 3,
+  ativo 40 páginas / profundidade 2; ambos ajustáveis com `--max-pages`/`--max-depth`, e
   `max_pages=1` restaura a análise de página única). Páginas além de `max_depth` só são visitadas
   depois de todas as mais próximas (ver D-12 abaixo). A navegação é
   somente leitura — links de logout/sair e links que alteram estado (`?action=delete`,
@@ -233,7 +233,7 @@ catálogo); o ganho é cobrir telas que antes eram silenciosamente ignoradas.
     (limitação L-03 do documento final);
   - áreas com login só são alcançadas com um cookie de sessão válido, e a sessão cai se o usuário
     sair no navegador durante a análise;
-  - o limite de páginas (30/20) pode deixar telas de fora num sistema grande — isso aparece na
+  - o limite de páginas (50/40) pode deixar telas de fora num sistema grande — isso aparece na
     seção *Cobertura da análise* em vez de passar despercebido; a profundidade (3/2) só define a
     ordem de visita;
   - se o cookie de sessão for recusado pelo alvo (expirado, ou colado sem o nome `PHPSESSID=`), a

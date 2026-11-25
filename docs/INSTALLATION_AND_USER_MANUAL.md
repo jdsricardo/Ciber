@@ -140,7 +140,7 @@ No **Painel**, cada aplicação tem um cartão com o botão **Executar análise*
 
 O scanner começa pela URL registrada e segue links, formulários de busca (GET),
 redirecionamentos e URLs escritas no JavaScript da aplicação (por exemplo
-`fetch('api/pedidos.php?id=' + id)`), sempre no mesmo site, até 30 páginas no modo passivo e 20
+`fetch('api/pedidos.php?id=' + id)`), sempre no mesmo site, até 50 páginas no modo passivo e 40
 no completo. Telas que só mudam pelo valor de um parâmetro (`index.php?p=12`, `index.php?p=14`)
 são analisadas uma a uma; já páginas que repetem o mesmo modelo com outros dados (os produtos de
 um catálogo) são reconhecidas e analisadas uma vez só. Ele nunca segue links de logout nem links

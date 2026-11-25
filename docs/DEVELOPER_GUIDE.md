@@ -207,7 +207,7 @@ Observações sobre o comportamento real de duas famílias:
   prática, `tls.certificate_expiry` só aparece para certificados ainda válidos que expiram em menos
   de 30 dias, e `tls.legacy_protocol` não tem como disparar.
 - **HttpVerbTamperingPlugin** — envia OPTIONS, POST, PUT, DELETE, PATCH e TRACE uma vez **a cada
-  página visitada** (não uma vez por varredura). Em uma varredura de 20 páginas são até 20 DELETE,
+  página visitada** (não uma vez por varredura). Em uma varredura de 40 páginas são até 40 DELETE,
   cada um para uma URL diferente.
 
 ## 6. Mudanças comuns

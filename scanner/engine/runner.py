@@ -48,7 +48,7 @@ SEED_FAILURE_REASONS = {
 PASSIVE_LIMITS = ScanLimits(
     max_requests=300,
     global_timeout_seconds=180.0,
-    max_pages=30,
+    max_pages=50,
     max_depth=3,
 )
 ACTIVE_LIMITS = ScanLimits(
@@ -59,7 +59,7 @@ ACTIVE_LIMITS = ScanLimits(
     global_timeout_seconds=600.0,
     min_request_interval_seconds=0.1,
     max_redirects=3,
-    max_pages=20,
+    max_pages=40,
     max_depth=2,
     max_attempts_per_parameter=8,
 )
