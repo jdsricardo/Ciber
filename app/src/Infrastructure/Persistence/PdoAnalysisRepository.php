@@ -10,6 +10,7 @@ use App\Domain\Model\CrawlCoverage;
 use App\Domain\Model\Period;
 use App\Domain\Model\SecurityScore;
 use App\Infrastructure\Database;
+use DateTimeZone;
 
 /** MariaDB adapter for {@see AnalysisRepository}. The only place analysis SQL is written. */
 final class PdoAnalysisRepository implements AnalysisRepository
@@ -30,15 +31,17 @@ final class PdoAnalysisRepository implements AnalysisRepository
         // Served by idx_analysis_application_date (application_id, started_at): the index
         // covers the filter, the period's range on started_at and the ordering, so neither a
         // period nor the history needs a filesort.
+        // started_at is stored in UTC; the period's days may be in the user's zone.
+        $utc = new DateTimeZone('UTC');
         $sql = 'SELECT * FROM analyses WHERE application_id=?';
         $params = [$applicationId];
         if ($period?->startsAt() !== null) {
             $sql .= ' AND started_at >= ?';
-            $params[] = $period->startsAt()->format('Y-m-d H:i:s');
+            $params[] = $period->startsAt()->setTimezone($utc)->format('Y-m-d H:i:s');
         }
         if ($period?->endsBefore() !== null) {
             $sql .= ' AND started_at < ?';
-            $params[] = $period->endsBefore()->format('Y-m-d H:i:s');
+            $params[] = $period->endsBefore()->setTimezone($utc)->format('Y-m-d H:i:s');
         }
         $rows = Database::all($sql . ' ORDER BY started_at DESC', $params);
         return array_map(Analysis::fromRow(...), $rows);

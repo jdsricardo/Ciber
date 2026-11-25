@@ -97,7 +97,7 @@ final class Views
             . ($period->isUnbounded() ? '' : '<a href="index.php">Limpar</a>'
                 . '<p class="muted">Exibindo as análises iniciadas '
                 . ($from !== '' ? 'a partir de ' . Html::escape($from) : 'desde a primeira')
-                . ($to !== '' ? ' até ' . Html::escape($to) : ' até hoje') . ' (UTC).</p>')
+                . ($to !== '' ? ' até ' . Html::escape($to) : ' até hoje') . '.</p>')
             . '</form>';
     }
 
@@ -120,8 +120,8 @@ final class Views
             . ' &middot; MODO: ' . Html::escape(mb_strtoupper($analysis->mode->label())) . '</p>'
             . '<h1>' . Html::escape($analysis->applicationName ?? '—') . '</h1>'
             . '<p>' . Html::escape((string) $analysis->baseUrl) . ' &middot; '
-            . Html::escape(($analysis->completedAt ?? $analysis->startedAt)->format('Y-m-d H:i:s'))
-            . ' UTC</p></div>'
+            . LocalTime::html($analysis->completedAt ?? $analysis->startedAt)
+            . '</p></div>'
             . '<div class="score"><strong>' . ($analysis->score?->value ?? 'N/D') . '</strong>'
             . '<span>Pontuação de Segurança</span></div></section>';
 
@@ -221,10 +221,10 @@ final class Views
         $rows = '';
         foreach ($history as $analysis) {
             $analysisId = $analysis->requireId();
-            $startedAt = Html::escape($analysis->startedAt->format('Y-m-d H:i:s'));
-            $options .= '<option value="' . $analysisId . '">#' . $analysisId . ' · ' . $startedAt . '</option>';
+            $options .= '<option value="' . $analysisId . '">#' . $analysisId . ' · '
+                . LocalTime::text($analysis->startedAt) . '</option>';
             $rows .= '<tr><td><a href="index.php?page=result&id=' . $analysisId . '">#' . $analysisId . '</a></td>'
-                . '<td>' . $startedAt . '</td>'
+                . '<td>' . LocalTime::html($analysis->startedAt) . '</td>'
                 . '<td>' . Html::escape($analysis->mode->label()) . '</td>'
                 . '<td>' . Html::escape($analysis->status->value) . '</td>'
                 . '<td>' . ($analysis->score?->value ?? '—') . '</td>'
@@ -239,7 +239,7 @@ final class Views
             : '';
 
         $historyTable = $rows !== ''
-            ? '<div class="scroll"><table><thead><tr><th>ID</th><th>Data (UTC)</th><th>Modo</th>'
+            ? '<div class="scroll"><table><thead><tr><th>ID</th><th>Data</th><th>Modo</th>'
                 . '<th>Status</th><th>Pontuação</th><th>Verificações</th></tr></thead>'
                 . '<tbody>' . $rows . '</tbody></table></div>'
             : '<p class="muted">' . ($period->isUnbounded() ? 'Nenhuma análise ainda.' : 'Nenhuma análise neste período.')

@@ -9,7 +9,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 
 /**
- * A range of calendar days, in UTC, used to consult the history of an application by period
+ * A range of calendar days (in the user's time zone, UTC by default), used to consult the history of an application by period
  * (Termo de Referência, item 6). Both ends are inclusive and either may be open: a period with
  * no start means "since the first analysis", one with no end means "until now".
  *
@@ -23,11 +23,15 @@ final class Period
     ) {
     }
 
-    /** Builds a period from two `YYYY-MM-DD` strings; an empty string leaves that end open. */
-    public static function fromStrings(string $from, string $to): self
+    /**
+     * Builds a period from two `YYYY-MM-DD` strings; an empty string leaves that end open. The days
+     * are calendar days in `$zone` (the user's, so "today" means their today); UTC by default.
+     */
+    public static function fromStrings(string $from, string $to, ?DateTimeZone $zone = null): self
     {
-        $start = self::parseDay($from);
-        $end = self::parseDay($to);
+        $zone ??= new DateTimeZone('UTC');
+        $start = self::parseDay($from, $zone);
+        $end = self::parseDay($to, $zone);
         if ($start !== null && $end !== null && $start > $end) {
             throw new InvalidInput('A data inicial deve ser anterior ou igual à data final.');
         }
@@ -63,13 +67,13 @@ final class Period
         return ($start === null || $instant >= $start) && ($end === null || $instant < $end);
     }
 
-    private static function parseDay(string $value): ?DateTimeImmutable
+    private static function parseDay(string $value, DateTimeZone $zone): ?DateTimeImmutable
     {
         $value = trim($value);
         if ($value === '') {
             return null;
         }
-        $day = DateTimeImmutable::createFromFormat('!Y-m-d', $value, new DateTimeZone('UTC'));
+        $day = DateTimeImmutable::createFromFormat('!Y-m-d', $value, $zone);
         // The round trip rejects what createFromFormat silently normalises, such as 2026-02-31.
         if ($day === false || $day->format('Y-m-d') !== $value) {
             throw new InvalidInput('Informe as datas no formato AAAA-MM-DD.');

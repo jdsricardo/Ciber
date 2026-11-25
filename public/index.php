@@ -21,6 +21,7 @@ use App\Infrastructure\Persistence\PdoTransactionManager;
 use App\Infrastructure\Scanner\PythonScannerGateway;
 use App\Infrastructure\Security\Csrf;
 use App\Presentation\Layout;
+use App\Presentation\LocalTime;
 use App\Presentation\Views;
 use App\UseCase\CompareAnalyses;
 use App\UseCase\ExportAnalysis;
@@ -106,7 +107,7 @@ try {
         exit;
     }
 
-    $period = Period::fromStrings((string) ($_GET['from'] ?? ''), (string) ($_GET['to'] ?? ''));
+    $period = Period::fromStrings((string) ($_GET['from'] ?? ''), (string) ($_GET['to'] ?? ''), LocalTime::zone());
     $registered = $applications->all();
     $history = [];
     foreach ($registered as $application) {

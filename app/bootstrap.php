@@ -19,6 +19,7 @@ ini_set('log_errors', '1');
 
 Config::load(ROOT . '/.env');
 date_default_timezone_set('UTC');
+\App\Presentation\LocalTime::useZone((string) Config::get('timezone'));
 session_start(['cookie_httponly' => true, 'cookie_samesite' => 'Lax', 'use_strict_mode' => true]);
 
 /** Thin view-layer sugar; all real logic lives in App\* classes under app/src/. */

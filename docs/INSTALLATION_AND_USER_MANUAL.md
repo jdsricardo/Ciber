@@ -73,6 +73,7 @@ nome, com o ponto inicial) e edite-o:
 | `DB_PASSWORD` | a senha escolhida em A.4 |
 | `PYTHON_BINARY` | `python`. Se depois a análise falhar com *"O scanner retornou uma resposta inválida"*, escreva o caminho completo, por exemplo `C:\Users\you\AppData\Local\Programs\Python\Python312\python.exe` (descubra-o com `where python`). |
 | `ALLOW_PRIVATE_TARGETS` | `false`. Escreva `true` **somente** para analisar uma aplicação rodando na sua própria máquina ou em uma rede de laboratório (A.7). |
+| `APP_TIMEZONE` | Opcional; padrão `America/Sao_Paulo`. Fuso dos horários exibidos e dos dias do filtro *Histórico por período*. O banco e a exportação JSON guardam UTC. |
 
 O `.env` contém uma senha: nunca o envie a ninguém e nunca o faça commit (o Git já o ignora).
 

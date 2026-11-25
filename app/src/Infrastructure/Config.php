@@ -38,6 +38,8 @@ final class Config
             ],
             'python_binary' => self::env('PYTHON_BINARY', 'python'),
             'allow_private_targets' => self::envBool('ALLOW_PRIVATE_TARGETS'),
+            // Time zone of what the user reads; storage stays UTC.
+            'timezone' => self::env('APP_TIMEZONE', 'America/Sao_Paulo'),
         ];
     }
 

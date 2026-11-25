@@ -511,7 +511,7 @@ def st12(ctx: Context, c: Checks):
     application = ctx.state["app"]
     card = dashboard[dashboard.find(f'name="application_id" value="{application}"'):]
     card = card[:card.find("</section>")]
-    rows = re.findall(r'page=result&id=(\d+)">#\d+</a></td><td>[^<]*</td><td>([^<]*)</td><td>([^<]*)</td>'
+    rows = re.findall(r'page=result&id=(\d+)">#\d+</a></td><td><time[^>]*>[^<]*</time></td><td>([^<]*)</td><td>([^<]*)</td>'
                       r'<td>([^<]*)</td>', card)
     ids = [int(r[0]) for r in rows]
     expected = {ctx.state["passive"], ctx.state["active"]}
@@ -724,8 +724,9 @@ def st24(ctx: Context, c: Checks):
     analysis_id, _ = ctx.analyse(application)
     after = datetime.now(timezone.utc).replace(tzinfo=None)
     dashboard = ctx.web.get().text
-    match = re.search(rf'page=result&id={analysis_id}">#{analysis_id}</a></td><td>([^<]+)</td>', dashboard)
-    shown = datetime.strptime(match.group(1), "%Y-%m-%d %H:%M:%S") if match else None
+    # The page shows local time; the <time datetime> attribute carries the same instant in UTC.
+    match = re.search(rf'page=result&id={analysis_id}">#{analysis_id}</a></td><td><time datetime="([^"]+)">', dashboard)
+    shown = datetime.strptime(match.group(1), "%Y-%m-%dT%H:%M:%SZ") if match else None
     c.that("history date (UTC) within the run", shown is not None and
            (before.timestamp() - 5) <= shown.timestamp() <= (after.timestamp() + 5), f"{before} <= {shown} <= {after}")
     analysis = ctx.export(analysis_id)["analysis"]
