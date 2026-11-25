@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urljoin
 from .crawler import (
-    CrawlFrontier, extract_links, extract_script_sources, is_followable, page_structure, same_scope,
-    urls_from_javascript,
+    CrawlFrontier, extract_links, extract_script_sources, is_followable, page_signature, page_structure,
+    same_scope, urls_from_javascript,
 )
 from .discovery import discover
 from .models import HttpRequest, InputPoint, ScanContext, ScanLimits, ScanMode, ShapeState
@@ -117,6 +117,7 @@ class ScanRunner:
             url, depth = next_page
             request = HttpRequest(method="GET", url=url,
                                   headers={"Accept": "text/html,application/json,*/*;q=0.5"})
+            safety.begin_page(url, page_signature(url))
             try:
                 # The first response alone tells whether this page repeats a template already
                 # analysed for its shape; only a page worth analysing gets its second baseline.
@@ -132,8 +133,10 @@ class ScanRunner:
                 break
             except EndpointBudgetExceeded:
                 # This page's own GET endpoint is capped; skip it and keep crawling others.
+                frontier.failed(url)
                 continue
             except BudgetExceeded:
+                frontier.failed(url)
                 stopped_early = "budget_exceeded"
                 break
             except ScopeViolation:
@@ -141,8 +144,9 @@ class ScanRunner:
                 # page and keep crawling the rest rather than aborting the whole scan.
                 continue
             except OSError:
-                # This one page could not be fetched (reset, timeout). Skip it; other pages
-                # (and the findings already gathered) are unaffected.
+                # This one page could not be fetched (reset, timeout). Skip it — it is reported
+                # as not analysed; other pages (and the findings already gathered) are unaffected.
+                frontier.failed(url)
                 continue
 
             primary = responses[0]
@@ -207,12 +211,12 @@ class ScanRunner:
                      response, body: str) -> None:
         """Offer the frontier the page's links (anchors, GET forms, inline JavaScript) and its
         own redirect target (a page that 3xx's to the real content, e.g. after a login gate)."""
-        candidates: list[str] = []
-        if "html" in response.headers.get("content-type", ""):
-            candidates += extract_links(url, body)
         if response.redirect_url:
-            candidates.append(urljoin(url, response.redirect_url))
-        self._offer(frontier, safety, candidates, depth)
+            # A redirect is where this same page really is, not a link one level further: it
+            # keeps the page's depth (`index.php` -> `index.php?p=2` must not cost a level).
+            self._offer(frontier, safety, [urljoin(url, response.redirect_url)], depth - 1)
+        if "html" in response.headers.get("content-type", ""):
+            self._offer(frontier, safety, extract_links(url, body), depth)
 
     def _read_scripts(self, frontier: CrawlFrontier, safety: SafetyController, transport: HttpTransport,
                       page_url: str, depth: int, body: str, scripts_read: set[str]) -> str | None:

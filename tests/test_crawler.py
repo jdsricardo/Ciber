@@ -31,6 +31,16 @@ class LinkExtractionTests(unittest.TestCase):
         self.assertNotIn("http://h/delete", links)        # POST form action is not
         self.assertFalse([u for u in links if u.startswith(("javascript", "mailto"))])
 
+    def test_a_get_form_becomes_the_url_its_submission_requests(self):
+        body = ("<form method='get' action='index.php?ignored=1'><input type='hidden' name='p' value='33'>"
+                "<label>Nota</label><input name='nota'><input type='password' name='pin'>"
+                "<button type='submit' name='go'>Buscar</button></form>"
+                "<form><select name='ano'></select></form>")               # no method = GET, no action = here
+        links = extract_links("http://h/app/index.php?p=33", body)
+        self.assertIn("http://h/app/index.php?p=33&nota=", links)       # fields replace the action's query
+        self.assertIn("http://h/app/index.php?ano=", links)
+        self.assertFalse([u for u in links if "pin=" in u or "ignored" in u])
+
     def test_is_followable_blocks_logout_destructive_and_assets(self):
         self.assertTrue(is_followable("http://h/products?id=1"))
         self.assertFalse(is_followable("http://h/account/logout"))
@@ -208,6 +218,41 @@ class TemplateRecognitionTests(unittest.TestCase):
         self.assertEqual(["http://h/index.php?p=3", "http://h/index.php?p=4"], frontier.not_visited())
         self.assertEqual(1, frontier.template_variants_skipped)  # ...and only the real repeat is counted
 
+    def test_depth_orders_the_crawl_instead_of_walling_it(self):
+        frontier = CrawlFrontier("http://h/", max_depth=1, duplicate_budget=30)
+        frontier.pop()
+        frontier.offer("http://h/far", 2)                     # found first, but beyond max_depth...
+        frontier.offer("http://h/near", 1)
+        self.assertEqual(["http://h/near", "http://h/far"], frontier.not_visited())  # reported if a budget ends here
+        self.assertEqual("http://h/near", frontier.pop()[0])  # ...so nearer pages go first
+        self.assertEqual("http://h/far", frontier.pop()[0])   # and it is still visited after them
+        self.assertIsNone(frontier.pop())
+
+    def test_each_screen_of_one_script_has_its_own_request_budget(self):
+        from engine.models import HttpRequest, ScanContext, ScanLimits, ScanMode
+        from engine.safety import EndpointBudgetExceeded, SafetyController
+        limits = ScanLimits(max_requests=100, max_requests_per_endpoint=2, min_request_interval_seconds=0)
+        safety = SafetyController(ScanContext("http://127.0.0.1/index.php", ScanMode.PASSIVE, limits,
+                                              allow_private=True))
+        get = lambda url: safety.before_request(HttpRequest(method="GET", url=url))
+        safety.begin_page("http://127.0.0.1/index.php?p=12", page_signature("http://127.0.0.1/index.php?p=12"))
+        get("http://127.0.0.1/index.php?p=12")
+        get("http://127.0.0.1/index.php?p=%3Cx%3E")               # a probe of this screen
+        with self.assertRaises(EndpointBudgetExceeded):
+            get("http://127.0.0.1/index.php?p=12")
+        safety.begin_page("http://127.0.0.1/index.php?p=14", page_signature("http://127.0.0.1/index.php?p=14"))
+        get("http://127.0.0.1/index.php?p=14")                    # the next screen starts afresh
+        get("http://127.0.0.1/api.php")
+        get("http://127.0.0.1/api.php")
+        with self.assertRaises(EndpointBudgetExceeded):          # other paths keep one shared budget
+            get("http://127.0.0.1/api.php")
+
+    def test_pages_that_could_not_be_fetched_are_reported(self):
+        frontier = CrawlFrontier("http://h/", max_depth=2, duplicate_budget=30)
+        url, _ = frontier.pop()
+        frontier.failed(url)
+        self.assertEqual(["http://h/"], frontier.not_visited())
+
 
 class PortalLike(BaseHTTPRequestHandler):
     """An application that routes by parameter (`index.php?p=N`), like a PHP back office: every
@@ -295,7 +340,114 @@ class Catalog(BaseHTTPRequestHandler):
         pass
 
 
+class GatedPortal(BaseHTTPRequestHandler):
+    """The real shape of a PHP customer portal behind a login, as met in the field:
+
+    * `index.php` without `p` always redirects to the login screen (`?p=2`), even when logged in;
+    * the sidebar is hidden on the login and recovery screens, so the login screen only links to
+      the admin panel through the header logo (`?p=12`), and the panel is the first page with the
+      menu — two hops and a redirect away from the URL a user registers;
+    * every screen is `index.php?p=N`: one script, one path, many screens with their own POST forms;
+    * the last menu screen has a search that reflects its parameter unescaped.
+    """
+
+    SESSION = "PHPSESSID=valid-session"
+    requested: list[str] = []
+    PUBLIC = {"2", "10"}
+    NO_SIDEBAR = {"2", "10", "1", "15"}
+    MENU = {"12": "Painel", "14": "Usuários", "4": "Novo usuário", "5": "Pedidos", "6": "Notas",
+            "19": "Títulos", "22": "Orçamentos", "17": "VPC", "16": "Minhas VPC", "23": "Comissões",
+            "28": "Comprovantes", "33": "Faturamento"}
+
+    def _logged_in(self) -> bool:
+        return self.SESSION in (self.headers.get("Cookie") or "")
+
+    def _send(self, status: int, body: str = "", location: str = "",
+              content_type: str = "text/html; charset=utf-8") -> None:
+        raw = body.encode("utf-8")
+        self.send_response(status)
+        if location:
+            self.send_header("Location", location)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(raw)))
+        self.end_headers()
+        self.wfile.write(raw)
+
+    def _page(self, p: str, extra: str = "") -> str:
+        logged = self._logged_in()
+        header = f"<nav><a href='index.php?p={'12' if logged else '2'}'>Portal</a>"
+        if logged:
+            header += "<a href='index.php?p=9'>Perfil</a><a href='index.php?action=logout'>Sair</a>"
+        header += "</nav>"
+        sidebar = ""
+        if logged and p not in self.NO_SIDEBAR:
+            sidebar = "<ul>" + "".join(f"<li><a href='index.php?p={n}'>{t}</a></li>" for n, t in self.MENU.items()) + "</ul>"
+        if p == "2":
+            content = ("<form method='post' action='index.php?p=2'><label>Usuário</label><input name='login'>"
+                       "<label>Senha</label><input type='password' name='senha'>"
+                       "<input type='hidden' name='csrf_token' value='t'><button>Entrar</button></form>"
+                       "<a href='index.php?p=10'>Esqueci minha senha</a>")
+        elif p == "33":
+            content = ("<form method='get' action='index.php'><input type='hidden' name='p' value='33'>"
+                       "<label>Nota</label><input name='nota'><button>Buscar</button></form>")
+        else:
+            title = self.MENU.get(p, "Tela " + p)
+            content = (f"<h1>{title}</h1><table><tr><th>{title} — código</th><th>{title} — data</th></tr></table>"
+                       f"<form method='post'><label>Filtro de {title}</label><input name='filtro_{p}'>"
+                       f"<button>Filtrar {title}</button></form>")
+        return (f"<html><body>{header}{sidebar}<main>{content}{extra}</main>"
+                "<script src='web/assets/js/shared/custom.js'></script></body></html>")
+
+    def _route(self, extra: str = "") -> None:
+        from urllib.parse import parse_qs, urlparse
+        url = urlparse(self.path)
+        query = parse_qs(url.query)
+        if url.path == "/web/assets/js/shared/custom.js":
+            return self._send(200, "$.get('web/endpoint/admin/ep_branches.php', {partner: id});",
+                              content_type="application/javascript")
+        if url.path == "/web/endpoint/admin/ep_branches.php":
+            body = '{"filiais": []}' if self._logged_in() else '{"error": "Usuário não autenticado"}'
+            return self._send(200, body, content_type="application/json")
+        if "p" not in query:
+            return self._send(302, location="index.php?p=2")
+        p = query["p"][0]
+        if p not in self.PUBLIC and not self._logged_in():
+            return self._send(302, location="index.php?p=2")
+        if p == "33" and "nota" in query:
+            extra += f"<p>Resultado para {query['nota'][0]}</p>"       # reflected, unescaped
+        self._send(200, self._page(p, extra))
+
+    def do_GET(self):
+        GatedPortal.requested.append(self.path)
+        self._route()
+
+    def do_POST(self):
+        GatedPortal.requested.append("POST " + self.path)
+        self.rfile.read(int(self.headers.get("Content-Length") or 0))
+        self._route()
+
+    def log_message(self, *args):
+        pass
+
+
 class SmartCrawlTests(unittest.TestCase):
+    def test_a_login_gated_portal_is_covered_from_the_url_a_user_registers(self):
+        # Field case: registered as https://portal/index.php with a valid PHPSESSID, the scan used
+        # to analyse 5 pages and list the 12 menu screens as "not analysed" — they sat one link
+        # beyond max_depth because the redirect and the login screen each cost a level.
+        GatedPortal.requested = []
+        with serve(GatedPortal) as base_url:
+            result = run_scan(base_url + "/index.php", mode="safe_active", allow_private=True,
+                              auth_headers={"Cookie": GatedPortal.SESSION})
+        self.assertTrue(result["ok"])
+        crawled = result["crawled_urls"]
+        for number in list(GatedPortal.MENU) + ["9"]:
+            self.assertIn(f"{base_url}/index.php?p={number}", crawled, f"screen p={number} was not analysed")
+        self.assertEqual(0, result["pages_not_visited"], result["not_visited_urls"])
+        xss = [f for f in result["findings"] if f["fingerprint"].startswith("xss.")]
+        self.assertTrue(any(f["parameter"] == "nota" for f in xss), "XSS on the last menu screen was missed")
+        self.assertNotIn("action=logout", " ".join(GatedPortal.requested))
+
     def test_every_screen_of_a_parameter_routed_app_is_analysed(self):
         PortalLike.requested = []
         with serve(PortalLike) as base_url:

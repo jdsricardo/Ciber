@@ -164,9 +164,10 @@ executadas, páginas analisadas, achados, status HTTP da primeira página e dura
 A seção **Cobertura da análise**, depois dos achados, diz quanto do site o resultado representa:
 a lista das páginas analisadas, quantos arquivos JavaScript foram lidos em busca de endpoints e
 quantas variações de um mesmo modelo não foram repetidas. Se aparecer o aviso *"N páginas
-encontradas não foram analisadas"*, a análise atingiu o limite de páginas, de profundidade ou de
-requisições: essas páginas (listadas em **Ver quais**) podem ter problemas que não aparecem no
-resultado. Para cobri-las, registre-as como aplicações próprias e analise-as separadamente.
+encontradas não foram analisadas"*, a análise atingiu o limite de páginas, de requisições ou de
+tempo, ou essas páginas não responderam: elas (listadas em **Ver quais**) podem ter problemas que
+não aparecem no resultado. Para cobri-las, registre como aplicação a primeira delas — o
+rastreamento parte dela e alcança as demais — ou cada uma separadamente.
 Uma página para a qual nada aponta, ou que só existe depois de o JavaScript montar a tela no
 navegador, não é encontrada — registre o endereço dela diretamente.
 

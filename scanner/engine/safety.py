@@ -69,6 +69,9 @@ class SafetyController:
         self.per_endpoint: Counter[str] = Counter()
         self.last_request = 0.0
         self.lock = Lock()
+        # The page being analysed (see begin_page): requests to its path are budgeted per page.
+        self.page_path = ""
+        self.page_key = ""
 
         parsed = urlparse(context.target_url)
         self.scheme = parsed.scheme
@@ -98,6 +101,13 @@ class SafetyController:
         if self._resolve(parsed.hostname) != self.pinned_addresses:
             raise ScopeViolation("A resolução DNS do alvo mudou durante a análise.")
 
+    def begin_page(self, url: str, key: str) -> None:
+        """Mark the page whose analysis starts now. `key` identifies the page among the pages
+        of the same path (the crawler's page signature)."""
+        with self.lock:
+            self.page_path = urlparse(url).path
+            self.page_key = key
+
     def before_request(self, request: HttpRequest) -> None:
         """Authorize one request, or raise. Charges the budget and applies the rate limit."""
         with self.lock:
@@ -109,7 +119,12 @@ class SafetyController:
             if self.total >= self.context.limits.max_requests:
                 raise BudgetExceeded("Limite global de requisições da análise atingido.")
 
-            endpoint = f"{request.method}:{urlparse(request.url).path}"
+            path = urlparse(request.url).path
+            endpoint = f"{request.method}:{path}"
+            if self.page_key and path == self.page_path:
+                # One script that serves many screens (`index.php?p=12`, `?p=14`): each screen
+                # is its own endpoint, or the first screens would spend the budget of all others.
+                endpoint += "#" + self.page_key
             if self.per_endpoint[endpoint] >= self.context.limits.max_requests_per_endpoint:
                 raise EndpointBudgetExceeded("Limite de requisições por endpoint atingido.")
 

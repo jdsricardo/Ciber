@@ -115,9 +115,11 @@ inferidos a partir de uma anomalia genérica.
   de formulários GET e o destino de redirecionamento para as profundidades seguintes. Isso fecha a
   lacuna em que a análise de uma página de login (ou de qualquer página de entrada) deixava de ver
   uma página desprotegida a um clique dali — o motor agora a descobre e a testa sozinho.
-- Limites e segurança: o rastreamento é limitado por `max_pages` e `max_depth` (perfis: passivo
-  30 páginas / profundidade 3, ativo 20 páginas / profundidade 2; ambos ajustáveis com
-  `--max-pages`/`--max-depth`, e `max_pages=1` restaura a análise de página única). A navegação é
+- Limites e segurança: o rastreamento é limitado por `max_pages` e pelos orçamentos de
+  requisições e de tempo; `max_depth` define a ordem (perfis: passivo 30 páginas / profundidade 3,
+  ativo 20 páginas / profundidade 2; ambos ajustáveis com `--max-pages`/`--max-depth`, e
+  `max_pages=1` restaura a análise de página única). Páginas além de `max_depth` só são visitadas
+  depois de todas as mais próximas (ver D-12 abaixo). A navegação é
   somente leitura — links de logout/sair e links que alteram estado (`?action=delete`,
   `?remove=`, …) nunca são seguidos, então um rastreamento autenticado não derruba a própria sessão
   nem altera o estado do servidor ao navegar. Todas as requisições compartilham um único orçamento
@@ -176,9 +178,27 @@ Como funciona agora (`engine/crawler.py`, `CrawlFrontier`; laço em `ScanRunner.
    segmento seja uma ação destrutiva é seguido (`/user/delete/5`, `delete_user_ajax.php`,
    `/pedido/excluir`), o que importa agora que endpoints de AJAX entram no rastreamento.
 7. **Cobertura relatada.** O resultado informa as páginas analisadas, quantas foram encontradas e
-   não analisadas (limite de páginas, de profundidade ou de requisições) com as primeiras 50, as
-   variações de modelo não repetidas e os scripts lidos. A aplicação grava isso com a análise
-   (`analyses.crawl_coverage`) e mostra na seção *Cobertura da análise* do resultado.
+   não analisadas (limite de páginas ou de requisições/tempo, ou página que não respondeu) com as
+   primeiras 50, as variações de modelo não repetidas e os scripts lidos. A aplicação grava isso
+   com a análise (`analyses.crawl_coverage`) e mostra na seção *Cobertura da análise* do resultado.
+
+### Correção de cobertura em sistema com login (D-12, 2026-11-25)
+
+Caso real: o Portal de Clientes (homologação), cadastrado como `…/index.php` com um `PHPSESSID`
+válido, teve 5 páginas analisadas e **12 telas do menu listadas como "não analisadas"**, com o
+orçamento quase intacto (23 s de uma análise que pode durar 600 s). Reproduzido com o laboratório
+`GatedPortal` de `tests/test_crawler.py`, que imita o desenho do Portal. Causas e correções:
+
+| Causa | Correção |
+|---|---|
+| A profundidade era um muro: o redirecionamento `index.php → ?p=2` e a tela de login (sem menu) gastavam os 2 níveis do modo completo antes de chegar ao painel `?p=12`, o primeiro com o menu; tudo o que o menu ligava ficava "além da profundidade". | Um redirecionamento mantém a profundidade da página (é onde ela realmente está, não um clique). E `max_depth` passa a **ordenar** o rastreamento em vez de cortá-lo: páginas mais distantes esperam numa terceira fila, visitada depois de todas as mais próximas, enquanto durarem os orçamentos de páginas, requisições e tempo — esses é que limitam a análise. |
+| Orçamento "por endpoint" contado pelo caminho: todas as telas `index.php?p=N` são o mesmo `GET:/index.php`, então as primeiras telas gastariam as 120 requisições de todas as outras, que seriam puladas **sem aviso**. | O `SafetyController` conta as requisições ao caminho da página em análise por página (`begin_page`): cada tela tem seu próprio limite. O limite global (2.500) e o intervalo entre requisições não mudam. Uma página que não pôde ser buscada passa a constar como não analisada. |
+| Um formulário GET (busca, filtro) era seguido só pelo `action`, sem os campos, e seus campos eram enviados por POST à página — uma busca vulnerável numa tela interna passava despercebida. | O formulário GET vira a URL que o envio dele pede (`index.php?p=33&nota=`), e seus campos são testados como parâmetros da URL. Senhas, arquivos e botões não entram. |
+
+No laboratório `GatedPortal`, modo completo, limites padrão: antes 6 páginas e 12 telas não
+analisadas, XSS da tela de busca não encontrado; depois 17 páginas, nenhuma deixada de fora, XSS
+encontrado, 850 requisições em 86 s. Laboratório da suíte de sistema e `loja.py`: mesmas páginas,
+mesmas requisições e mesmos achados antes e depois (137/14 e 124/14 → 120/1).
 
 Medição antes/depois, com os sites de laboratório de `tests/test_crawler.py` (mesma máquina,
 modo indicado, limites padrão):
@@ -213,8 +233,11 @@ catálogo); o ganho é cobrir telas que antes eram silenciosamente ignoradas.
     (limitação L-03 do documento final);
   - áreas com login só são alcançadas com um cookie de sessão válido, e a sessão cai se o usuário
     sair no navegador durante a análise;
-  - os limites de páginas (30/20) e de profundidade (3/2) podem deixar telas de fora num sistema
-    grande — agora isso aparece na seção *Cobertura da análise* em vez de passar despercebido;
+  - o limite de páginas (30/20) pode deixar telas de fora num sistema grande — isso aparece na
+    seção *Cobertura da análise* em vez de passar despercebido; a profundidade (3/2) só define a
+    ordem de visita;
+  - se o cookie de sessão for recusado pelo alvo (expirado, ou colado sem o nome `PHPSESSID=`), a
+    análise segue como visitante sem avisar — o resultado mostra só as páginas públicas;
   - duas telas diferentes com exatamente os mesmos rótulos, campos e layout seriam tomadas pelo
     mesmo modelo; a segunda só seria analisada até a terceira repetição seguida do formato.
 - **NoSQL:** uma página que devolve sempre o mesmo 404 pode gerar o falso positivo

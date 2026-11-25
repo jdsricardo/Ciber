@@ -4,6 +4,21 @@ Todas as mudanças relevantes do SentinelScope. Formato baseado em [Keep a Chang
 
 ## [Não lançado] — 2026-11-25 · Rastreamento inteligente e cobertura da análise
 
+### Corrigido (D-12, cobertura em sistema com login)
+- **Telas do menu ficavam "não analisadas" com o orçamento sobrando.** Num portal cadastrado pela
+  URL de entrada (`index.php` → login → painel), o redirecionamento e a tela de login gastavam a
+  profundidade e as telas do menu ficavam de fora. Redirecionamentos não contam mais como um
+  nível, e a profundidade passou a ordenar o rastreamento em vez de cortá-lo: páginas mais
+  distantes são visitadas depois das próximas, enquanto durarem os limites de páginas,
+  requisições e tempo (`scanner/engine/crawler.py`, `runner.py`).
+- O limite de requisições por endpoint era dividido entre todas as telas de um mesmo script
+  (`index.php?p=N`); agora cada tela tem o seu (`SafetyController.begin_page`). Páginas que não
+  puderam ser buscadas passam a constar como não analisadas.
+- Formulários GET (busca, filtro) são seguidos com seus campos (`index.php?p=33&nota=`), e esses
+  campos são testados como parâmetros da URL.
+- Teste novo: laboratório `GatedPortal` em `tests/test_crawler.py` (antes 6 páginas e 12 telas de
+  fora; depois 17 páginas, nenhuma de fora, XSS da busca encontrado).
+
 ### Corrigido
 - **Telas de aplicações roteadas por parâmetro eram ignoradas.** O rastreador agrupava páginas
   pelos *nomes* dos parâmetros, então `index.php?p=12` e `index.php?p=14` contavam como uma página

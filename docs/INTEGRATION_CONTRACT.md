@@ -73,7 +73,7 @@ aplicação web.
 | `requests_made` | int | Requisições enviadas, somando rastreamento e sondagem. |
 | `pages_scanned` | int | Páginas distintas visitadas pelo rastreador. |
 | `crawled_urls` | lista de string | Essas páginas, na ordem de visita. |
-| `pages_not_visited` | int ≥ 0 | Páginas dentro do escopo que foram descobertas mas não analisadas (limite de páginas, de profundidade ou de requisições). Variações de um modelo já analisado não contam. |
+| `pages_not_visited` | int ≥ 0 | Páginas dentro do escopo que foram descobertas mas não analisadas (limite de páginas, de requisições ou de tempo, ou página que não respondeu). Variações de um modelo já analisado não contam. |
 | `not_visited_urls` | lista de string | As primeiras dessas páginas (até 50). |
 | `template_variants_skipped` | int ≥ 0 | Variações de uma página reconhecidas como o mesmo modelo de outra já analisada (por exemplo `/produto?id=2…40`) e por isso não analisadas de novo. |
 | `scripts_read` | int ≥ 0 | Arquivos JavaScript da própria origem lidos em busca das URLs que chamam. |

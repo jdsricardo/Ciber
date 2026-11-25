@@ -187,8 +187,9 @@ final class Views
             $more = $coverage->notVisitedCount - count($coverage->notVisitedUrls);
             $html .= '<div class="coverage-gap"><b>' . $coverage->notVisitedCount
                 . ($coverage->notVisitedCount === 1 ? ' página encontrada não foi analisada' : ' páginas encontradas não foram analisadas')
-                . '</b> porque a análise atingiu o limite de páginas, de profundidade ou de requisições. '
-                . 'Elas podem conter problemas não listados acima; para cobri-las, cadastre-as como aplicações próprias.'
+                . '</b> porque a análise atingiu o limite de páginas, de requisições ou de tempo, ou porque não responderam. '
+                . 'Elas podem conter problemas não listados acima; para cobri-las, cadastre como aplicação a primeira delas '
+                . '(o rastreamento parte dela e alcança as demais) ou cada uma separadamente.'
                 . '<details' . $open . '><summary>Ver quais</summary>' . $list($coverage->notVisitedUrls)
                 . ($more > 0 ? '<p>… e mais ' . $more . '.</p>' : '') . '</details></div>';
         }

@@ -47,6 +47,9 @@ SKIP_EXTENSIONS = re.compile(
     r"(?i)\.(png|jpe?g|gif|svg|ico|bmp|webp|css|js|mjs|map|woff2?|ttf|otf|eot|"
     r"pdf|zip|gz|tar|rar|7z|mp4|webm|mp3|wav|avi|mov|doc|docx|xls|xlsx|ppt|pptx)(?:$|\?)")
 
+# Form controls a GET submission does not turn into query parameters worth testing.
+FORM_CONTROLS_NOT_SENT = frozenset({"submit", "button", "reset", "image", "file", "password"})
+
 # --- URLs written in JavaScript ---------------------------------------------------------------
 # A quoted literal (single, double or template quotes) on one line.
 JS_STRING = re.compile(r"""(["'`])([^"'`\r\n]{1,400}?)\1""")
@@ -85,17 +88,23 @@ class _LinkParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
         self.hrefs: list[str] = []
-        self.forms: list[tuple[str, str]] = []
+        # (action, method, fields) per form; fields are the named controls a submission sends.
+        self.forms: list[tuple[str, str, list[tuple[str, str]]]] = []
         self.script_sources: list[str] = []
         self.inline_scripts: list[str] = []
         self._in_inline_script = False
+        self._in_form = False
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         pairs = {key.lower(): (value or "") for key, value in attrs}
         if tag == "a" and pairs.get("href"):
             self.hrefs.append(pairs["href"])
         elif tag == "form":
-            self.forms.append((pairs.get("action", ""), pairs.get("method", "get").lower()))
+            self.forms.append((pairs.get("action", ""), pairs.get("method", "get").lower(), []))
+            self._in_form = True
+        elif (self._in_form and tag in ("input", "select", "textarea") and pairs.get("name")
+              and pairs.get("type", "").lower() not in FORM_CONTROLS_NOT_SENT):
+            self.forms[-1][2].append((pairs["name"], pairs.get("value", "")))
         elif tag == "script":
             if pairs.get("src"):
                 self.script_sources.append(pairs["src"])
@@ -110,6 +119,8 @@ class _LinkParser(HTMLParser):
     def handle_endtag(self, tag: str) -> None:
         if tag == "script":
             self._in_inline_script = False
+        elif tag == "form":
+            self._in_form = False
 
     def handle_data(self, data: str) -> None:
         if self._in_inline_script:
@@ -145,17 +156,27 @@ def _unique(urls: list[str | None]) -> list[str]:
 def extract_links(base_url: str, body: str) -> list[str]:
     """Absolute, de-fragmented URLs worth crawling from one HTML document.
 
-    Anchor targets and `data-url`/`data-href` attributes are always collected. Form actions are
-    collected only for GET forms — a POST form is a state-changing submission, not a navigable
-    page, and its fields are already probed in place by the active plugins on the page where the
-    form lives. URLs written in inline scripts and `on*` handlers are added (see
-    `urls_from_javascript`); external script files are listed by `extract_script_sources`.
+    Anchor targets and `data-url`/`data-href` attributes are always collected. GET forms are
+    collected as the URL their submission requests — the action with the form's fields as its
+    query (`index.php?p=33&nota=`), so a search form becomes a page whose parameters the active
+    plugins test. A POST form is a state-changing submission, not a navigable page, and its fields
+    are already probed in place by the active plugins on the page where the form lives. URLs
+    written in inline scripts and `on*` handlers are added (see `urls_from_javascript`); external
+    script files are listed by `extract_script_sources`.
     """
     parser = _parse(body)
     if parser is None:
         return []
     candidates = list(parser.hrefs)
-    candidates += [action for action, method in parser.forms if method == "get" and action]
+    for action, method, fields in parser.forms:
+        if method != "get":
+            continue
+        if fields:
+            # A GET submission replaces the action's query with the form's fields.
+            target = urljoin(base_url, action.strip() or base_url).split("?", 1)[0].split("#", 1)[0]
+            candidates.append(target + "?" + urlencode(fields))
+        elif action:
+            candidates.append(action)
     out = [_absolute(base_url, href) for href in candidates]
     for script in parser.inline_scripts:
         out += urls_from_javascript(base_url, script)
@@ -360,7 +381,13 @@ class CrawlFrontier:
     TEMPLATE_STREAK_LIMIT such repeats in a row the shape's remaining variants are skipped. The
     frontier also remembers what could not be visited, so the scan can report it.
 
-    Deques, not lists: both queues are consumed from the front (see
+    `max_depth` orders the crawl, it does not wall it: pages farther than `max_depth` links from
+    the seed wait in a third queue, visited only once everything nearer has been, while the page,
+    request and time budgets last. A depth wall used to leave found pages unanalysed with most of
+    the budget unspent (a login screen and a redirect in front of a menu already cost two levels);
+    the real bounds of a scan are its budgets, and `max_depth` keeps nearer pages first.
+
+    Deques, not lists: the queues are consumed from the front (see
     evaluation/benchmark_structures.py); `enqueued` is a set because it is asked once per link.
     """
 
@@ -369,11 +396,12 @@ class CrawlFrontier:
         self.duplicate_budget = duplicate_budget
         self.fresh: deque[tuple[str, int]] = deque([(seed_url, 0)])
         self.variants: deque[tuple[str, int]] = deque()
+        self.deeper: deque[tuple[str, int]] = deque()
         self.enqueued: set[str] = {page_signature(seed_url)}
         self.queued_shapes: set[str] = {page_shape(seed_url)}
         self.shapes: dict[str, ShapeState] = {}
-        self.beyond_depth: list[str] = []
         self.out_of_budget: list[str] = []
+        self.unreachable: list[str] = []
         self.template_variants_skipped = 0
         self.duplicates_fetched = 0
 
@@ -387,7 +415,7 @@ class CrawlFrontier:
             return
         self.enqueued.add(signature)
         if depth > self.max_depth:
-            self.beyond_depth.append(url)
+            self.deeper.append((url, depth))
             return
         shape = page_shape(url)
         if shape in self.queued_shapes:
@@ -398,8 +426,8 @@ class CrawlFrontier:
 
     def pop(self) -> tuple[str, int] | None:
         """The next page worth fetching, or None when nothing is left."""
-        while self.fresh or self.variants:
-            url, depth = (self.fresh or self.variants).popleft()
+        while self.fresh or self.variants or self.deeper:
+            url, depth = (self.fresh or self.variants or self.deeper).popleft()
             state = self.state(url)
             if state.saturated:
                 self.template_variants_skipped += 1
@@ -425,10 +453,14 @@ class CrawlFrontier:
         state.structures.append(structure)
         return False
 
+    def failed(self, url: str) -> None:
+        """A popped page that could not be fetched (network error, its own request budget)."""
+        self.unreachable.append(url)
+
     def not_visited(self) -> list[str]:
         """In-scope pages that were discovered but not analysed: left in the queues when a limit
-        was reached, skipped when the budget for repeated templates ran out, or beyond the
-        maximum depth. Variants of a shape known to be a template are not listed."""
-        queued = [url for url, _ in list(self.fresh) + list(self.variants)
+        was reached, skipped when the budget for repeated templates ran out, or not fetched.
+        Variants of a shape known to be a template are not listed."""
+        queued = [url for url, _ in list(self.fresh) + list(self.variants) + list(self.deeper)
                   if not self.state(url).saturated]
-        return queued + self.out_of_budget + self.beyond_depth
+        return queued + self.out_of_budget + self.unreachable

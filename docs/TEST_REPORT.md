@@ -32,7 +32,7 @@ visitadas por falta de orçamento, foi escrito junto com a correção feita dura
 ⁴ As duas reprovações da execução 4 foram do ambiente de teste, não do produto (TW-05, TW-06, §4);
 os casos foram reexecutados na 4b sem nenhuma mudança no código do produto.
 
-**Resultado:** 11 defeitos encontrados (1 bloqueante, 7 altos, 2 médios, 1 baixo); **todos os 11
+**Resultado:** 12 defeitos encontrados (1 bloqueante, 8 altos, 2 médios, 1 baixo); **todos os 12
 corrigidos e verificados pela reexecução dos casos que os revelaram** (§3). Nenhum defeito
 permanece aberto. Todos os casos planejados foram executados, exceto o **MT-04** — instalação por
 uma pessoa de fora da equipe —, do qual depende o CA-07.
@@ -139,6 +139,7 @@ reexecutado sobre o código corrigido e passou (execução 2) — não apenas qu
 | D-09 | Alta | O histórico não pode ser consultado por período, como exige o item 6 do Termo ("consultar o histórico … por período") | Conferência cruzada do Termo com o produto; ST-25 (execução 3a) | Não implementado: o painel sempre listava o histórico inteiro. | `Domain\Model\Period`; `AnalysisRepository::listByApplication()` recebe um período opcional, um intervalo sobre o índice `(application_id, started_at)`; formulário *Histórico por período* no painel. | ST-25, AT-02 ✔ |
 | D-10 | Alta | A exportação JSON não tem um resumo de fato, como exige o item 8 do Termo ("resumo, Pontuação de Segurança, metadados e relação dos achados") | Conferência cruzada do Termo com o produto; ST-26 (execução 3a) | `summary` trazia apenas o número de achados. | `summary` com `by_severity`, `manual_review_required` e `security_score`. | ST-26, AT-02 ✔ |
 | D-11 | Alta | Telas de aplicações roteadas por parâmetro (`index.php?p=12`, `?p=14`) eram tratadas como uma única página: só a primeira tela do menu era analisada, sem aviso | Uso da ferramenta contra o desenho do Portal de Clientes e do PIM (2026-11-25); reproduzido em `tests/test_crawler.py` (`PortalLike`) | `page_signature` agrupava páginas pelos *nomes* dos parâmetros, ignorando os valores, para não visitar `/produto?id=1..N` muitas vezes; o mesmo critério juntava telas diferentes. Além disso, endpoints chamados por JavaScript não eram descobertos e a cobertura não era informada. | Assinatura com valores; `page_shape` + reconhecimento de modelo de página (`CrawlFrontier`, `page_structure`); URLs lidas no JavaScript; cobertura relatada, gravada e exibida (contrato 1.3). | AT-01 (`SmartCrawlTests`: antes 1 página e 0 de 2 XSS; depois 6 páginas e 2 de 2), ST-27, AT-02 ✔ |
+| D-12 | Alta | Num sistema com login cadastrado pela URL de entrada, as telas do menu eram listadas como "não analisadas" com o orçamento quase intacto (Portal de Clientes, homologação: 5 páginas analisadas, 12 de fora, 23 s de 600 s) | Uso real contra o Portal com `PHPSESSID` válido (2026-11-25); reproduzido em `tests/test_crawler.py` (`GatedPortal`) | Três causas: o redirecionamento `index.php → ?p=2` e a tela de login sem menu gastavam os 2 níveis de profundidade do modo completo, e o que o menu ligava ficava além do limite; o limite por endpoint era contado pelo caminho, então todas as telas `index.php?p=N` dividiam 120 requisições (as últimas seriam puladas sem aviso); formulários GET eram seguidos sem os campos e os campos enviados por POST. | Redirecionamento mantém a profundidade; profundidade ordena em vez de cortar (terceira fila, visitada enquanto houver orçamento); limite por endpoint por tela (`begin_page`); página não obtida relatada como não analisada; formulário GET seguido com seus campos. | AT-01 (`GatedPortal`: antes 6 páginas, 12 de fora, XSS da busca não encontrado; depois 17 páginas, nenhuma de fora, XSS encontrado); laboratório da suíte de sistema e `loja.py` com páginas, requisições e achados idênticos antes/depois ✔ |
 | D-08 | Baixa | A versão 1.0 do contrato não listava `cookie` como `parameter_location` | AT-01 (contrato) | Omissão de documentação; o produtor sempre o emitiu. | Contrato v1.1; teste do produtor atualizado. | AT-01 ✔ |
 
 ### 3.1 Passos de reprodução (no código anterior às correções)
@@ -288,3 +289,19 @@ laboratório de `tests/test_crawler.py`, limites padrão):
 
 Os registros criados no banco pela suíte e pela verificação manual foram apagados depois da
 execução (com backup local), para devolver a instalação ao estado vazio usado na apresentação.
+
+### 9.1 Correção D-12 (2026-11-25, mesma data)
+
+AT-01 `python -m unittest discover -s tests`: 130 testes, OK (392 s) — 125 anteriores + 5 novos
+(`GatedPortal`, formulário GET, profundidade como ordem, página não obtida relatada, limite por
+tela). Para confirmar que a correção não mudou o resultado de referência, o motor anterior
+(`master`) e o corrigido foram executados contra os mesmos alvos, limites padrão:
+
+| Alvo | Modo | Anterior (páginas / requisições / achados) | Corrigido |
+|---|---|---|---|
+| Laboratório da suíte, `vulnerable` | passivo | 5 / 10 / 12 | 5 / 10 / 12 |
+| | completo | 5 / 137 / 14 | 5 / 137 / 14 |
+| Laboratório da suíte, `fixed` | passivo | 5 / 10 / 8 | 5 / 10 / 8 |
+| | completo | 5 / 133 / 8 | 5 / 133 / 8 |
+| `loja.py --modo vulneravel` | completo | 4 / 124 / 14 | 4 / 124 / 14 |
+| `loja.py --modo corrigido` | completo | 4 / 120 / 1 | 4 / 120 / 1 |
