@@ -1,0 +1,14 @@
+{
+  "pages_analysed": 5,
+  "analysed_urls": [
+    "http://127.0.0.1:8765/",
+    "http://127.0.0.1:8765/search?q=livros",
+    "http://127.0.0.1:8765/profile?name=ana",
+    "http://127.0.0.1:8765/about",
+    "http://127.0.0.1:8765/account"
+  ],
+  "pages_not_visited": 0,
+  "not_visited_urls": [],
+  "template_variants_skipped": 0,
+  "scripts_read": 0
+}

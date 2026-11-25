@@ -56,7 +56,9 @@ def contract_violations(document: dict) -> list[str]:
 
     for field, kind in (("status_code", int), ("duration_ms", int), ("checks_run", int),
                         ("plugins_run", int), ("requests_made", int), ("pages_scanned", int),
-                        ("crawled_urls", list), ("findings", list), ("scanned_at", str)):
+                        ("crawled_urls", list), ("pages_not_visited", int), ("not_visited_urls", list),
+                        ("template_variants_skipped", int), ("scripts_read", int),
+                        ("findings", list), ("scanned_at", str)):
         if not isinstance(document.get(field), kind):
             problems.append(f"{field} must be {kind.__name__}")
     if isinstance(document.get("duration_ms"), int) and document["duration_ms"] < 0:

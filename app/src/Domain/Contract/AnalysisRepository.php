@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Contract;
 
 use App\Domain\Model\Analysis;
+use App\Domain\Model\CrawlCoverage;
 use App\Domain\Model\Period;
 use App\Domain\Model\SecurityScore;
 
@@ -30,6 +31,7 @@ interface AnalysisRepository
         int $checksRun,
         int $durationMs,
         int $httpStatus,
+        ?CrawlCoverage $coverage = null,
     ): void;
 
     public function markFailed(int $analysisId, string $errorMessage): void;

@@ -86,6 +86,7 @@ final class RunAnalysis
                     $result->checksRun,
                     $result->durationMs,
                     $result->httpStatus,
+                    $result->coverage,
                 );
             });
         } catch (Throwable $error) {

@@ -7,6 +7,7 @@ namespace App\Presentation;
 use App\Domain\Model\Analysis;
 use App\Domain\Model\AnalysisStatus;
 use App\Domain\Model\Application;
+use App\Domain\Model\CrawlCoverage;
 use App\Domain\Model\Finding;
 use App\Domain\Model\Period;
 use App\Domain\Model\ScanMode;
@@ -137,6 +138,9 @@ final class Views
         return $body
             . '<div class="metrics">'
             . '<div><span>Verificações executadas</span><b>' . $analysis->checksRun . '</b></div>'
+            . ($analysis->coverage !== null
+                ? '<div><span>Páginas analisadas</span><b>' . $analysis->coverage->pagesAnalysed() . '</b></div>'
+                : '')
             . '<div><span>Achados</span><b>' . count($findings) . '</b></div>'
             . '<div><span>Status HTTP</span><b>' . $analysis->httpStatus . '</b></div>'
             . '<div><span>Duração</span><b>' . $analysis->durationMs . ' ms</b></div></div>'
@@ -144,12 +148,51 @@ final class Views
             . self::severityFilter($findings)
             . ($rendered !== '' ? $rendered
                 : '<div class="empty">Nenhum problema foi detectado pelas verificações configuradas.</div>')
+            . ($analysis->coverage !== null ? self::coverage($analysis->coverage, $printable) : '')
             . '<section class="limitations"><h2>Escopo e limitações</h2><p>'
             . ($analysis->mode === ScanMode::Passive
                 ? 'Esta é uma avaliação passiva: apenas observação de respostas, sem envio de payloads de teste.'
                 : 'Esta análise incluiu testes ativos com payloads seguros e não destrutivos.')
             . ' Ela não prova a ausência de vulnerabilidades e não substitui um teste de intrusão '
-            . 'profissional.</p></section>';
+            . 'profissional.</p><p>As páginas são descobertas a partir do endereço informado, seguindo links, '
+            . 'formulários GET, redirecionamentos e URLs escritas no JavaScript da própria aplicação. '
+            . 'Uma página para a qual nada aponta não é encontrada, conteúdo montado no navegador por '
+            . 'JavaScript não é lido, e áreas com login só são alcançadas com um cookie de sessão.</p></section>';
+    }
+
+    /** Which pages the analysis covered and which it found but left out (limitation L-06). */
+    private static function coverage(CrawlCoverage $coverage, bool $printable): string
+    {
+        $open = $printable ? ' open' : '';
+        $list = static fn(array $urls): string => '<ul class="url-list">' . implode('', array_map(
+            static fn(string $url): string => '<li><code>' . Html::escape($url) . '</code></li>',
+            $urls
+        )) . '</ul>';
+
+        $facts = [$coverage->pagesAnalysed() . ' ' . ($coverage->pagesAnalysed() === 1 ? 'página analisada' : 'páginas analisadas')];
+        if ($coverage->scriptsRead > 0) {
+            $facts[] = $coverage->scriptsRead . ' ' . ($coverage->scriptsRead === 1 ? 'arquivo JavaScript lido' : 'arquivos JavaScript lidos')
+                . ' em busca de endpoints';
+        }
+        if ($coverage->templateVariantsSkipped > 0) {
+            $facts[] = $coverage->templateVariantsSkipped . ' variações de páginas com o mesmo modelo de outra já analisada '
+                . '(por exemplo, outros produtos de um catálogo) não foram repetidas';
+        }
+
+        $html = '<section class="coverage"><h2>Cobertura da análise</h2><p>' . Html::escape(implode('; ', $facts)) . '.</p>'
+            . '<details' . $open . '><summary>Páginas analisadas (' . $coverage->pagesAnalysed() . ')</summary>'
+            . $list($coverage->analysedUrls) . '</details>';
+
+        if ($coverage->notVisitedCount > 0) {
+            $more = $coverage->notVisitedCount - count($coverage->notVisitedUrls);
+            $html .= '<div class="coverage-gap"><b>' . $coverage->notVisitedCount
+                . ($coverage->notVisitedCount === 1 ? ' página encontrada não foi analisada' : ' páginas encontradas não foram analisadas')
+                . '</b> porque a análise atingiu o limite de páginas, de profundidade ou de requisições. '
+                . 'Elas podem conter problemas não listados acima; para cobri-las, cadastre-as como aplicações próprias.'
+                . '<details' . $open . '><summary>Ver quais</summary>' . $list($coverage->notVisitedUrls)
+                . ($more > 0 ? '<p>… e mais ' . $more . '.</p>' : '') . '</details></div>';
+        }
+        return $html . '</section>';
     }
 
     /** @param array{older:Analysis,newer:Analysis,new:array,persistent:array,fixed:array} $diff */

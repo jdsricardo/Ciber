@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Versão do contrato | **1.2** |
+| Versão do contrato | **1.3** |
 | Situação | Normativo. Uma mudança em qualquer regra abaixo exige uma nova versão e uma entrada no histórico de alterações no fim deste documento. |
 | Produtor | Motor do scanner — `scanner/scanner.py` (Python 3.10+, somente biblioteca padrão) |
 | Consumidor | `App\Infrastructure\Scanner\PythonScannerGateway` → `App\Domain\Model\ScanResult` (PHP 8.2+) |
@@ -73,13 +73,19 @@ aplicação web.
 | `requests_made` | int | Requisições enviadas, somando rastreamento e sondagem. |
 | `pages_scanned` | int | Páginas distintas visitadas pelo rastreador. |
 | `crawled_urls` | lista de string | Essas páginas, na ordem de visita. |
+| `pages_not_visited` | int ≥ 0 | Páginas dentro do escopo que foram descobertas mas não analisadas (limite de páginas, de profundidade ou de requisições). Variações de um modelo já analisado não contam. |
+| `not_visited_urls` | lista de string | As primeiras dessas páginas (até 50). |
+| `template_variants_skipped` | int ≥ 0 | Variações de uma página reconhecidas como o mesmo modelo de outra já analisada (por exemplo `/produto?id=2…40`) e por isso não analisadas de novo. |
+| `scripts_read` | int ≥ 0 | Arquivos JavaScript da própria origem lidos em busca das URLs que chamam. |
 | `findings` | lista de *Finding* | Todos os achados, já deduplicados entre páginas. Pode estar vazia. |
 | `scanned_at` | string | Data e hora ISO-8601 em UTC. |
 | `stopped_early` | string, opcional | `budget_exceeded`, `cancelled` ou `scope_violation` quando a varredura terminou antes de esgotar o rastreamento. Os achados reunidos até ali continuam válidos. |
 | `plugin_warnings` | lista de string, opcional | Plugins que não puderam ser carregados. |
 
-Atualmente o consumidor lê `ok`, `findings`, `checks_run`, `duration_ms` e `status_code`; os
-demais campos são informativos e podem ser ignorados.
+Atualmente o consumidor lê `ok`, `findings`, `checks_run`, `duration_ms`, `status_code` e os campos
+de cobertura (`crawled_urls`, `pages_not_visited`, `not_visited_urls`, `template_variants_skipped`,
+`scripts_read`, em `App\Domain\Model\CrawlCoverage`); os demais campos são informativos e podem ser
+ignorados. Um documento sem `crawled_urls` é lido como "cobertura desconhecida", não como zero páginas.
 
 ### 3.2 Achado (*Finding*)
 
@@ -176,6 +182,7 @@ mesmo" que um achado da análise mais nova. A identidade de um achado é a tupla
 
 | Versão | Data | Alteração |
 |---|---|---|
+| 1.3 | 2026-11-25 | Acrescentados `pages_not_visited`, `not_visited_urls`, `template_variants_skipped` e `scripts_read` (§3.1), produzidos pelo rastreamento que passou a distinguir páginas pelo valor dos parâmetros, reconhecer variações de um mesmo modelo e ler URLs no JavaScript. O consumidor passa a ler a cobertura e a gravá-la com a análise. Só acréscimos: alteração *minor*. |
 | 1.2 | 2026-11-24 | Documento traduzido para o português. `stopped_early` também assume `scope_violation`, que o produtor sempre emitiu (omissão de documentação). Exemplo e causas do §3.3 corrigidos para as mensagens reais. As mensagens de escopo, orçamento e cancelamento do motor, que eram em inglês contrariando o §3.3, passaram a ser em português (`scanner/engine/safety.py`, `scanner/engine/runner.py`). Nenhum campo mudou: alteração *minor*. |
 | 1.1 | 2026-10-14 | `parameter_location` também assume `cookie`, que o plugin de cookies sempre emitiu (`cookies.missing_httponly`, `cookies.missing_samesite`, …). A versão 1.0 o omitia; o teste de conformidade do produtor revelou a omissão (defeito D-08). Correção de documentação — nenhum código mudou em nenhum dos lados. |
 | 1.0 | 2026-10-14 | Primeira versão escrita do contrato que estava implícito em `ScanResult::fromEnginePayload` e `ScanRunner.run()` desde a Fase 1. Acrescenta as regras explícitas R1–R3, C1–C6, os limites de coluna do §3.2, o significado de `duration_ms` e a regra de identidade do §5. |

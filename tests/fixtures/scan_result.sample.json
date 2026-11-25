@@ -1,7 +1,7 @@
 {
   "ok": true,
   "status_code": 200,
-  "duration_ms": 14000,
+  "duration_ms": 13687,
   "plugins_run": 20,
   "checks_run": 64,
   "baseline_stability": 1.0,
@@ -14,6 +14,10 @@
     "http://lab.example.test/about",
     "http://lab.example.test/account"
   ],
+  "pages_not_visited": 0,
+  "not_visited_urls": [],
+  "template_variants_skipped": 0,
+  "scripts_read": 0,
   "findings": [
     {
       "fingerprint": "transport.https",
@@ -35,7 +39,7 @@
         "baseline": {
           "status": 200,
           "length": 393,
-          "elapsed_ms": 0
+          "elapsed_ms": 15
         },
         "probe_request": {
           "method": "GET",
@@ -47,13 +51,13 @@
         "probe_response": {
           "status": 200,
           "headers": {
-            "server": "LabTarget/1.0 Python/3.12.2",
-            "date": "Wed, 14 Oct 2026 23:13:17 GMT",
+            "server": "LabTarget/1.0 Python/3.12.10",
+            "date": "Wed, 25 Nov 2026 14:35:25 GMT",
             "content-type": "text/html; charset=utf-8",
             "content-length": "393",
             "set-cookie": "tracking=abc123; Path=/"
           },
-          "elapsed_ms": 0,
+          "elapsed_ms": 15,
           "snippet": "http://lab.example.test/"
         },
         "differences": {},
@@ -89,7 +93,7 @@
         "baseline": {
           "status": 200,
           "length": 393,
-          "elapsed_ms": 0
+          "elapsed_ms": 15
         },
         "probe_request": {
           "method": "GET",
@@ -101,13 +105,13 @@
         "probe_response": {
           "status": 200,
           "headers": {
-            "server": "LabTarget/1.0 Python/3.12.2",
-            "date": "Wed, 14 Oct 2026 23:13:17 GMT",
+            "server": "LabTarget/1.0 Python/3.12.10",
+            "date": "Wed, 25 Nov 2026 14:35:25 GMT",
             "content-type": "text/html; charset=utf-8",
             "content-length": "393",
             "set-cookie": "tracking=abc123; Path=/"
           },
-          "elapsed_ms": 0,
+          "elapsed_ms": 15,
           "snippet": ""
         },
         "differences": {},
@@ -143,7 +147,7 @@
         "baseline": {
           "status": 200,
           "length": 393,
-          "elapsed_ms": 0
+          "elapsed_ms": 15
         },
         "probe_request": {
           "method": "GET",
@@ -155,13 +159,13 @@
         "probe_response": {
           "status": 200,
           "headers": {
-            "server": "LabTarget/1.0 Python/3.12.2",
-            "date": "Wed, 14 Oct 2026 23:13:17 GMT",
+            "server": "LabTarget/1.0 Python/3.12.10",
+            "date": "Wed, 25 Nov 2026 14:35:25 GMT",
             "content-type": "text/html; charset=utf-8",
             "content-length": "393",
             "set-cookie": "tracking=abc123; Path=/"
           },
-          "elapsed_ms": 0,
+          "elapsed_ms": 15,
           "snippet": ""
         },
         "differences": {},
@@ -197,7 +201,7 @@
         "baseline": {
           "status": 200,
           "length": 393,
-          "elapsed_ms": 0
+          "elapsed_ms": 15
         },
         "probe_request": {
           "method": "GET",
@@ -209,13 +213,13 @@
         "probe_response": {
           "status": 200,
           "headers": {
-            "server": "LabTarget/1.0 Python/3.12.2",
-            "date": "Wed, 14 Oct 2026 23:13:17 GMT",
+            "server": "LabTarget/1.0 Python/3.12.10",
+            "date": "Wed, 25 Nov 2026 14:35:25 GMT",
             "content-type": "text/html; charset=utf-8",
             "content-length": "393",
             "set-cookie": "tracking=abc123; Path=/"
           },
-          "elapsed_ms": 0,
+          "elapsed_ms": 15,
           "snippet": ""
         },
         "differences": {},
@@ -251,7 +255,7 @@
         "baseline": {
           "status": 200,
           "length": 393,
-          "elapsed_ms": 0
+          "elapsed_ms": 15
         },
         "probe_request": {
           "method": "GET",
@@ -263,13 +267,13 @@
         "probe_response": {
           "status": 200,
           "headers": {
-            "server": "LabTarget/1.0 Python/3.12.2",
-            "date": "Wed, 14 Oct 2026 23:13:17 GMT",
+            "server": "LabTarget/1.0 Python/3.12.10",
+            "date": "Wed, 25 Nov 2026 14:35:25 GMT",
             "content-type": "text/html; charset=utf-8",
             "content-length": "393",
             "set-cookie": "tracking=abc123; Path=/"
           },
-          "elapsed_ms": 0,
+          "elapsed_ms": 15,
           "snippet": ""
         },
         "differences": {},
@@ -305,7 +309,7 @@
         "baseline": {
           "status": 200,
           "length": 393,
-          "elapsed_ms": 0
+          "elapsed_ms": 15
         },
         "probe_request": {
           "method": "GET",
@@ -317,13 +321,13 @@
         "probe_response": {
           "status": 200,
           "headers": {
-            "server": "LabTarget/1.0 Python/3.12.2",
-            "date": "Wed, 14 Oct 2026 23:13:17 GMT",
+            "server": "LabTarget/1.0 Python/3.12.10",
+            "date": "Wed, 25 Nov 2026 14:35:25 GMT",
             "content-type": "text/html; charset=utf-8",
             "content-length": "393",
             "set-cookie": "tracking=abc123; Path=/"
           },
-          "elapsed_ms": 0,
+          "elapsed_ms": 15,
           "snippet": ""
         },
         "differences": {},
@@ -359,7 +363,7 @@
         "baseline": {
           "status": 200,
           "length": 393,
-          "elapsed_ms": 0
+          "elapsed_ms": 15
         },
         "probe_request": {
           "method": "GET",
@@ -371,13 +375,13 @@
         "probe_response": {
           "status": 200,
           "headers": {
-            "server": "LabTarget/1.0 Python/3.12.2",
-            "date": "Wed, 14 Oct 2026 23:13:17 GMT",
+            "server": "LabTarget/1.0 Python/3.12.10",
+            "date": "Wed, 25 Nov 2026 14:35:25 GMT",
             "content-type": "text/html; charset=utf-8",
             "content-length": "393",
             "set-cookie": "tracking=abc123; Path=/"
           },
-          "elapsed_ms": 0,
+          "elapsed_ms": 15,
           "snippet": ""
         },
         "differences": {},
@@ -413,7 +417,7 @@
         "baseline": {
           "status": 200,
           "length": 393,
-          "elapsed_ms": 0
+          "elapsed_ms": 15
         },
         "probe_request": {
           "method": "GET",
@@ -425,13 +429,13 @@
         "probe_response": {
           "status": 200,
           "headers": {
-            "server": "LabTarget/1.0 Python/3.12.2",
-            "date": "Wed, 14 Oct 2026 23:13:17 GMT",
+            "server": "LabTarget/1.0 Python/3.12.10",
+            "date": "Wed, 25 Nov 2026 14:35:25 GMT",
             "content-type": "text/html; charset=utf-8",
             "content-length": "393",
             "set-cookie": "tracking=abc123; Path=/"
           },
-          "elapsed_ms": 0,
+          "elapsed_ms": 15,
           "snippet": ""
         },
         "differences": {},
@@ -467,7 +471,7 @@
         "baseline": {
           "status": 200,
           "length": 393,
-          "elapsed_ms": 0
+          "elapsed_ms": 15
         },
         "probe_request": {
           "method": "GET",
@@ -479,13 +483,13 @@
         "probe_response": {
           "status": 200,
           "headers": {
-            "server": "LabTarget/1.0 Python/3.12.2",
-            "date": "Wed, 14 Oct 2026 23:13:17 GMT",
+            "server": "LabTarget/1.0 Python/3.12.10",
+            "date": "Wed, 25 Nov 2026 14:35:25 GMT",
             "content-type": "text/html; charset=utf-8",
             "content-length": "393",
             "set-cookie": "tracking=abc123; Path=/"
           },
-          "elapsed_ms": 0,
+          "elapsed_ms": 15,
           "snippet": "tracking=abc123; Path=/"
         },
         "differences": {},
@@ -521,7 +525,7 @@
         "baseline": {
           "status": 200,
           "length": 393,
-          "elapsed_ms": 0
+          "elapsed_ms": 15
         },
         "probe_request": {
           "method": "GET",
@@ -533,13 +537,13 @@
         "probe_response": {
           "status": 200,
           "headers": {
-            "server": "LabTarget/1.0 Python/3.12.2",
-            "date": "Wed, 14 Oct 2026 23:13:17 GMT",
+            "server": "LabTarget/1.0 Python/3.12.10",
+            "date": "Wed, 25 Nov 2026 14:35:25 GMT",
             "content-type": "text/html; charset=utf-8",
             "content-length": "393",
             "set-cookie": "tracking=abc123; Path=/"
           },
-          "elapsed_ms": 0,
+          "elapsed_ms": 15,
           "snippet": "tracking=abc123; Path=/"
         },
         "differences": {},
@@ -575,7 +579,7 @@
         "baseline": {
           "status": 200,
           "length": 393,
-          "elapsed_ms": 0
+          "elapsed_ms": 15
         },
         "probe_request": {
           "method": "GET",
@@ -587,13 +591,13 @@
         "probe_response": {
           "status": 200,
           "headers": {
-            "server": "LabTarget/1.0 Python/3.12.2",
-            "date": "Wed, 14 Oct 2026 23:13:17 GMT",
+            "server": "LabTarget/1.0 Python/3.12.10",
+            "date": "Wed, 25 Nov 2026 14:35:25 GMT",
             "content-type": "text/html; charset=utf-8",
             "content-length": "393",
             "set-cookie": "tracking=abc123; Path=/"
           },
-          "elapsed_ms": 0,
+          "elapsed_ms": 15,
           "snippet": "Cache-Control: (absent)"
         },
         "differences": {},
@@ -629,7 +633,7 @@
         "baseline": {
           "status": 200,
           "length": 393,
-          "elapsed_ms": 0
+          "elapsed_ms": 15
         },
         "probe_request": {
           "method": "GET",
@@ -641,14 +645,14 @@
         "probe_response": {
           "status": 200,
           "headers": {
-            "server": "LabTarget/1.0 Python/3.12.2",
-            "date": "Wed, 14 Oct 2026 23:13:17 GMT",
+            "server": "LabTarget/1.0 Python/3.12.10",
+            "date": "Wed, 25 Nov 2026 14:35:25 GMT",
             "content-type": "text/html; charset=utf-8",
             "content-length": "393",
             "set-cookie": "tracking=abc123; Path=/"
           },
-          "elapsed_ms": 0,
-          "snippet": "Server: LabTarget/1.0 Python/3.12.2"
+          "elapsed_ms": 15,
+          "snippet": "Server: LabTarget/1.0 Python/3.12.10"
         },
         "differences": {},
         "verification_count": 1
@@ -670,7 +674,7 @@
       "cwe": "CWE-79",
       "owasp": "A05:2025 Injection",
       "wstg": "WSTG-INPV-01",
-      "endpoint": "http://lab.example.test/search?q=livros%3Csszz21489c0e+data-x%3D1%3E",
+      "endpoint": "http://lab.example.test/search?q=livros%3Csszz280fb4a8+data-x%3D1%3E",
       "method": "GET",
       "parameter": "q",
       "parameter_location": "query",
@@ -679,11 +683,11 @@
       "status": "high_confidence",
       "description": "Um marcador contendo caracteres HTML especiais foi refletido sem escaping no corpo da resposta, em uma posição de texto solto no HTML.",
       "evidence": {
-        "reason": "O parâmetro 'q' refletiu uma tag HTML não escapada ('<sszz21489c0e ...>') diretamente no corpo da resposta, em posição de texto solto.",
+        "reason": "O parâmetro 'q' refletiu uma tag HTML não escapada ('<sszz280fb4a8 ...>') diretamente no corpo da resposta, em posição de texto solto.",
         "baseline": {
           "status": 200,
           "length": 394,
-          "elapsed_ms": 0
+          "elapsed_ms": 31
         },
         "probe_request": {
           "method": "GET",
@@ -695,13 +699,13 @@
         "probe_response": {
           "status": 200,
           "headers": {
-            "server": "LabTarget/1.0 Python/3.12.2",
-            "date": "Wed, 14 Oct 2026 23:13:19 GMT",
+            "server": "LabTarget/1.0 Python/3.12.10",
+            "date": "Wed, 25 Nov 2026 14:35:27 GMT",
             "content-type": "text/html; charset=utf-8",
             "content-length": "394"
           },
-          "elapsed_ms": 0,
-          "snippet": "<sszz21489c0e data-x=1>"
+          "elapsed_ms": 31,
+          "snippet": "<sszz280fb4a8 data-x=1>"
         },
         "differences": {},
         "verification_count": 1
@@ -713,8 +717,8 @@
       "remediation_example_fixed": "// Codificacao de saida contextual (HTML) neutraliza tags/scripts injetados.\n$nome = htmlspecialchars($_GET['nome'], ENT_QUOTES | ENT_HTML5, 'UTF-8');\necho \"<p>Ola, {$nome}</p>\";",
       "remediation_example_language": "PHP",
       "remediation_example_note": "Codifique na saída conforme o contexto (HTML, atributo, JS, URL) e adote uma CSP restritiva.",
-      "affected_url": "http://lab.example.test/search?q=livros%3Csszz21489c0e+data-x%3D1%3E",
-      "evidence_summary": "O parâmetro 'q' refletiu uma tag HTML não escapada ('<sszz21489c0e ...>') diretamente no corpo da resposta, em posição de texto solto."
+      "affected_url": "http://lab.example.test/search?q=livros%3Csszz280fb4a8+data-x%3D1%3E",
+      "evidence_summary": "O parâmetro 'q' refletiu uma tag HTML não escapada ('<sszz280fb4a8 ...>') diretamente no corpo da resposta, em posição de texto solto."
     },
     {
       "fingerprint": "xss.reflected_html_text",
@@ -723,7 +727,7 @@
       "cwe": "CWE-79",
       "owasp": "A05:2025 Injection",
       "wstg": "WSTG-INPV-01",
-      "endpoint": "http://lab.example.test/profile?name=ana%3Csszz374f3bc6+data-x%3D1%3E",
+      "endpoint": "http://lab.example.test/profile?name=ana%3Csszz8fb01601+data-x%3D1%3E",
       "method": "GET",
       "parameter": "name",
       "parameter_location": "query",
@@ -732,11 +736,11 @@
       "status": "high_confidence",
       "description": "Um marcador contendo caracteres HTML especiais foi refletido sem escaping no corpo da resposta, em uma posição de texto solto no HTML.",
       "evidence": {
-        "reason": "O parâmetro 'name' refletiu uma tag HTML não escapada ('<sszz374f3bc6 ...>') diretamente no corpo da resposta, em posição de texto solto.",
+        "reason": "O parâmetro 'name' refletiu uma tag HTML não escapada ('<sszz8fb01601 ...>') diretamente no corpo da resposta, em posição de texto solto.",
         "baseline": {
           "status": 200,
           "length": 378,
-          "elapsed_ms": 16
+          "elapsed_ms": 32
         },
         "probe_request": {
           "method": "GET",
@@ -748,13 +752,13 @@
         "probe_response": {
           "status": 200,
           "headers": {
-            "server": "LabTarget/1.0 Python/3.12.2",
-            "date": "Wed, 14 Oct 2026 23:13:24 GMT",
+            "server": "LabTarget/1.0 Python/3.12.10",
+            "date": "Wed, 25 Nov 2026 14:35:32 GMT",
             "content-type": "text/html; charset=utf-8",
             "content-length": "378"
           },
-          "elapsed_ms": 16,
-          "snippet": "<sszz374f3bc6 data-x=1>"
+          "elapsed_ms": 32,
+          "snippet": "<sszz8fb01601 data-x=1>"
         },
         "differences": {},
         "verification_count": 1
@@ -766,9 +770,9 @@
       "remediation_example_fixed": "// Codificacao de saida contextual (HTML) neutraliza tags/scripts injetados.\n$nome = htmlspecialchars($_GET['nome'], ENT_QUOTES | ENT_HTML5, 'UTF-8');\necho \"<p>Ola, {$nome}</p>\";",
       "remediation_example_language": "PHP",
       "remediation_example_note": "Codifique na saída conforme o contexto (HTML, atributo, JS, URL) e adote uma CSP restritiva.",
-      "affected_url": "http://lab.example.test/profile?name=ana%3Csszz374f3bc6+data-x%3D1%3E",
-      "evidence_summary": "O parâmetro 'name' refletiu uma tag HTML não escapada ('<sszz374f3bc6 ...>') diretamente no corpo da resposta, em posição de texto solto."
+      "affected_url": "http://lab.example.test/profile?name=ana%3Csszz8fb01601+data-x%3D1%3E",
+      "evidence_summary": "O parâmetro 'name' refletiu uma tag HTML não escapada ('<sszz8fb01601 ...>') diretamente no corpo da resposta, em posição de texto solto."
     }
   ],
-  "scanned_at": "2026-10-14T23:13:31.375384+00:00"
+  "scanned_at": "2026-11-25T14:35:38.912870+00:00"
 }

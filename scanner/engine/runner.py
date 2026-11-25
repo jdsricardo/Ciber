@@ -3,20 +3,26 @@ runs baseline requests, page context, plugin execution, and JSON serialization."
 from __future__ import annotations
 import importlib
 import time
-from collections import deque
 from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import urljoin
-from .crawler import extract_links, is_followable, page_signature, same_scope
+from .crawler import (
+    CrawlFrontier, extract_links, extract_script_sources, is_followable, page_structure, same_scope,
+    urls_from_javascript,
+)
 from .discovery import discover
-from .models import HttpRequest, ScanContext, ScanLimits, ScanMode
+from .models import HttpRequest, InputPoint, ScanContext, ScanLimits, ScanMode, ShapeState
 from .normalization import baseline_stability, build_page_context, summarize
 from .safety import Cancelled, BudgetExceeded, EndpointBudgetExceeded, SafetyController, ScopeViolation
 from .transport import HttpTransport
 
 BASELINE_REQUESTS = 2
+# Same-origin script files read per scan for the URLs they call. Each costs one request.
+MAX_SCRIPT_FILES = 15
+# Pages that were discovered but not analysed are counted in full and listed up to this many.
+MAX_REPORTED_NOT_VISITED = 50
 
 # Findings for these check families describe a server-/site-wide condition (a missing transport
 # or response header, a cookie or CORS misconfiguration) rather than a per-page defect. When the
@@ -90,25 +96,37 @@ class ScanRunner:
         started = time.monotonic()
 
         # Breadth-first crawl of the reachable same-origin surface. Each visited page is fully
-        # scanned (baseline requests + every plugin) as it is dequeued; its links are then
-        # enqueued for later visits. A shared SafetyController budget covers crawling and probing
-        # alike, so the scan can never exceed its request/time envelope regardless of site size.
-        # A deque, not a list: the frontier is consumed from the front, and list.pop(0) shifts
-        # every remaining element on each visit. Measured in evaluation/benchmark_structures.py.
-        queue: deque[tuple[str, int]] = deque([(target_url, 0)])
-        enqueued: set[str] = {page_signature(target_url)}
+        # scanned (baseline requests + every plugin) as it is dequeued; its links — and the URLs
+        # its JavaScript calls — are then offered to the frontier for later visits. The frontier
+        # visits new page shapes first and stops re-analysing a shape whose variants keep
+        # repeating one template (see CrawlFrontier). A shared SafetyController budget covers
+        # crawling and probing alike, so the scan can never exceed its request/time envelope
+        # regardless of site size.
+        frontier = CrawlFrontier(target_url, self.limits.max_depth, duplicate_budget=self.limits.max_pages)
         crawled_urls: list[str] = []
+        scripts_read: set[str] = set()
         findings: list = []
         stopped_early = None
         seed_primary = None
         seed_summaries = None
 
-        while queue and len(crawled_urls) < self.limits.max_pages:
-            url, depth = queue.popleft()
+        while len(crawled_urls) < self.limits.max_pages:
+            next_page = frontier.pop()
+            if next_page is None:
+                break
+            url, depth = next_page
             request = HttpRequest(method="GET", url=url,
                                   headers={"Accept": "text/html,application/json,*/*;q=0.5"})
             try:
-                responses = [transport.send(request) for _ in range(BASELINE_REQUESTS)]
+                # The first response alone tells whether this page repeats a template already
+                # analysed for its shape; only a page worth analysing gets its second baseline.
+                responses = [transport.send(request)]
+                content_type = responses[0].headers.get("content-type", "")
+                body = responses[0].body.decode("utf-8", errors="replace")
+                if frontier.repeats_template(url, page_structure(body, content_type)):
+                    self._offer_links(frontier, safety, url, depth, responses[0], body)
+                    continue
+                responses += [transport.send(request) for _ in range(BASELINE_REQUESTS - 1)]
             except Cancelled:
                 stopped_early = "cancelled"
                 break
@@ -130,8 +148,7 @@ class ScanRunner:
             primary = responses[0]
             crawled_urls.append(url)
             context.page = build_page_context(primary)
-            body = primary.body.decode("utf-8", errors="replace")
-            request.inputs = discover(url, body)
+            request.inputs = self._untested_inputs(frontier.state(url), discover(url, body))
             if seed_primary is None:
                 seed_primary, seed_summaries = primary, [summarize(r) for r in responses]
 
@@ -139,28 +156,18 @@ class ScanRunner:
             if stopped_early:
                 break
 
-            # Enqueue same-origin, followable, not-yet-seen destinations for later depths:
-            # links parsed from the HTML plus this page's own redirect target (a page that 3xx's
-            # to the real content, e.g. after a login gate). Everything is filtered through the
-            # same scope + read-only rules before being queued.
-            if depth < self.limits.max_depth:
-                candidates = []
-                if "html" in primary.headers.get("content-type", ""):
-                    candidates.extend(extract_links(url, body))
-                if primary.redirect_url:
-                    candidates.append(urljoin(url, primary.redirect_url))
-                for link in candidates:
-                    signature = page_signature(link)
-                    if (signature not in enqueued and same_scope(link, safety.host, safety.port)
-                            and is_followable(link)):
-                        enqueued.add(signature)
-                        queue.append((link, depth + 1))
+            self._offer_links(frontier, safety, url, depth, primary, body)
+            if "html" in primary.headers.get("content-type", ""):
+                stopped_early = self._read_scripts(frontier, safety, transport, url, depth, body, scripts_read)
+                if stopped_early:
+                    break
 
         # A total failure to fetch even the seed page is an error, not an empty scan. The reason
         # is shown to the user, so the internal stop code is translated rather than passed on.
         if seed_primary is None:
             return {"ok": False, "error": SEED_FAILURE_REASONS.get(
                 stopped_early, "Nenhuma página pôde ser acessada no alvo.")}
+        not_visited = frontier.not_visited()
 
         result = {
             "ok": True,
@@ -172,6 +179,10 @@ class ScanRunner:
             "requests_made": safety.total,
             "pages_scanned": len(crawled_urls),
             "crawled_urls": crawled_urls,
+            "pages_not_visited": len(not_visited),
+            "not_visited_urls": not_visited[:MAX_REPORTED_NOT_VISITED],
+            "template_variants_skipped": frontier.template_variants_skipped,
+            "scripts_read": len(scripts_read),
             "findings": [finding.to_dict() for finding in self._deduplicate(findings)],
             "scanned_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -180,6 +191,61 @@ class ScanRunner:
         if self.plugin_warnings:
             result["plugin_warnings"] = self.plugin_warnings
         return result
+
+    @staticmethod
+    def _untested_inputs(shape: ShapeState, inputs: list[InputPoint]) -> list[InputPoint]:
+        """The input points of a page minus the query parameters already tested on another
+        variant of the same shape. In `index.php?p=12` and `index.php?p=14` the router parameter
+        `p` is the same code path; testing it on every screen would only spend the probe budget.
+        Form fields are always kept — each screen has its own forms."""
+        untested = [point for point in inputs
+                    if not (point.location == "query" and point.name in shape.tested_query_names)]
+        shape.tested_query_names.update(point.name for point in inputs if point.location == "query")
+        return untested
+
+    def _offer_links(self, frontier: CrawlFrontier, safety: SafetyController, url: str, depth: int,
+                     response, body: str) -> None:
+        """Offer the frontier the page's links (anchors, GET forms, inline JavaScript) and its
+        own redirect target (a page that 3xx's to the real content, e.g. after a login gate)."""
+        candidates: list[str] = []
+        if "html" in response.headers.get("content-type", ""):
+            candidates += extract_links(url, body)
+        if response.redirect_url:
+            candidates.append(urljoin(url, response.redirect_url))
+        self._offer(frontier, safety, candidates, depth)
+
+    def _read_scripts(self, frontier: CrawlFrontier, safety: SafetyController, transport: HttpTransport,
+                      page_url: str, depth: int, body: str, scripts_read: set[str]) -> str | None:
+        """Read the page's own same-origin script files for the URLs they call (AJAX endpoints,
+        navigation). Returns a stop reason when the scan budget ran out, else None."""
+        for source in extract_script_sources(page_url, body):
+            if (source in scripts_read or len(scripts_read) >= MAX_SCRIPT_FILES
+                    or not same_scope(source, safety.host, safety.port)):
+                continue
+            scripts_read.add(source)
+            try:
+                response = transport.send(HttpRequest(method="GET", url=source, headers={"Accept": "*/*"}))
+            except Cancelled:
+                return "cancelled"
+            except EndpointBudgetExceeded:
+                continue
+            except BudgetExceeded:
+                return "budget_exceeded"
+            except (ScopeViolation, OSError):
+                continue
+            if response.status != 200 or "html" in response.headers.get("content-type", ""):
+                continue
+            source_text = response.body.decode("utf-8", errors="replace")
+            # Relative URLs in a script are resolved against the page that runs it.
+            self._offer(frontier, safety, urls_from_javascript(page_url, source_text), depth)
+        return None
+
+    @staticmethod
+    def _offer(frontier: CrawlFrontier, safety: SafetyController, urls: list[str], depth: int) -> None:
+        """Every candidate is filtered through the same scope + read-only rules before queueing."""
+        for link in urls:
+            if same_scope(link, safety.host, safety.port) and is_followable(link):
+                frontier.offer(link, depth + 1)
 
     def _run_plugins(self, request, responses, context, transport, findings: list) -> str | None:
         """Run every plugin against one page, appending findings. Returns a stop reason if the

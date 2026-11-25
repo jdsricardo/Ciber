@@ -67,3 +67,10 @@ ALTER TABLE findings
   ADD COLUMN IF NOT EXISTS remediation_example_fixed TEXT NULL AFTER remediation_example_vulnerable,
   ADD COLUMN IF NOT EXISTS remediation_example_language VARCHAR(60) NULL AFTER remediation_example_fixed,
   ADD COLUMN IF NOT EXISTS remediation_example_note VARCHAR(500) NULL AFTER remediation_example_language;
+
+-- Crawl coverage: how many pages an analysis covered, which ones, and which pages it found but
+-- left out (page limit, depth or budget), so the result says how much of the site it speaks
+-- for. crawl_coverage holds the JSON written by App\Domain\Model\CrawlCoverage. Additive only.
+ALTER TABLE analyses
+  ADD COLUMN IF NOT EXISTS pages_scanned SMALLINT UNSIGNED NULL AFTER checks_run,
+  ADD COLUMN IF NOT EXISTS crawl_coverage MEDIUMTEXT NULL AFTER pages_scanned;

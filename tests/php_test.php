@@ -20,6 +20,7 @@ use App\Domain\Exception\ScannerUnavailable;
 use App\Domain\Model\Analysis;
 use App\Domain\Model\AnalysisStatus;
 use App\Domain\Model\Application;
+use App\Domain\Model\CrawlCoverage;
 use App\Domain\Model\Finding;
 use App\Domain\Model\Period;
 use App\Domain\Model\ScanMode;
@@ -30,6 +31,7 @@ use App\Domain\Model\TargetUrl;
 use App\Domain\Service\AnalysisComparison;
 use App\Infrastructure\Scanner\PythonScannerGateway;
 use App\Presentation\FindingPresenter;
+use App\Presentation\Views;
 use App\UseCase\CompareAnalyses;
 use App\UseCase\ExportAnalysis;
 use App\UseCase\RegisterApplication;
@@ -478,6 +480,44 @@ $json = json_encode($export, JSON_UNESCAPED_UNICODE);
 check('export serializes to valid JSON', is_string($json) && json_decode($json, true) !== null);
 checkThrows('export rejects an unknown analysis', NotFound::class,
     static fn() => $exportWorld['export']->execute(999));
+check('export of an analysis without coverage says null', array_key_exists('coverage', $export) && $export['coverage'] === null);
+
+// --- Crawl coverage: which pages an analysis covered and which it left out -------
+$coveragePayload = [
+    'ok' => true, 'checks_run' => 34, 'duration_ms' => 10, 'status_code' => 200, 'findings' => [],
+    'crawled_urls' => ['https://example.com/index.php?p=1', 'https://example.com/index.php?p=2'],
+    'pages_not_visited' => 3, 'not_visited_urls' => ['https://example.com/index.php?p=3"><script>x</script>'],
+    'template_variants_skipped' => 39, 'scripts_read' => 1,
+];
+$coverageResult = ScanResult::fromEnginePayload($coveragePayload);
+check('coverage: analysed pages are read', $coverageResult->coverage?->pagesAnalysed() === 2);
+check('coverage: pages left out are read', $coverageResult->coverage?->notVisitedCount === 3
+    && count($coverageResult->coverage->notVisitedUrls) === 1);
+check('coverage: template variants and scripts are read', $coverageResult->coverage?->templateVariantsSkipped === 39
+    && $coverageResult->coverage->scriptsRead === 1);
+check('coverage: a document without crawl fields gives no coverage, not zero pages',
+    ScanResult::fromEnginePayload(['ok' => true])->coverage === null);
+$roundTrip = CrawlCoverage::fromJson($coverageResult->coverage?->toJson());
+check('coverage: JSON round trip keeps every field', $roundTrip == $coverageResult->coverage);
+check('coverage: an analysis stored before coverage existed has none', CrawlCoverage::fromJson(null) === null
+    && CrawlCoverage::fromJson('not json') === null);
+
+$coverageWorld = $makeWorld($coverageResult);
+$coverageWorld['register']->execute('Portal', 'https://example.com/', true);
+$coveredId = $coverageWorld['run']->execute(1, false, false);
+$covered = $coverageWorld['analyses']->find($coveredId);
+check('run stores the coverage with the analysis', $covered?->coverage?->pagesAnalysed() === 2);
+$coveredPage = Views::analysisResult($covered, [], false);
+check('result shows how many pages were analysed', str_contains($coveredPage, '<span>Páginas analisadas</span><b>2</b>'));
+check('result lists the analysed pages', str_contains($coveredPage, 'https://example.com/index.php?p=2'));
+check('result warns about pages left out', str_contains($coveredPage, '3 páginas encontradas não foram analisadas')
+    && str_contains($coveredPage, '… e mais 2.'));
+check('result escapes URLs reported by the target', !str_contains($coveredPage, '<script>x</script>')
+    && str_contains($coveredPage, '&lt;script&gt;x&lt;/script&gt;'));
+check('printable result opens the page lists', str_contains(Views::analysisResult($covered, [], true), '<details open>'));
+check('export carries the coverage', ($coverageWorld['export']->execute($coveredId)['coverage']['pages_not_visited'] ?? null) === 3);
+$legacyPage = Views::analysisResult($world['analyses']->find($analysisId), [], false);
+check('result of an analysis without coverage has no coverage section', !str_contains($legacyPage, 'Cobertura da análise'));
 
 // --- CA-05 / NFR-01: rendering 1,000 findings stays well under 3 seconds --------
 $many = [];

@@ -31,6 +31,7 @@ final class Analysis
         public readonly ?DateTimeImmutable $completedAt = null,
         public readonly ?string $applicationName = null,
         public readonly ?TargetUrl $baseUrl = null,
+        public readonly ?CrawlCoverage $coverage = null,
     ) {
         if ($id !== null && $id <= 0) {
             throw new InvalidInput('Identificador de análise inválido.');
@@ -87,6 +88,7 @@ final class Analysis
                 ? new DateTimeImmutable((string) $row['completed_at']) : null,
             applicationName: isset($row['application_name']) ? (string) $row['application_name'] : null,
             baseUrl: $baseUrl,
+            coverage: CrawlCoverage::fromJson(isset($row['crawl_coverage']) ? (string) $row['crawl_coverage'] : null),
         );
     }
 

@@ -2,6 +2,39 @@
 
 Todas as mudanças relevantes do SentinelScope. Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [Não lançado] — 2026-11-25 · Rastreamento inteligente e cobertura da análise
+
+### Corrigido
+- **Telas de aplicações roteadas por parâmetro eram ignoradas.** O rastreador agrupava páginas
+  pelos *nomes* dos parâmetros, então `index.php?p=12` e `index.php?p=14` contavam como uma página
+  e só a primeira tela do menu era analisada, sem aviso. As páginas passam a ser identificadas
+  também pelos valores (`scanner/engine/crawler.py`).
+
+### Adicionado
+- Reconhecimento de modelo de página: variações de um mesmo formato que repetem o modelo já
+  analisado (`/produto?id=1..N`) custam uma requisição e, após três repetições seguidas, deixam
+  de ser visitadas; formatos novos são visitados primeiro (`CrawlFrontier`).
+- Descoberta de URLs em JavaScript: scripts embutidos, atributos `on*`, `data-url`/`data-href` e
+  até 15 arquivos `.js` da própria origem por análise (endpoints `fetch`/`$.get`/`$.post`,
+  `location.href`).
+- Navegação somente leitura mais rígida: caminhos com segmento destrutivo (`/user/delete/5`,
+  `delete_user_ajax.php`, `/pedido/excluir`) nunca são seguidos.
+- Cobertura da análise: o motor relata páginas encontradas e não analisadas, variações de modelo
+  e scripts lidos ([contrato](docs/INTEGRATION_CONTRACT.md) 1.3); a aplicação grava isso
+  (`analyses.pages_scanned`, `analyses.crawl_coverage` em `database.sql`), mostra a métrica
+  *Páginas analisadas* e a seção *Cobertura da análise* no resultado e inclui `coverage` na
+  exportação JSON (`App\Domain\Model\CrawlCoverage`).
+- [Catálogo de verificações](docs/CHECK_CATALOG.md): as 64 verificações, plugin por plugin.
+- `tests/apresentacao/loja.py`: a loja da demonstração "antes e depois" num só arquivo
+  (`--modo vulneravel|corrigido`).
+- Testes: `tests/test_crawler.py` ganhou sites de laboratório que imitam um sistema roteado por
+  `?p=` com endpoint AJAX e um catálogo de produtos; `tests/php_test.php` ganhou o grupo de
+  cobertura.
+
+### Alterado
+- Em formatos com várias telas, o parâmetro de rota (`p`) é testado pelos plugins ativos só na
+  primeira tela; os formulários de cada tela continuam sendo testados.
+
 ## [Não lançado] — 2026-11-24 · Documentação em português e revisão contra o código
 
 ### Adicionado

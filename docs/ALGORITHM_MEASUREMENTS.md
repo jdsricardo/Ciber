@@ -44,7 +44,9 @@ restantes; `collections.deque.popleft()` tem tempo constante.
 e 20 (ativo) — as duas são indistinguíveis, e a leitura honesta da medição é que esta mudança não
 traz ganho hoje. Ela foi adotada mesmo assim porque custa um import e remove o único termo
 quadrático do laço de rastreamento, de modo que aumentar `max_pages` no futuro seja uma mudança
-de configuração e não uma investigação de desempenho. Implementada em `scanner/engine/runner.py`.
+de configuração e não uma investigação de desempenho. Implementada em `scanner/engine/runner.py`;
+desde 2026-11-25 a fronteira é `CrawlFrontier` (`scanner/engine/crawler.py`), com **duas** deques —
+formatos de página novos e variações de formatos conhecidos —, ambas consumidas com `popleft()`.
 
 ## Decisão 2 — Páginas já enfileiradas: conjunto hash, não lista
 
@@ -61,7 +63,13 @@ do site, não pelo número de páginas varridas.
 **Decisão: `set`.** Pertinência é a única operação feita nessa coleção, e ela é feita para cada
 link de cada página, então o O(1) médio é a propriedade que importa; a ordem é irrelevante porque
 a fronteira já preserva a ordem de visita. Implementado como `enqueued` em
-`scanner/engine/runner.py`.
+`scanner/engine/runner.py`, hoje em `CrawlFrontier` (`scanner/engine/crawler.py`).
+
+**Reavaliação (2026-11-25).** A assinatura passou a incluir os *valores* dos parâmetros
+(`index.php?p=12` ≠ `?p=14`). Com isso, um catálogo que lista mil produtos gera mil assinaturas
+distintas — exatamente a faixa da tabela em que o `set` é 38× mais rápido que a lista. A decisão
+deixou de ser preventiva e passou a ser necessária. Os formatos já vistos (`queued_shapes`) e o
+estado de cada formato (`shapes`) usam a mesma estrutura pelo mesmo motivo.
 
 ## Decisão 3 — Deduplicação de achados: conjunto de chaves, não varredura par a par
 

@@ -235,7 +235,7 @@ th {
 
 .metrics {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 12px;
     margin: 25px 0
 }
@@ -464,6 +464,37 @@ details {
     color: var(--muted)
 }
 
+.coverage {
+    padding: 24px;
+    margin: 17px 0;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 11px
+}
+
+.coverage summary {
+    cursor: pointer
+}
+
+.coverage-gap {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-left: 3px solid #f0b429;
+    background: rgba(240, 180, 41, .08);
+    border-radius: 6px
+}
+
+.url-list {
+    margin: 10px 0 0;
+    padding-left: 18px;
+    max-height: 320px;
+    overflow: auto
+}
+
+.url-list code {
+    overflow-wrap: anywhere
+}
+
 code {
     color: #9bd8ff
 }
@@ -577,10 +608,16 @@ footer {
     }
 
     .finding,
-    .limitations {
+    .limitations,
+    .coverage {
         background: white;
         border-color: #bbb;
         break-inside: avoid
+    }
+
+    .url-list {
+        max-height: none;
+        overflow: visible
     }
 
     .explain p,

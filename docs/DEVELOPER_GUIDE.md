@@ -156,10 +156,10 @@ execução duplicada.
 | Módulo | Responsabilidade |
 |---|---|
 | `scanner.py` | CLI: interpreta os argumentos, força stdout em UTF-8, imprime exatamente um documento JSON, código de saída 0/1. |
-| `engine/runner.py` | `run_scan()` e `ScanRunner`: rastreamento em largura (deque + conjunto de assinaturas de página), dois baselines por página, todos os plugins em cada página, remoção de duplicatas entre páginas, o documento de resultado. Não contém lógica de vulnerabilidade. `PASSIVE_LIMITS` / `ACTIVE_LIMITS` são os orçamentos de requisições e de tempo. |
+| `engine/runner.py` | `run_scan()` e `ScanRunner`: rastreamento em largura conduzido por `CrawlFrontier`, dois baselines por página analisada (uma só requisição para uma variação que repete um modelo), leitura dos scripts da própria origem, todos os plugins em cada página, remoção de duplicatas entre páginas, o documento de resultado. Não contém lógica de vulnerabilidade. `PASSIVE_LIMITS` / `ACTIVE_LIMITS` são os orçamentos de requisições e de tempo. |
 | `engine/safety.py` | `SafetyController`: escopo (fixação de host/porta, nova verificação de DNS, bloqueio de redes privadas), orçamentos, limite de taxa, cancelamento, mascaramento de cabeçalhos sensíveis no log. Define as exceções `Cancelled`, `BudgetExceeded`, `EndpointBudgetExceeded`, `ScopeViolation`, cujas mensagens (em português) chegam ao usuário. |
 | `engine/transport.py` | `HttpTransport`: o único caminho de código que envia HTTP; leituras limitadas; uma nova tentativa em caso de *reset* transitório; valida certificados TLS. |
-| `engine/crawler.py` | Extração de links de mesma origem e as regras de navegação somente leitura (sem logout, sem links que alteram estado, sem arquivos estáticos). |
+| `engine/crawler.py` | Descoberta de páginas de mesma origem (links, formulários GET, redirecionamentos, URLs em JavaScript), as regras de navegação somente leitura (sem logout, sem links ou caminhos que alteram estado, sem arquivos estáticos), assinatura e formato de página, estrutura de página para reconhecer modelos e a fila `CrawlFrontier` (formatos novos primeiro, variações de modelo descartadas, cobertura relatada). |
 | `engine/discovery.py` | Pontos de entrada: parâmetros de query e campos de formulário. |
 | `engine/normalization.py` | Remove conteúdo volátil antes das comparações; monta o contexto da página. |
 | `engine/confidence.py` | A fórmula de confiança e o seu mapeamento para um status. |

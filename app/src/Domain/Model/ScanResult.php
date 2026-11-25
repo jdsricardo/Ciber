@@ -21,13 +21,19 @@ final class ScanResult
         public readonly int $durationMs = 0,
         public readonly int $httpStatus = 0,
         public readonly ?string $error = null,
+        public readonly ?CrawlCoverage $coverage = null,
     ) {
     }
 
     /** @param list<Finding> $findings */
-    public static function success(array $findings, int $checksRun, int $durationMs, int $httpStatus): self
-    {
-        return new self(true, $findings, $checksRun, $durationMs, $httpStatus);
+    public static function success(
+        array $findings,
+        int $checksRun,
+        int $durationMs,
+        int $httpStatus,
+        ?CrawlCoverage $coverage = null,
+    ): self {
+        return new self(true, $findings, $checksRun, $durationMs, $httpStatus, coverage: $coverage);
     }
 
     public static function failure(string $error): self
@@ -62,6 +68,8 @@ final class ScanResult
             (int) ($payload['checks_run'] ?? 0),
             (int) ($payload['duration_ms'] ?? 0),
             (int) ($payload['status_code'] ?? 0),
+            // A document without the crawl fields says nothing about coverage — not "zero pages".
+            array_key_exists('crawled_urls', $payload) ? CrawlCoverage::fromEnginePayload($payload) : null,
         );
     }
 

@@ -114,12 +114,18 @@ mexer no núcleo:
   (status, cabeçalho, texto, tamanho, similaridade, tempo, redirecionamento) com `&`, `|` e `~`.
   Está disponível para detectores que prefiram condições declarativas; os plugins atuais expressam
   suas condições diretamente, então ele é exercitado pelos testes do motor e não por um plugin.
-- `engine/crawler.py` — descoberta de links/redirecionamentos de mesma origem: interpreta alvos de
-  `<a>` e *actions* de formulários GET, mantém apenas URLs HTTP(S) dentro do escopo no host/porta
-  fixados e aplica as regras de navegação somente leitura (ignora logout/sair, ignora links que
-  alteram estado no estilo `?action=delete`, ignora arquivos estáticos). As páginas são agrupadas
-  por *assinatura* (caminho + conjunto de nomes de parâmetros da query, ignorando os valores), de
-  modo que `/product?id=1` e `/product?id=2` contam como uma página.
+- `engine/crawler.py` — descoberta de páginas de mesma origem: interpreta alvos de `<a>`,
+  *actions* de formulários GET, redirecionamentos e URLs escritas em JavaScript (scripts
+  embutidos, atributos `on*`, `data-url` e arquivos `.js` da própria origem), mantém apenas URLs
+  HTTP(S) dentro do escopo no host/porta fixados e aplica as regras de navegação somente leitura
+  (ignora logout/sair, links que alteram estado — `?action=delete`, `/user/delete/5`,
+  `delete_user_ajax.php` — e arquivos estáticos). Cada URL tem duas identidades: a *assinatura*
+  (caminho + nomes **e valores** dos parâmetros: `index.php?p=12` ≠ `?p=14`) e o *formato*
+  (só os nomes). `CrawlFrontier` visita primeiro formatos novos e reconhece quando as variações de
+  um formato repetem o mesmo modelo de página (`page_structure`/`same_template`: mesmos rótulos,
+  campos e scripts, layout ≥ 80% semelhante), deixando de analisá-las — `/product?id=1..N` custa
+  poucas requisições, enquanto as telas de uma aplicação roteada por `?p=` são todas analisadas.
+  Detalhes e medição em [SCANNER_ENGINE.md](SCANNER_ENGINE.md#descoberta-de-páginas-rastreamento-inteligente-2026-11-25).
 - `engine/runner.py` — orquestra o rastreamento em largura e, para cada página descoberta, a coleta
   de baselines e a execução dos plugins; não contém lógica específica de vulnerabilidade. Remove
   duplicatas de achados entre páginas (condições do servidor inteiro — cabeçalhos, transporte,

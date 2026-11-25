@@ -6,6 +6,7 @@ namespace App\Infrastructure\Persistence;
 
 use App\Domain\Contract\AnalysisRepository;
 use App\Domain\Model\Analysis;
+use App\Domain\Model\CrawlCoverage;
 use App\Domain\Model\Period;
 use App\Domain\Model\SecurityScore;
 use App\Infrastructure\Database;
@@ -64,11 +65,13 @@ final class PdoAnalysisRepository implements AnalysisRepository
         int $checksRun,
         int $durationMs,
         int $httpStatus,
+        ?CrawlCoverage $coverage = null,
     ): void {
         Database::run(
             "UPDATE analyses SET status='completed',security_score=?,checks_run=?,duration_ms=?,http_status=?,
-             completed_at=UTC_TIMESTAMP() WHERE id=?",
-            [$score->value, $checksRun, $durationMs, $httpStatus, $analysisId]
+             pages_scanned=?,crawl_coverage=?,completed_at=UTC_TIMESTAMP() WHERE id=?",
+            [$score->value, $checksRun, $durationMs, $httpStatus, $coverage?->pagesAnalysed(),
+                $coverage?->toJson(), $analysisId]
         );
     }
 

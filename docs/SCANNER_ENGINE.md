@@ -131,21 +131,92 @@ inferidos a partir de uma anomalia genérica.
   varredura inteira (`stopped_early`), e em todos os casos os achados coletados até ali são
   devolvidos. Se nem a página-semente responde, o resultado é `ok:false` com uma mensagem em
   português.
-- As páginas são agrupadas por assinatura (caminho + *nomes* dos parâmetros da query), então um
-  catálogo `/item?id=1..N` é visitado uma vez; os achados são consolidados entre páginas, de modo
-  que um cabeçalho ausente no servidor inteiro é relatado uma vez, enquanto achados de
-  injeção/exposição por endpoint são mantidos por URL e parâmetro. O JSON de resultado ganha
-  `pages_scanned` e `crawled_urls`.
+- Os achados são consolidados entre páginas: um cabeçalho ausente no servidor inteiro é relatado
+  uma vez, enquanto achados de injeção/exposição por endpoint são mantidos por URL e parâmetro. O
+  JSON de resultado traz `pages_scanned` e `crawled_urls` e, desde o contrato 1.3, a cobertura
+  (`pages_not_visited`, `not_visited_urls`, `template_variants_skipped`, `scripts_read`).
 
-## Limitações conhecidas (conferidas no código em 2026-11-24)
+## Descoberta de páginas (rastreamento inteligente, 2026-11-25)
+
+Defeito que motivou a mudança: as páginas eram agrupadas por *caminho + nomes* dos parâmetros,
+ignorando os valores. Isso evitava visitar `/produto?id=1..N` mil vezes, mas também juntava
+`index.php?p=12` e `index.php?p=14` — duas **telas diferentes** de uma aplicação PHP que roteia
+por parâmetro (o padrão do Portal de Clientes e do PIM da empresa). Só a primeira tela do menu era
+analisada, sem nenhum aviso. Além disso, endpoints chamados por JavaScript (`fetch`, `$.post`) não
+eram descobertos, e o usuário não tinha como saber quais páginas a análise cobriu.
+
+Como funciona agora (`engine/crawler.py`, `CrawlFrontier`; laço em `ScanRunner.run()`):
+
+1. **Página exata × formato.** `page_signature` identifica a página com os *valores* dos
+   parâmetros (`index.php?p=12` ≠ `?p=14`); `page_shape` ignora os valores (`index.php?p`) e
+   agrupa as variações de um mesmo formato.
+2. **Novidade primeiro.** A fila tem duas partes: páginas de um formato ainda não visto vão para
+   a fila principal; outras variações de um formato conhecido esperam numa segunda fila, atendida
+   depois. Assim o limite de páginas é gasto primeiro em telas diferentes.
+3. **Reconhecimento de modelo.** De cada página buscada é extraída a estrutura
+   (`page_structure`): a **identidade** — textos de rótulos, cabeçalhos de tabela, legendas e
+   botões, nomes de campos, *actions* de formulários e scripts carregados — e o **layout** —
+   trigramas da sequência de tags. Duas variações são o mesmo modelo quando têm a mesma identidade
+   e layout ≥ 80% semelhante (similaridade de Jaccard ponderada); sem identidade nenhuma, só com
+   layout ≥ 97%, para que um menu compartilhado não faça duas telas parecerem iguais. Uma variação
+   que repete um modelo já analisado custa **uma** requisição e não passa pelos plugins; após
+   **3 repetições seguidas** o formato é dado como modelo e as variações restantes são descartadas
+   sem requisição. O total dessas buscas repetidas é limitado a `max_pages`.
+4. **Parâmetros já testados.** Num formato com várias telas (`?p=12`, `?p=14`), o parâmetro de
+   rota `p` é testado pelos plugins ativos só na primeira; os formulários de cada tela são sempre
+   testados.
+5. **URLs no JavaScript.** São lidos os `<script>` embutidos, os atributos `on*`
+   (`onclick="location.href='…'"`), `data-url`/`data-href` e até 15 arquivos `.js` da própria
+   origem por análise (bibliotecas conhecidas — jQuery, Bootstrap, DataTables… — são puladas).
+   Uma string vira URL quando é claramente um endpoint (`*.php`, `*.asp(x)`, `*.jsp`, `…/api/…`)
+   ou o destino de `location`/`location.href`/`location.assign`. Valores calculados em tempo de
+   execução (`'?id=' + id`, `` `?q=${q}` ``) viram `1`, para que o parâmetro seja descoberto e
+   testado. URLs relativas são resolvidas contra a página que executa o script.
+6. **Somente leitura, mais rígido.** Além de logout e de `?action=delete`, nenhum caminho cujo
+   segmento seja uma ação destrutiva é seguido (`/user/delete/5`, `delete_user_ajax.php`,
+   `/pedido/excluir`), o que importa agora que endpoints de AJAX entram no rastreamento.
+7. **Cobertura relatada.** O resultado informa as páginas analisadas, quantas foram encontradas e
+   não analisadas (limite de páginas, de profundidade ou de requisições) com as primeiras 50, as
+   variações de modelo não repetidas e os scripts lidos. A aplicação grava isso com a análise
+   (`analyses.crawl_coverage`) e mostra na seção *Cobertura da análise* do resultado.
+
+Medição antes/depois, com os sites de laboratório de `tests/test_crawler.py` (mesma máquina,
+modo indicado, limites padrão):
+
+| Site de laboratório | Versão | Páginas analisadas | Requisições | XSS encontrados |
+|---|---|---:|---:|---:|
+| `PortalLike` (rota `?p=`, 5 telas + endpoint AJAX), completo | anterior | 1 | 48 | 0 de 2 |
+| | atual | 6 | 188 | 2 de 2 |
+| `PortalLike`, passivo | anterior | 1 | 2 | — |
+| | atual | 6 | 13 | — |
+| `Catalog` (40 produtos, mesmo modelo), passivo | anterior | 2 | 4 | — |
+| | atual | 2 | 7 | — |
+
+O custo do reconhecimento de modelo é de três requisições por formato repetido (4 → 7 no
+catálogo); o ganho é cobrir telas que antes eram silenciosamente ignoradas.
+
+## Limitações conhecidas (conferidas no código em 2026-11-25)
 
 - **TLS:** o transporte usa `ssl.create_default_context()`, que valida o certificado e exige TLS
   1.2+. Um alvo HTTPS com certificado inválido, expirado ou autoassinado, ou que só aceite TLS
   1.0/1.1, não pode ser analisado ("Nenhuma página pôde ser acessada no alvo."). Consequentemente,
   `tls.legacy_protocol` não tem como disparar e `tls.certificate_expiry` só aparece para
   certificados ainda válidos que expiram em menos de 30 dias.
-- **JavaScript:** o rastreador não executa JavaScript; links montados por scripts (SPAs) não são
-  descobertos.
+- **Descoberta de páginas (o que o rastreador não alcança):**
+  - não adivinha endereços: uma página para a qual nenhum link, formulário GET, redirecionamento
+    ou script aponta não é encontrada (não há lista de palavras, `robots.txt` nem `sitemap.xml`);
+  - não executa JavaScript: URLs escritas como texto no código são lidas (item 5 acima), mas
+    links e telas *montados* em tempo de execução — típicos de SPAs em React/Angular/Vue — não;
+  - endpoints que a aplicação chama com POST (`$.post`) são visitados com GET, como qualquer
+    página; o corpo que a aplicação enviaria não é reproduzido;
+  - formulários POST cujo `action` aponta para outra URL são testados contra a URL da página
+    (limitação L-03 do documento final);
+  - áreas com login só são alcançadas com um cookie de sessão válido, e a sessão cai se o usuário
+    sair no navegador durante a análise;
+  - os limites de páginas (30/20) e de profundidade (3/2) podem deixar telas de fora num sistema
+    grande — agora isso aparece na seção *Cobertura da análise* em vez de passar despercebido;
+  - duas telas diferentes com exatamente os mesmos rótulos, campos e layout seriam tomadas pelo
+    mesmo modelo; a segunda só seria analisada até a terceira repetição seguida do formato.
 - **NoSQL:** uma página que devolve sempre o mesmo 404 pode gerar o falso positivo
   `nosql_injection.operator_bypass_confirmed`, porque `_looks_rejected` trata 404 como rejeição
   (ver [EVALUATION_RESULTS.md](EVALUATION_RESULTS.md)).

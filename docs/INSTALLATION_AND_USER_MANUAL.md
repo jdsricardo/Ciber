@@ -138,17 +138,37 @@ No **Painel**, cada aplicação tem um cartão com o botão **Executar análise*
 | **Análise completa (ativa)** | Também envia payloads de teste seguros a cada parâmetro e campo de formulário encontrado (SQL injection, XSS, travessia de diretório, redirecionamento aberto, injeção de comandos, SSTI, XXE, CRLF, cabeçalho Host, verbos HTTP, NoSQL, CORS, SSRF) — 64 verificações. Atenção: a verificação de verbos HTTP envia OPTIONS, POST, PUT, DELETE, PATCH e TRACE uma vez a **cada** página visitada (até 20 no modo completo); um alvo vulnerável pode de fato executá-los. Use o modo completo somente em ambientes de teste ou homologação. Exige a segunda marcação de autorização. Pode levar vários minutos. |
 | **Área autenticada (opcional)** | Cole um cookie de sessão (por exemplo `PHPSESSID=…`) de um usuário de teste para analisar páginas atrás do login. Ele é enviado apenas ao endereço registrado, durante esta análise, e nunca é armazenado. |
 
-O scanner começa pela URL registrada e segue links do mesmo site (até 30 páginas no modo
-passivo, 20 no modo completo). Ele nunca segue links de logout nem links que alteram dados (como
-`?action=delete`).
+O scanner começa pela URL registrada e segue links, formulários de busca (GET),
+redirecionamentos e URLs escritas no JavaScript da aplicação (por exemplo
+`fetch('api/pedidos.php?id=' + id)`), sempre no mesmo site, até 30 páginas no modo passivo e 20
+no completo. Telas que só mudam pelo valor de um parâmetro (`index.php?p=12`, `index.php?p=14`)
+são analisadas uma a uma; já páginas que repetem o mesmo modelo com outros dados (os produtos de
+um catálogo) são reconhecidas e analisadas uma vez só. Ele nunca segue links de logout nem links
+ou endereços que alteram dados (como `?action=delete`, `/usuario/excluir/5` ou
+`delete_user_ajax.php`).
+
+Para analisar um sistema com login, faça login no navegador com um usuário de teste, copie o
+cookie de sessão (DevTools → *Application* → *Cookies*, por exemplo `PHPSESSID=…`) e registre como
+endereço a **página inicial já logada**, não a tela de login — assim o menu fica a um clique. Não
+clique em **Sair** no navegador enquanto a análise roda: isso encerraria a sessão que o scanner
+está usando.
 
 Enquanto a análise roda, o botão mostra **Analisando…** e uma mensagem de progresso; não feche a
 página. Quando termina, a página de resultado é aberta.
 
 ### B.3 Leia o resultado
 
-O cabeçalho mostra a **Pontuação de Segurança** (0–100) e quatro métricas: verificações
-executadas, achados, status HTTP da primeira página e duração.
+O cabeçalho mostra a **Pontuação de Segurança** (0–100) e as métricas: verificações
+executadas, páginas analisadas, achados, status HTTP da primeira página e duração.
+
+A seção **Cobertura da análise**, depois dos achados, diz quanto do site o resultado representa:
+a lista das páginas analisadas, quantos arquivos JavaScript foram lidos em busca de endpoints e
+quantas variações de um mesmo modelo não foram repetidas. Se aparecer o aviso *"N páginas
+encontradas não foram analisadas"*, a análise atingiu o limite de páginas, de profundidade ou de
+requisições: essas páginas (listadas em **Ver quais**) podem ter problemas que não aparecem no
+resultado. Para cobri-las, registre-as como aplicações próprias e analise-as separadamente.
+Uma página para a qual nada aponta, ou que só existe depois de o JavaScript montar a tela no
+navegador, não é encontrada — registre o endereço dela diretamente.
 
 Cada achado é lido de cima para baixo: **o que foi observado**, **por que importa**, **como
 corrigir** e um exemplo de código **vulnerável vs. corrigido** que você copia com um clique. Dois

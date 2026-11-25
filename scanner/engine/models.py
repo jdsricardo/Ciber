@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections import Counter
 from dataclasses import asdict, dataclass, field
 from enum import Enum
 from hashlib import sha256
@@ -140,6 +141,26 @@ class ScanLimits:
     max_pages: int = 1
     max_depth: int = 2
     max_attempts_per_parameter: int = 4
+
+@dataclass(frozen=True)
+class PageStructure:
+    """What a page *is*, as opposed to the data it shows (engine/crawler.py).
+
+    `identity` holds what tells one screen from another: label, column-header and button texts,
+    form field names, form actions and script sources. `layout` counts trigrams of structural
+    tokens. Two variants of a page shape with the same identity and a near-identical layout are
+    one template filled with different records.
+    """
+    identity: frozenset[str] = frozenset()
+    layout: Counter = field(default_factory=Counter)
+
+@dataclass
+class ShapeState:
+    """What the crawl has learned about one page shape (`index.php?p`, `/product?id`)."""
+    structures: list[PageStructure] = field(default_factory=list)
+    streak: int = 0
+    saturated: bool = False
+    tested_query_names: set[str] = field(default_factory=set)
 
 @dataclass
 class PageContext:

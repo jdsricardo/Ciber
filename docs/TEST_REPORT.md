@@ -4,9 +4,9 @@
 |---|---|
 | Produto | SentinelScope 1.0.1 — o código após as correções de D-01…D-10 (execução 3) |
 | Plano | [TEST_PLAN.md](TEST_PLAN.md) 2.0, redigido **antes** da primeira execução; a 2.1 acrescenta as revisões datadas do seu §8 |
-| Executado | 2026-10-14 (execuções 1, 1b, 2) e 2026-10-28 (execuções 3a, 3), com o driver de teste automatizado; MT-04 pendente (§6). Reverificação parcial em 2026-11-24 (§8). |
+| Executado | 2026-10-14 (execuções 1, 1b, 2) e 2026-10-28 (execuções 3a, 3), com o driver de teste automatizado; MT-04 pendente (§6). Reverificação parcial em 2026-11-24 (§8). Execução 4 completa em 2026-11-25, após o rastreamento inteligente (§9). |
 | Ambiente | Conforme o §2 do plano: Windows 11 Pro 10.0.26200, XAMPP Apache 2.4 + PHP 8.2.12, MariaDB 10.4.32, Python 3.12.2 |
-| Evidência bruta | `docs/test-evidence/2026-10-14_run1`, `…_run1-failure`, `…_run1b-confirm`, `…_run2`, `2026-10-28_run3a-before`, `…_run3` (`results.md`/`results.json` por caso, logs de requisições do laboratório, exportações JSON, respostas HTML, saídas das suítes) |
+| Evidência bruta | `docs/test-evidence/2026-10-14_run1`, `…_run1-failure`, `…_run1b-confirm`, `…_run2`, `2026-10-28_run3a-before`, `…_run3`, `2026-11-25_run4`, `…_run4b-rerun` (`results.md`/`results.json` por caso, logs de requisições do laboratório, exportações JSON, respostas HTML, saídas das suítes) |
 
 ## 1. Resumo
 
@@ -16,7 +16,9 @@
 | 1b — confirmação | antes das correções · 2026-10-14 23:05 | — | — | ST-24: 0 / 1 | FI-02, 03: aprovados; FI-08, 09: reprovados |
 | 2 — reexecução | após as correções D-01…D-08 · 2026-10-14 23:13 | 113 / 113 | 140 / 140 | 24 / 24 | 10 / 10 |
 | 3a — novos casos, antes de D-09/D-10 | antes de D-09/D-10 · 2026-10-28 22:32 | — | — | ST-25, ST-26: 0 / 2; navegador 2 / 3 ² | — |
-| **3 — reexecução final** | **código final · 2026-10-28 22:36** | **113 / 113** | **153 / 153** | **26 / 26 + navegador 3 / 3** | **10 / 10** |
+| 3 — reexecução final (até 2026-11-24) | código de 2026-10-28 · 22:36 | 113 / 113 | 153 / 153 | 26 / 26 + navegador 3 / 3 | 10 / 10 |
+| 4 — rastreamento inteligente | após D-11 · 2026-11-25 14:30 | 124 / 124 ³ | 168 / 168 | 27 / 27 + navegador 2 / 3 ⁴ | 9 / 10 ⁴ |
+| **4b — reexecução final** | **código final · 2026-11-25 14:55** | **125 / 125** ³ | **168 / 168** | **navegador 3 / 3** | **FI-02: aprovado** |
 
 ¹ Das quatro reprovações da execução 1, duas (FI-02, FI-03) foram falsos positivos do driver de
 teste e uma (FI-09) não provocou a falha que deveria provocar; ver §4. Elas foram reexecutadas na
@@ -24,13 +26,19 @@ teste e uma (FI-09) não provocou a falha que deveria provocar; ver §4. Elas fo
 
 ² O MT-01 reprovou na execução 3a por causa do driver de teste, não do produto (TW-04, §4).
 
-**Resultado:** 10 defeitos encontrados (1 bloqueante, 6 altos, 2 médios, 1 baixo); **todos os 10
+³ 113 testes anteriores + 12 novos do rastreador (11 na execução 4; o 12º, sobre variações não
+visitadas por falta de orçamento, foi escrito junto com a correção feita durante a execução — §9).
+
+⁴ As duas reprovações da execução 4 foram do ambiente de teste, não do produto (TW-05, TW-06, §4);
+os casos foram reexecutados na 4b sem nenhuma mudança no código do produto.
+
+**Resultado:** 11 defeitos encontrados (1 bloqueante, 7 altos, 2 médios, 1 baixo); **todos os 11
 corrigidos e verificados pela reexecução dos casos que os revelaram** (§3). Nenhum defeito
 permanece aberto. Todos os casos planejados foram executados, exceto o **MT-04** — instalação por
 uma pessoa de fora da equipe —, do qual depende o CA-07.
 
-A execução 3 é o resultado de referência: a bateria inteira executada sobre o código final em
-2026-10-28.
+A execução 4/4b é o resultado de referência: a bateria inteira executada sobre o código final em
+2026-11-25. A execução 3 é a referência para o código anterior ao rastreamento inteligente.
 
 ### 1.1 Critérios de aceite
 
@@ -130,6 +138,7 @@ reexecutado sobre o código corrigido e passou (execução 2) — não apenas qu
 | D-07 | Média | O histórico rotulado "UTC" mostra o horário local do servidor; uma análise parece durar 3 h | Observado na execução 1 (banco), depois ST-24 escrito antes da correção | `started_at` vindo de um default de coluna no fuso local da sessão (America/Sao_Paulo), `completed_at` de `UTC_TIMESTAMP()`. | A conexão define `time_zone = '+00:00'`. | ST-24 ✔ |
 | D-09 | Alta | O histórico não pode ser consultado por período, como exige o item 6 do Termo ("consultar o histórico … por período") | Conferência cruzada do Termo com o produto; ST-25 (execução 3a) | Não implementado: o painel sempre listava o histórico inteiro. | `Domain\Model\Period`; `AnalysisRepository::listByApplication()` recebe um período opcional, um intervalo sobre o índice `(application_id, started_at)`; formulário *Histórico por período* no painel. | ST-25, AT-02 ✔ |
 | D-10 | Alta | A exportação JSON não tem um resumo de fato, como exige o item 8 do Termo ("resumo, Pontuação de Segurança, metadados e relação dos achados") | Conferência cruzada do Termo com o produto; ST-26 (execução 3a) | `summary` trazia apenas o número de achados. | `summary` com `by_severity`, `manual_review_required` e `security_score`. | ST-26, AT-02 ✔ |
+| D-11 | Alta | Telas de aplicações roteadas por parâmetro (`index.php?p=12`, `?p=14`) eram tratadas como uma única página: só a primeira tela do menu era analisada, sem aviso | Uso da ferramenta contra o desenho do Portal de Clientes e do PIM (2026-11-25); reproduzido em `tests/test_crawler.py` (`PortalLike`) | `page_signature` agrupava páginas pelos *nomes* dos parâmetros, ignorando os valores, para não visitar `/produto?id=1..N` muitas vezes; o mesmo critério juntava telas diferentes. Além disso, endpoints chamados por JavaScript não eram descobertos e a cobertura não era informada. | Assinatura com valores; `page_shape` + reconhecimento de modelo de página (`CrawlFrontier`, `page_structure`); URLs lidas no JavaScript; cobertura relatada, gravada e exibida (contrato 1.3). | AT-01 (`SmartCrawlTests`: antes 1 página e 0 de 2 XSS; depois 6 páginas e 2 de 2), ST-27, AT-02 ✔ |
 | D-08 | Baixa | A versão 1.0 do contrato não listava `cookie` como `parameter_location` | AT-01 (contrato) | Omissão de documentação; o produtor sempre o emitiu. | Contrato v1.1; teste do produtor atualizado. | AT-01 ✔ |
 
 ### 3.1 Passos de reprodução (no código anterior às correções)
@@ -172,6 +181,8 @@ produto não sejam inflados nem escondidos.
 | TW-02 | O driver de teste lia `php/logs/php_error_log`, que o XAMPP não cria; o PHP grava no `error.log` do Apache. | Falsa REPROVAÇÃO "detalhe registrado" no FI-02. | Caminho corrigido; o manual e o guia do desenvolvedor apontam para o log correto. |
 | TW-03 | O FI-09 com 1 s por resposta terminou em 115,8 s, abaixo dos 120 s que deveria ultrapassar. | Uma **falsa APROVAÇÃO** na execução 1: a falha não foi provocada. Registrada como nula. | Atraso elevado para 2 s (revisão do plano §8); a execução 1b então reproduziu o D-04. |
 | TW-04 | O MT-01 lia o botão pelo DevTools após o clique; depois que um formulário é enviado, o navegador só responde ao DevTools quando a página seguinte termina de carregar. | Falsa REPROVAÇÃO na execução 3a: o driver leu a página de resultado em vez do botão. | Conferido manualmente com o envio bloqueado (o botão é travado e mostra "Analisando…"); o estado agora é registrado dentro da página (MutationObserver → `sessionStorage`) e lido após a navegação. |
+| TW-05 | O FI-02 procura o detalhe do erro no log do Apache (`--php-log` padrão), mas nesta máquina o `php.ini` define `error_log = C:\xampp\php\logs\php_error_log`. | Falsa REPROVAÇÃO do item "detalhe registrado" na execução 4; os demais itens do FI-02 (HTTP 500, mensagem genérica, nenhum detalhe na resposta) aprovados. O detalhe estava gravado (`SentinelScope: PDOException … [2002]`, 14:42:10 UTC). | Execução 4b com `--php-log C:\xampp\php\logs\php_error_log`: FI-02 aprovado, inclusive "senha não registrada" conferida no arquivo certo. |
+| TW-06 | O MT-03 lê o PDF gerado com `pypdf`, que não estava instalado no Python desta máquina. | REPROVAÇÃO do item "pypdf disponível"; o PDF foi gerado (`%PDF-1.4`). | Execução 4b com um ambiente virtual isolado contendo `pypdf` (MT-01…03 reexecutados juntos, porque o MT-03 usa a análise preparada pelo MT-01): aprovados. |
 
 Os resultados esperados desses casos não mudaram; o §8 do plano registra cada revisão e sua data.
 
@@ -243,3 +254,37 @@ pendentes de decisão da equipe):
 - (e) As mensagens de erro do motor (escopo, orçamento, cancelamento) estavam em inglês e foram
   traduzidas em 2026-11-24 — alteração de código em `scanner/engine/safety.py` e
   `scanner/engine/runner.py`.
+
+## 9. Execução 4 — rastreamento inteligente (2026-11-25)
+
+Motivo: o defeito D-11 (telas `?p=` agrupadas numa só página) e a falta de informação sobre a
+cobertura da análise. Mudanças: `scanner/engine/crawler.py` (assinatura com valores, formato de
+página, estrutura e reconhecimento de modelo, `CrawlFrontier`, URLs em JavaScript, filtro de
+caminhos destrutivos), `scanner/engine/runner.py`, `scanner/engine/models.py`, contrato 1.3,
+`App\Domain\Model\CrawlCoverage`, gravação em `analyses.pages_scanned`/`crawl_coverage`,
+seção *Cobertura da análise* no resultado e `coverage` na exportação. O ST-27 foi acrescentado ao
+plano **antes** da execução (plano §8).
+
+| Item | Resultado |
+|---|---|
+| AT-01 `python -m unittest discover -s tests` | Execução 4: 124 testes, OK (289 s). Durante a execução do sistema, a revisão do código encontrou que variações descartadas por falta de orçamento eram contadas como "variações de modelo" e não apareciam como não analisadas; corrigido (`CrawlFrontier.out_of_budget`) com um teste novo — o caminho não é exercitado pelo laboratório da suíte de sistema. Execução 4b: 125 testes, OK (290 s). |
+| AT-02 `php tests/php_test.php` | 168 verificações, 0 falhas (153 anteriores + 15 de cobertura). |
+| Sistema (ST-01…ST-27) | 27 / 27 aprovados. No laboratório, cada página continua recebendo exatamente 2 GET (ST-06), as mesmas 5 páginas são visitadas e a amostra do contrato mantém 137 requisições e 14 achados no modo completo: o rastreamento novo não alterou o resultado de referência. |
+| Injeção de falhas (FI-01…FI-10) | Execução 4: 9 / 10 (FI-02, TW-05). Execução 4b: FI-02 aprovado. |
+| Navegador (MT-01…MT-03) | Execução 4: 2 / 3 (MT-03, TW-06). Execução 4b: 3 / 3. |
+| Verificação manual pela interface | Laboratório `PortalLike` cadastrado e analisado pelo Apache: a seção *Cobertura da análise* mostra "6 páginas analisadas; 1 arquivo JavaScript lido em busca de endpoints" e lista as 5 telas `?p=` e o endpoint AJAX. |
+
+Medição antes/depois (motor anterior extraído do `master` e motor atual, mesmos sites de
+laboratório de `tests/test_crawler.py`, limites padrão):
+
+| Site | Versão | Páginas | Requisições | XSS encontrados |
+|---|---|---:|---:|---:|
+| `PortalLike`, modo completo | anterior | 1 | 48 | 0 de 2 |
+| | atual | 6 | 188 | 2 de 2 |
+| `PortalLike`, passivo | anterior | 1 | 2 | — |
+| | atual | 6 | 13 | — |
+| `Catalog` (40 produtos), passivo | anterior | 2 | 4 | — |
+| | atual | 2 | 7 | — |
+
+Os registros criados no banco pela suíte e pela verificação manual foram apagados depois da
+execução (com backup local), para devolver a instalação ao estado vazio usado na apresentação.

@@ -53,6 +53,14 @@ final class ExportAnalysis
                 'completed_at' => $analysis->completedAt?->format('Y-m-d H:i:s'),
             ],
             'summary' => self::summary($analysis, $findings),
+            'coverage' => $analysis->coverage === null ? null : [
+                'pages_analysed' => $analysis->coverage->pagesAnalysed(),
+                'analysed_urls' => $analysis->coverage->analysedUrls,
+                'pages_not_visited' => $analysis->coverage->notVisitedCount,
+                'not_visited_urls' => $analysis->coverage->notVisitedUrls,
+                'template_variants_skipped' => $analysis->coverage->templateVariantsSkipped,
+                'scripts_read' => $analysis->coverage->scriptsRead,
+            ],
             'findings' => array_map([self::class, 'mapFinding'], $findings),
         ];
     }

@@ -1,0 +1,174 @@
+{
+  "meta": {
+    "run": "execucao-5b-reexecucao",
+    "started": "2026-11-25T14:47:42+00:00",
+    "finished": "2026-11-25T14:47:57+00:00",
+    "app_url": "http://localhost/www/Ciber/public/",
+    "passed": 4,
+    "total": 4,
+    "python": "3.12.10",
+    "platform": "win32"
+  },
+  "results": [
+    {
+      "id": "FI-02",
+      "suite": "failure",
+      "title": "MariaDB stopped",
+      "verdict": "PASS",
+      "seconds": 3.3,
+      "checks": [
+        [
+          "database stopped",
+          true,
+          ""
+        ],
+        [
+          "database restarted",
+          true,
+          ""
+        ],
+        [
+          "HTTP status",
+          true,
+          "expected 500, got 500"
+        ],
+        [
+          "generic message",
+          true,
+          "A requisição não pôde ser concluída.  Ocorreu um erro inesperado. Consulte o log do servidor."
+        ],
+        [
+          "no technical detail in the response",
+          true,
+          "[]"
+        ],
+        [
+          "detail logged",
+          true,
+          "(46): App\\Infrastructure\\Database::pdo()\n#2 C:\\xampp\\htdocs\\www\\Ciber\\app\\src\\Infrastructure\\Persistence\\PdoApplicationRepository.php(17): App\\Infrastructure\\Database::all()\n#3 C:\\xampp\\htdocs\\www\\Ciber\\public\\index.php(110): App\\Infrastructure\\Persistence\\PdoApplicationRepository->all()\n#4 {main}\r\n"
+        ],
+        [
+          "password not logged",
+          true,
+          ""
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "MT-01",
+      "suite": "browser",
+      "title": "Double click on 'Executar análise' starts one analysis, with progress shown",
+      "verdict": "PASS",
+      "seconds": 8.6,
+      "checks": [
+        [
+          "button disabled",
+          true,
+          "{'disabled': True, 'text': 'Analisando…', 'statusShown': True, 'busy': 'true'}"
+        ],
+        [
+          "button says 'Analisando…'",
+          true,
+          "{'disabled': True, 'text': 'Analisando…', 'statusShown': True, 'busy': 'true'}"
+        ],
+        [
+          "progress message visible",
+          true,
+          "{'disabled': True, 'text': 'Analisando…', 'statusShown': True, 'busy': 'true'}"
+        ],
+        [
+          "result page reached",
+          true,
+          ""
+        ],
+        [
+          "analyses created by the double click",
+          true,
+          "expected 1, got 1"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "MT-02",
+      "suite": "browser",
+      "title": "Severity chips filter the findings",
+      "verdict": "PASS",
+      "seconds": 0.3,
+      "checks": [
+        [
+          "at least two severities to filter",
+          true,
+          "{'high': 1, 'medium': 5, 'low': 6}"
+        ],
+        [
+          "'high' chip shows only its 1 finding(s)",
+          true,
+          "['high']"
+        ],
+        [
+          "'medium' chip shows only its 5 finding(s)",
+          true,
+          "['medium', 'medium', 'medium', 'medium', 'medium']"
+        ],
+        [
+          "'low' chip shows only its 6 finding(s)",
+          true,
+          "['low', 'low', 'low', 'low', 'low', 'low']"
+        ],
+        [
+          "'Todos' shows every finding again",
+          true,
+          "expected 12, got 12"
+        ]
+      ],
+      "error": null
+    },
+    {
+      "id": "MT-03",
+      "suite": "browser",
+      "title": "Printable report saved as PDF",
+      "verdict": "PASS",
+      "seconds": 2.0,
+      "checks": [
+        [
+          "a PDF was produced",
+          true,
+          "b'%PDF-1.4'"
+        ],
+        [
+          "header: application name",
+          true,
+          ""
+        ],
+        [
+          "header: score",
+          true,
+          ""
+        ],
+        [
+          "metrics",
+          true,
+          ""
+        ],
+        [
+          "every finding title printed",
+          true,
+          "expected [], got []"
+        ],
+        [
+          "navigation not printed",
+          true,
+          ""
+        ],
+        [
+          "buttons not printed",
+          true,
+          ""
+        ]
+      ],
+      "error": null
+    }
+  ]
+}

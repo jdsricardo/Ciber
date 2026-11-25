@@ -783,6 +783,33 @@ def st26(ctx: Context, c: Checks):
             sum(bool(f["manual_review_required"]) for f in findings))
 
 
+@case("ST-27", "system", "Crawl coverage is stored, shown and exported (L-06)")
+def st27(ctx: Context, c: Checks):
+    analysis_id = ctx.state["passive"]
+    document = ctx.export(analysis_id)
+    coverage = document.get("coverage") or {}
+    analysed = coverage.get("analysed_urls") or []
+    st06_log = ctx.evidence / "lab-st06.jsonl"
+    requested = {json.loads(line)["path"] for line in st06_log.read_text(encoding="utf-8").splitlines() if line}
+
+    def path_of(url: str) -> str:
+        parts = urllib.parse.urlsplit(url)
+        return parts.path + (f"?{parts.query}" if parts.query else "")
+
+    c.that("export carries the coverage", bool(analysed), coverage)
+    c.equal("pages_analysed equals the list", coverage.get("pages_analysed"), len(analysed))
+    c.equal("stored pages_scanned", ctx.db.scalar(f"SELECT pages_scanned FROM analyses WHERE id={int(analysis_id)}"),
+            str(len(analysed)))
+    c.equal("nothing left out on the laboratory", coverage.get("pages_not_visited"), 0)
+    c.that("every analysed page was requested from the laboratory",
+           all(path_of(u) in requested for u in analysed), {"analysed": analysed, "requested": sorted(requested)})
+    page = ctx.web.get(f"page=result&id={analysis_id}")
+    c.equal("metric shown", metric(page, "Páginas analisadas"), str(len(analysed)))
+    c.that("coverage section shown", "Cobertura da análise" in page.plain, "")
+    c.that("every analysed page listed on the result", all(u in page.plain for u in analysed), analysed)
+    ctx.save("ST-27-coverage.json", coverage)
+
+
 # ---------------------------------------------------------------------------------------------
 # 4.4 Failure injection
 # ---------------------------------------------------------------------------------------------

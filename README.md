@@ -52,6 +52,8 @@ ficam em `docs/test-evidence/`.
   `evaluation/benchmark_comparison.php`.
 - [Requisitos](docs/REQUIREMENTS.md), [plano de testes](docs/TEST_PLAN.md),
   [relatório de testes](docs/TEST_REPORT.md), [motor de varredura](docs/SCANNER_ENGINE.md).
+- [Catálogo de verificações](docs/CHECK_CATALOG.md) — as 64 verificações, plugin por plugin: o que
+  cada uma detecta, em que arquivo está e quando é avaliada.
 - [Conformidade com o roteiro](docs/ROADMAP_COMPLIANCE.md) — situação de cada passo das Fases 4 e 5,
   as regras de precedência e os checklists pré-entrega, cada um com sua evidência.
 - [Changelog](CHANGELOG.md).

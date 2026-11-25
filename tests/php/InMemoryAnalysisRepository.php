@@ -7,6 +7,7 @@ namespace Tests\Php;
 use App\Domain\Contract\AnalysisRepository;
 use App\Domain\Model\Analysis;
 use App\Domain\Model\AnalysisStatus;
+use App\Domain\Model\CrawlCoverage;
 use App\Domain\Model\Period;
 use App\Domain\Model\SecurityScore;
 use DateTimeImmutable;
@@ -60,6 +61,7 @@ final class InMemoryAnalysisRepository implements AnalysisRepository
         int $checksRun,
         int $durationMs,
         int $httpStatus,
+        ?CrawlCoverage $coverage = null,
     ): void {
         $current = $this->rows[$analysisId];
         $this->rows[$analysisId] = new Analysis(
@@ -75,6 +77,7 @@ final class InMemoryAnalysisRepository implements AnalysisRepository
             completedAt: new DateTimeImmutable('now'),
             applicationName: $current->applicationName,
             baseUrl: $current->baseUrl,
+            coverage: $coverage,
         );
     }
 
